@@ -1,2 +1,4 @@
+0.0.1
+ - Bugfixes for remote files and zipfiles, extras on urls.
 0.0.1.dev1
  - Initial commit
