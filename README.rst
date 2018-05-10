@@ -1,6 +1,24 @@
 RequirementsLib: Requirement Management Library for Pip and Pipenv
 ===================================================================
 
+.. image:: https://img.shields.io/pypi/v/requirementslib.svg
+    :target: https://pypi.python.org/pypi/requirementslib
+
+.. image:: https://img.shields.io/pypi/l/pipenv.svg
+    :target: https://pypi.python.org/pypi/pipenv
+
+.. image:: https://travis-ci.org/techalchemy/requirementslib.svg?branch=master
+    :target: https://travis-ci.org/techalchemy/requirementslib
+
+.. image:: https://ci.appveyor.com/api/projects/status/n16s8fhn71o0v0tl/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/techalchemy/requirementslib/branch/master
+
+.. image:: https://img.shields.io/pypi/pyversions/requirementslib.svg
+    :target: https://pypi.python.org/pypi/requirementslib
+
+.. image:: https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg
+    :target: https://saythanks.io/to/techalchemy
+
 Installation
 *************
 
