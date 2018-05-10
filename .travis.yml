@@ -1,0 +1,17 @@
+sudo: false
+dist: trusty
+cache: pip
+language: python
+python:
+  - "3.6"
+  - "2.7"
+  - "3.5"
+  - "3.4"
+# command to install dependencies
+install:
+  - "pip install --upgrade pip pytest pytest-xdist"
+  - "pip install -e . "
+  
+  # command to run the dependencies
+script:
+  - "py.test -n 8 -v tests"

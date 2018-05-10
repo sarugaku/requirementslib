@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+
+[dev-packages]
+"flake8" = "*"
+pytest = "*"
+sphinx = "*"
+twine = "*"
+invoke = "*"
+requirementslib = {path = ".", editable = true}
+black = "*"
+
+[requires]
+python_version = "3.6"
+
+[pipenv]
+allow_prereleases = true
