@@ -13,6 +13,7 @@ twine = "*"
 invoke = "*"
 requirementslib = {path = ".", editable = true}
 black = "*"
+sphinx_rtd_theme = "*"
 
 [requires]
 python_version = "3.6"
