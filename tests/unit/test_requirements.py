@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import pytest
+from first import first
 from requirementslib import Requirement
 
 
@@ -42,13 +43,47 @@ DEP_PIP_PAIRS = [
         }},
         '-e svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject',
     ),
-
+    (
+        # Extras in url
+        {'discord.py': {
+                'file': 'https://github.com/Rapptz/discord.py/archive/rewrite.zip',
+                'extras': ['voice']
+        }},
+        'https://github.com/Rapptz/discord.py/archive/rewrite.zip#egg=discord.py[voice]',
+    ),
+    (
+        {'requests': {
+            'git': 'https://github.com/requests/requests.git',
+            'ref': 'master', 'extras': ['security'],
+            'editable': False
+        }},
+        'git+https://github.com/requests/requests.git@master#egg=requests[security]',
+    ),
+    (
+        {'FooProject': {
+            'version': '==1.2',
+            'hash': 'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+        }},
+        'FooProject==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+    ),
+    (
+        {'FooProject': {
+            'version': '==1.2',
+            'extras': ['stuff'],
+            'hash': 'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+        }},
+        'FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
+    ),
 ]
 
 
 @pytest.mark.utils
 @pytest.mark.parametrize('expected, requirement', DEP_PIP_PAIRS)
 def test_convert_from_pip(expected, requirement):
+    pkg_name = first(expected.keys())
+    pkg_pipfile = expected[pkg_name]
+    if hasattr(pkg_pipfile, 'keys') and 'editable' in pkg_pipfile and not pkg_pipfile['editable']:
+        del expected[pkg_name]['editable']
     assert Requirement.from_line(requirement).as_pipfile() == expected
 
 
