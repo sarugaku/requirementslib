@@ -64,13 +64,13 @@ class UploadCommand(Command):
         pass
 
     def run(self):
-        self.status('Building Source distribution…')
-        os.system('{0} setup.py sdist'.format(sys.executable))
+        # self.status('Building Source distribution…')
+        # os.system('{0} setup.py sdist'.format(sys.executable))
         self.status('Uploading the package to PyPi via Twine…')
         os.system('twine upload dist/*')
         self.status('Pushing git tags…')
         os.system('git tag v{0}'.format(find_version("src", "requirementslib", "__init__.py")))
-        os.system('git push --tags')
+        os.system('git push origin --tags')
         sys.exit()
 
 
