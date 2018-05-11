@@ -6,7 +6,6 @@ Welcome to RequirementsLib's documentation!
    :caption: Contents:
 
    quickstart
-   modules
    requirementslib
 
 
