@@ -19,6 +19,10 @@ RequirementsLib: Requirement Management Library for Pip and Pipenv
 .. image:: https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg
     :target: https://saythanks.io/to/techalchemy
 
+.. image:: https://readthedocs.org/projects/requirementslib/badge/?version=latest
+    :target: http://requirementslib.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 Installation
 *************
 
