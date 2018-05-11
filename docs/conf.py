@@ -14,22 +14,31 @@
 #
 import os
 import re
+import codecs
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
 root = os.path.dirname(os.path.dirname(__file__))
-init_file = os.path.join(root, 'src', 'requirementslib', '__init__.py')
 
-with open(init_file) as f:
-    for line in f:
-        m = re.match(r'__version__ = "(.*)"', line)
-        if m:
-            __version__ = m.group(1)
-            # The short X.Y version.
-            version = '.'.join(__version__.split('.')[:2])
-            # The full version, including alpha/beta/rc tags.
-            release = __version__
-            break
+
+def read(*parts):
+    # intentionally *not* adding an encoding option to open, See:
+    #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
+    with codecs.open(os.path.join(root, *parts), 'r') as fp:
+        return fp.read()
+
+
+def find_version(*file_paths):
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    return '0.0.0'
+
+
+release = find_version('src', 'requirementslib', '__init__.py')
+version = '.'.join(release.split('.')[:2])
 
 # This is for debugging in case the version is wrong
 print(version)
@@ -90,13 +99,13 @@ extlinks = {
     'pull': ('https://github.com/techalchemy/requirementslib/pull/%s', 'PR #'),
 }
 html_theme_options = {
-    'collapsiblesidebar': True,
-    'externalrefs': True,
-    'issues_url': 'https://github.com/techalchemy/requirementslib/issues',
+    # 'collapsiblesidebar': True,
+    # 'externalrefs': True,
+    # 'issues_url': 'https://github.com/techalchemy/requirementslib/issues',
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
-    'vcs_pageview_mode': '',
+    # 'vcs_pageview_mode': '',
     # Toc options
     'collapse_navigation': True,
     'sticky_navigation': True,
