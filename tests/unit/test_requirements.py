@@ -108,3 +108,49 @@ def test_convert_from_pip_git_uri_normalize():
             'git': 'git@host:user/repo.git',
         }
     }
+
+
+@pytest.mark.utils
+@pytest.mark.requirements
+def test_get_requirements():
+    # Test eggs in URLs
+    url_with_egg = Requirement.from_line(
+        'https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip#egg=django-user-clipboard'
+    ).requirement
+    assert url_with_egg.uri == 'https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip'
+    assert url_with_egg.name == 'django-user-clipboard'
+    # Test URLs without eggs pointing at installable zipfiles
+    url = Requirement.from_line(
+        'https://github.com/kennethreitz/tablib/archive/0.12.1.zip'
+    ).requirement
+    assert url.uri == 'https://github.com/kennethreitz/tablib/archive/0.12.1.zip'
+    # Test VCS urls with refs and eggnames
+    vcs_url = Requirement.from_line(
+        'git+https://github.com/kennethreitz/tablib.git@master#egg=tablib'
+    ).requirement
+    assert vcs_url.vcs == 'git' and vcs_url.name == 'tablib' and vcs_url.revision == 'master'
+    assert vcs_url.uri == 'git+https://github.com/kennethreitz/tablib.git'
+    # Test normal package requirement
+    normal = Requirement.from_line('tablib').requirement
+    assert normal.name == 'tablib'
+    # Pinned package  requirement
+    spec = Requirement.from_line('tablib==0.12.1').requirement
+    assert spec.name == 'tablib' and spec.specs == [('==', '0.12.1')]
+    # Test complex package with both extras and markers
+    extras_markers = Requirement.from_line(
+        "requests[security]; os_name=='posix'"
+    ).requirement
+    assert extras_markers.extras == ['security']
+    assert extras_markers.name == 'requests'
+    assert extras_markers.markers == "os_name=='posix'"
+    # Test VCS uris get generated correctly, retain git+git@ if supplied that way, and are named according to egg fragment
+    git_reformat = Requirement.from_line(
+        '-e git+git@github.com:pypa/pipenv.git#egg=pipenv'
+    ).requirement
+    assert git_reformat.uri == 'git+git@github.com:pypa/pipenv.git'
+    assert git_reformat.name == 'pipenv'
+    assert git_reformat.editable
+    # Previously VCS uris were being treated as local files, so make sure these are not handled that way
+    assert not git_reformat.local_file
+    # Test regression where VCS uris were being handled as paths rather than VCS entries
+    assert git_reformat.vcs == 'git'
