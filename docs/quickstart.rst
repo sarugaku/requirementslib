@@ -39,7 +39,7 @@ Install from `Github`_:
     $ pipenv install -e git+https://github.com/techalchemy/requirementslib.git#egg=requirementslib
 
 
-.. _PyPI: https://www.pypi.org/projects/requirementslib
+.. _PyPI: https://www.pypi.org/project/requirementslib
 .. _Github: https://github.com/techalchemy/requirementslib
 
 
