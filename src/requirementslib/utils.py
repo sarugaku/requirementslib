@@ -73,6 +73,10 @@ def is_installable_file(path):
         else:
             return False
 
+    parsed = urlparse(path)
+    if parsed.scheme == 'file':
+        path = parsed.path
+
     if not os.path.exists(os.path.abspath(path)):
         return False
 
@@ -90,7 +94,7 @@ def is_installable_file(path):
 def is_valid_url(url):
     """Checks if a given string is an url"""
     pieces = urlparse(url)
-    return all([pieces.scheme, pieces.netloc])
+    return all([pieces.scheme, any([pieces.netloc, pieces.path])])
 
 
 def pep423_name(name):
