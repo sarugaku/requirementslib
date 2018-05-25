@@ -85,4 +85,4 @@ Integrations
 
 * `Pip <https://github.com/pypa/pip>`_
 * `Pipenv <https://github.com/pypa/pipenv>`_
-* `Pipfile <https://github.com/pypa/pipfile>`_
+* `Pipfile`_
