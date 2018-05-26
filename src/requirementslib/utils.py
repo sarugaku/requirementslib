@@ -35,7 +35,10 @@ def is_vcs(pipfile_entry):
 
 def get_converted_relative_path(path, relative_to=os.curdir):
     """Given a vague relative path, return the path relative to the given location"""
-    return os.path.join(".", os.path.relpath(path, start=relative_to))
+    relpath = os.path.relpath(path, start=relative_to)
+    if os.name == 'nt':
+        return os.altsep.join([".", relpath])
+    return os.path.join(".", relpath)
 
 
 def multi_split(s, split):
