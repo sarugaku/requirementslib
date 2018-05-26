@@ -1,3 +1,5 @@
+0.0.6
+ - Fix windows relative path generation.
 0.0.5
  - Bugfix for parsing editable local paths (they were being parsed as named requirements.)
 0.0.4
