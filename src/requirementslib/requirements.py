@@ -8,7 +8,7 @@ import requirements
 import six
 from attr import attrs, attrib, Factory, validators
 import attr
-from ._compat import Link, path_to_url, _strip_extras
+from ._compat import Link, path_to_url, _strip_extras, InstallRequirement
 from distlib.markers import Evaluator
 from packaging.markers import Marker, InvalidMarker
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
@@ -585,6 +585,7 @@ class Requirement(object):
     editable = attrib(default=None)
     hashes = attrib(default=Factory(list), converter=list)
     extras = attrib(default=Factory(list))
+    _ireq = None
     _INCLUDE_FIELDS = ("name", "markers", "index", "editable", "hashes", "extras")
 
     @name.default
@@ -762,6 +763,17 @@ class Requirement(object):
     @property
     def pipfile_entry(self):
         return self.as_pipfile().copy().popitem()
+
+    @property
+    def ireq(self):
+        if not self._ireq:
+            ireq_line = self.as_line()
+            if ireq_line.startswith("-e "):
+                ireq_line = ireq_line[len("-e "):]
+                self._ireq = InstallRequirement.from_editable(ireq_line)
+            else:
+                self._ireq = InstallRequirement.from_line(ireq_line)
+        return self._ireq
 
 
 def _extras_to_string(extras):
