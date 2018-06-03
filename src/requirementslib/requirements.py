@@ -397,7 +397,7 @@ class FileRequirement(BaseRequirement):
         arg_dict = {
             "name": name,
             "path": pipfile.get("path"),
-            "uri": link.url_without_fragment,
+            "uri": link.url_without_fragment if link else uri,
             "editable": pipfile.get("editable"),
             "link": link,
         }
