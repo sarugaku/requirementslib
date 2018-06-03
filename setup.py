@@ -80,7 +80,7 @@ setup(
     description="A tool for converting between pip-style and pipfile requirements.",
     long_description=long_description,
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Build Tools",
@@ -97,7 +97,7 @@ setup(
     keywords='pipfile requirements.txt pip requirementslib',
     author='Dan Ryan',
     author_email='dan@danryan.co',
-    url='https://github.com/techalchemy/requirementslib',
+    url='https://github.com/sarugaku/requirementslib',
     license='MIT',
     package_dir={"": "src"},
     packages=find_packages(
