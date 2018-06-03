@@ -31,9 +31,9 @@ except ImportError:
     from pathlib2 import Path
 
 try:
-    from urllib.parse import urlparse
+    from urllib.parse import urlparse, unquote
 except ImportError:
-    from urlparse import urlparse
+    from urlparse import urlparse, unquote
 
 HASH_STRING = " --hash={0}"
 
@@ -298,10 +298,23 @@ class FileRequirement(BaseRequirement):
         loc = self.path or self.uri
         if loc:
             self._uri_scheme = "path" if self.path else "uri"
+        name = None
+        setup_path = Path(self.path) / 'setup.py'
+        if self._uri_scheme != "uri" and self.path and setup_path.exists():
+            from distutils.core import run_setup
+            try:
+                dist = run_setup(setup_path.as_posix(), stop_after='init')
+            except FileNotFoundError:
+                dist = None
+            else:
+                dist_name = dist.get_name()
+                name = dist_name if dist_name != 'UNKNOWN' else None
         hashed_loc = hashlib.sha256(loc.encode("utf-8")).hexdigest()
-        hash_fragment = hashed_loc[-7:]
-        self._has_hashed_name = True
-        return hash_fragment
+        hashed_name = hashed_loc[-7:]
+        if not name:
+            self._has_hashed_name = True
+            name = hashed_name
+        return name
 
     @link.default
     def get_link(self):
@@ -359,7 +372,7 @@ class FileRequirement(BaseRequirement):
                     line = path
             else:
                 _path = Path(line)
-                link = Link(_path.absolute().as_uri())
+                link = Link(unquote(_path.absolute().as_uri()))
                 if _path.is_absolute() or _path.as_posix() == ".":
                     path = _path.as_posix()
                 else:
@@ -382,11 +395,11 @@ class FileRequirement(BaseRequirement):
         if not uri_key:
             abs_path = os.path.abspath(uri)
             uri = path_to_url(abs_path) if os.path.exists(abs_path) else None
-        link = Link(uri) if uri else None
+        link = Link(unquote(uri)) if uri else None
         arg_dict = {
             "name": name,
             "path": pipfile.get("path"),
-            "uri": link.url_without_fragment,
+            "uri": unquote(link.url_without_fragment if link else uri),
             "editable": pipfile.get("editable"),
             "link": link,
         }
@@ -451,7 +464,8 @@ class VCSRequirement(FileRequirement):
 
     @name.default
     def get_name(self):
-        return self.link.egg_fragment or self.req.name if self.req else ""
+        return self.link.egg_fragment or self.req.name \
+               if self.req else super(VCSRequirement, self).get_name()
 
     @property
     def vcs_uri(self):
