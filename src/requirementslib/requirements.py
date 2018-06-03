@@ -295,13 +295,23 @@ class FileRequirement(BaseRequirement):
 
     @name.default
     def get_name(self):
-        from subprocess import check_output, PIPE
         loc = self.path or self.uri
         if loc:
             self._uri_scheme = "path" if self.path else "uri"
-        name = check_output([sys.executable, "setup.py", "--name"], cwd=loc).strip()
-        if not isinstance(name, str):
-            name = name.decode()
+        name = None
+        if self._uri_scheme != "uri" and self.path:
+            from distutils.core import run_setup
+            try:
+                dist = run_setup(self.path, stop_after='init')
+            except FileNotFoundError:
+                dist = None
+            else:
+                dist_name = dist.get_name()
+                name = dist_name if dist_name != 'UNKNOWN' else None
+        if not name:
+            hashed_loc = hashlib.sha256(loc.encode("utf.8")).hexdigest()
+            name = hashed_loc[-7:]
+            self._has_hashed_name = True
         return name
 
     @link.default
