@@ -286,6 +286,7 @@ class FileRequirement(BaseRequirement):
     req = attrib()
     _has_hashed_name = False
     _uri_scheme = None
+    _setup_path = attrib(default=None)
 
     @uri.default
     def get_uri(self):
@@ -299,11 +300,10 @@ class FileRequirement(BaseRequirement):
         if loc:
             self._uri_scheme = "path" if self.path else "uri"
         name = None
-        setup_path = Path(self.path) / 'setup.py'
-        if self._uri_scheme != "uri" and self.path and setup_path.exists():
+        if self._uri_scheme != "uri" and self.path and self.setup_path:
             from distutils.core import run_setup
             try:
-                dist = run_setup(setup_path.as_posix(), stop_after='init')
+                dist = run_setup(self.setup_path.as_posix(), stop_after='init')
             except FileNotFoundError:
                 dist = None
             else:
@@ -347,6 +347,16 @@ class FileRequirement(BaseRequirement):
         ) and (
             self.link.is_artifact or self.link.is_wheel
         ) and not self.req.editable
+
+    @property
+    def setup_path(self):
+        if not self._setup_path:
+            if not self.path:
+                return
+            setup_path = Path(self.path) / 'setup.py'
+            if setup_path.exists():
+                self._setup_path = setup_path
+        return self._setup_path
 
     @classmethod
     def from_line(cls, line):
