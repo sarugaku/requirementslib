@@ -295,13 +295,14 @@ class FileRequirement(BaseRequirement):
 
     @name.default
     def get_name(self):
+        from subprocess import check_output, PIPE
         loc = self.path or self.uri
         if loc:
             self._uri_scheme = "path" if self.path else "uri"
-        hashed_loc = hashlib.sha256(loc.encode("utf-8")).hexdigest()
-        hash_fragment = hashed_loc[-7:]
-        self._has_hashed_name = True
-        return hash_fragment
+        name = check_output([sys.executable, "setup.py", "--name"], cwd=loc).strip()
+        if not isinstance(name, str):
+            name = name.decode()
+        return name
 
     @link.default
     def get_link(self):
@@ -451,7 +452,8 @@ class VCSRequirement(FileRequirement):
 
     @name.default
     def get_name(self):
-        return self.link.egg_fragment or self.req.name if self.req else ""
+        return self.link.egg_fragment or self.req.name \
+               if self.req else super(VCSRequirement, self).get_name()
 
     @property
     def vcs_uri(self):
