@@ -354,6 +354,7 @@ class FileRequirement(BaseRequirement):
         path = None
         editable = line.startswith("-e ")
         line = line.split(" ", 1)[1] if editable else line
+        setup_path = None
         if not any([is_installable_file(line), is_valid_url(line)]):
             raise ValueError(
                 "Supplied requirement is not installable: {0!r}".format(line)
@@ -422,7 +423,8 @@ class FileRequirement(BaseRequirement):
     def pipfile_part(self):
         pipfile_dict = {k: v for k, v in attr.asdict(self, filter=_filter_none).items()}
         name = pipfile_dict.pop("name")
-        _ = pipfile_dict.pop("setup_path")
+        if "setup_path" in pipfile_dict:
+            _ = pipfile_dict.pop("setup_path")
         req = self.req
         # For local paths and remote installable artifacts (zipfiles, etc)
         if self.is_remote_artifact:
