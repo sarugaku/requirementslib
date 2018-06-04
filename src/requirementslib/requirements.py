@@ -422,6 +422,7 @@ class FileRequirement(BaseRequirement):
     def pipfile_part(self):
         pipfile_dict = {k: v for k, v in attr.asdict(self, filter=_filter_none).items()}
         name = pipfile_dict.pop("name")
+        _ = pipfile_dict.pop("setup_path")
         req = self.req
         # For local paths and remote installable artifacts (zipfiles, etc)
         if self.is_remote_artifact:
