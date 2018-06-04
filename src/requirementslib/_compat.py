@@ -1,6 +1,16 @@
 # -*- coding=utf-8 -*-
-# -*- coding=utf-8 -*-
 import importlib
+
+# Use these imports as compatibility imports
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
+
+try:
+    from urllib.parse import urlparse, unquote
+except ImportError:
+    from urlparse import urlparse, unquote
 
 
 def do_import(module_path, subimport=None, old_path=None):

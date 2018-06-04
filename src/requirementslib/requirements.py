@@ -8,7 +8,16 @@ import requirements
 import six
 from attr import attrs, attrib, Factory, validators
 import attr
-from ._compat import Link, path_to_url, _strip_extras, InstallRequirement, Wheel
+from ._compat import (
+    Link,
+    path_to_url,
+    _strip_extras,
+    InstallRequirement,
+    Path,
+    urlparse,
+    unquote,
+    Wheel,
+)
 from distlib.markers import Evaluator
 from packaging.markers import Marker, InvalidMarker
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
@@ -25,15 +34,11 @@ from .utils import (
 )
 from first import first
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
 
-try:
-    from urllib.parse import urlparse, unquote
-except ImportError:
-    from urlparse import urlparse, unquote
+if six.PY2:
+    class FileNotFoundError(IOError):
+        pass
+
 
 HASH_STRING = " --hash={0}"
 
@@ -120,7 +125,7 @@ class Source(object):
     verify_ssl = attrib(
         default=True, validator=validators.optional(validators.instance_of(bool))
     )
-    # : human name to refer to this source (can be referenced in packages or dev-packages)
+    #: human name to refer to this source (can be referenced in packages or dev-packages)
     name = attrib(default="")
 
 
@@ -304,8 +309,16 @@ class FileRequirement(BaseRequirement):
             from distutils.core import run_setup
             try:
                 dist = run_setup(self.setup_path.as_posix(), stop_after='init')
-            except FileNotFoundError:
+            except (FileNotFoundError, IOError):
                 dist = None
+            except NameError:
+                from ._compat import InstallRequirement
+                try:
+                    _ireq = InstallRequirement.from_line(self.setup_path.as_uri())
+                    dist = _ireq.get_dist()
+                    name = dist.project_name
+                except (TypeError, ValueError, AttributeError):
+                    dist = None
             else:
                 dist_name = dist.get_name()
                 name = dist_name if dist_name != 'UNKNOWN' else None
