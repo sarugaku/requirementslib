@@ -277,6 +277,7 @@ class NamedRequirement(BaseRequirement):
 class FileRequirement(BaseRequirement):
     """File requirements for tar.gz installable files or wheels or setup.py
     containing directories."""
+    setup_path = attrib(default=None)
     path = attrib(default=None, validator=validators.optional(_validate_path))
     # : path to hit - without any of the VCS prefixes (like git+ / http+ / etc)
     uri = attrib()
@@ -286,7 +287,6 @@ class FileRequirement(BaseRequirement):
     req = attrib()
     _has_hashed_name = False
     _uri_scheme = None
-    _setup_path = attrib(default=None)
 
     @uri.default
     def get_uri(self):
@@ -348,16 +348,6 @@ class FileRequirement(BaseRequirement):
             self.link.is_artifact or self.link.is_wheel
         ) and not self.req.editable
 
-    @property
-    def setup_path(self):
-        if not self._setup_path:
-            if not self.path:
-                return
-            setup_path = Path(self.path) / 'setup.py'
-            if setup_path.exists():
-                self._setup_path = setup_path
-        return self._setup_path
-
     @classmethod
     def from_line(cls, line):
         link = None
@@ -376,12 +366,15 @@ class FileRequirement(BaseRequirement):
                 parsed = urlparse(line)
                 link = Link('{0}'.format(line))
                 if parsed.scheme == "file":
-                    path = Path(parsed.path).absolute().as_posix()
+                    path = Path(parsed.path)
+                    setup_path = path / 'setup.py'
+                    path = path.absolute().as_posix()
                     if get_converted_relative_path(path) == ".":
                         path = "."
                     line = path
             else:
                 _path = Path(line)
+                setup_path = _path / 'setup.py'
                 link = Link(unquote(_path.absolute().as_uri()))
                 if _path.is_absolute() or _path.as_posix() == ".":
                     path = _path.as_posix()
@@ -392,6 +385,7 @@ class FileRequirement(BaseRequirement):
             "uri": link.url_without_fragment,
             "link": link,
             "editable": editable,
+            "setup_path": setup_path,
         }
         if link.egg_fragment:
             arg_dict["name"] = link.egg_fragment

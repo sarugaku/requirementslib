@@ -1,3 +1,5 @@
+0.0.9
+ - Bugfix for parsing setup.py file paths.
 0.0.8
  - Resolve names in setup.py files if available.
  - Fix a bug with populating Link objects when there is no URI.
