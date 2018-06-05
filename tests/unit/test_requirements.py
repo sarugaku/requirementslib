@@ -96,6 +96,12 @@ def test_convert_from_pip_fail_if_no_egg():
         dep = Requirement.from_line(dep).as_pipfile()
         assert 'pipenv requires an #egg fragment for vcs' in str(e)
 
+@pytest.mark.editable
+def test_one_way_editable_extras():
+    dep = '-e .[socks]'
+    dep = Requirement.from_line(dep).as_pipfile()
+    k = first(dep.keys())
+    assert dep[k]['extras'] == ['socks']
 
 @pytest.mark.utils
 def test_convert_from_pip_git_uri_normalize():
