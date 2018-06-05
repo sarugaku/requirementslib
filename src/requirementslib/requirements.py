@@ -41,6 +41,10 @@ if six.PY2:
         pass
 
 
+class RequirementError(Exception):
+    pass
+
+
 HASH_STRING = " --hash={0}"
 
 
@@ -697,20 +701,22 @@ class Requirement(object):
             hashes = line.split(" --hash=")
             line, hashes = hashes[0], hashes[1:]
         editable = line.startswith("-e ")
-        stripped_line = line.split(" ", 1)[1] if editable else line
         line, markers = _split_markers(line)
         line, extras = _strip_extras(line)
+        stripped_line = line.split(" ", 1)[1] if editable else line
         vcs = None
         # Installable local files and installable non-vcs urls are handled
         # as files, generally speaking
         if (
-            is_installable_file(stripped_line)
+            is_installable_file(stripped_line) or is_installable_file(line)
             or (is_valid_url(stripped_line) and not is_vcs(stripped_line))
         ):
             r = FileRequirement.from_line(line)
         elif is_vcs(stripped_line):
             r = VCSRequirement.from_line(line)
             vcs = r.vcs
+        elif os.path.exists(line) and not is_installable_file(line):
+            raise RequirementError("Not an installable requirement: %r" % line)
         else:
             name = multi_split(stripped_line, "!=<>~")[0]
             if not extras:
