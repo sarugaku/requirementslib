@@ -1,3 +1,5 @@
+0.1.0
+ - Fall back to pip/setuptools as a parser for setup.py files and project names.
 0.0.9
  - Bugfix for parsing setup.py file paths.
 0.0.8
