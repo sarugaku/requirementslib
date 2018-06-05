@@ -1,5 +1,6 @@
 0.1.1
  - Fix editable URI naming on windows.
+ - Fixed a bug causing failures on `-e .` paths with extras.
 0.1.0
  - Fall back to pip/setuptools as a parser for setup.py files and project names.
 0.0.9
