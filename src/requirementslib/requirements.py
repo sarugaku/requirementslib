@@ -324,7 +324,7 @@ class FileRequirement(BaseRequirement):
                         _ireq = InstallRequirement.from_editable
                     else:
                         _ireq = InstallRequirement.from_line
-                    _ireq = _ireq(self.uri())
+                    _ireq = _ireq(Path(self.path).as_uri())
                     dist = make_abstract_dist(_ireq).req.get_dist()
                     name = dist.project_name
                 except (TypeError, ValueError, AttributeError) as e:
