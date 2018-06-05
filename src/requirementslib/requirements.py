@@ -31,6 +31,7 @@ from .utils import (
     get_converted_relative_path,
     multi_split,
     is_star,
+    log,
 )
 from first import first
 
@@ -285,10 +286,10 @@ class FileRequirement(BaseRequirement):
     setup_path = attrib(default=None)
     path = attrib(default=None, validator=validators.optional(_validate_path))
     # : path to hit - without any of the VCS prefixes (like git+ / http+ / etc)
-    uri = attrib()
-    name = attrib()
-    link = attrib()
     editable = attrib(default=None)
+    uri = attrib()
+    link = attrib()
+    name = attrib()
     req = attrib()
     _has_hashed_name = False
     _uri_scheme = None
@@ -305,36 +306,44 @@ class FileRequirement(BaseRequirement):
         if loc:
             self._uri_scheme = "path" if self.path else "uri"
         name = None
+        if self.link and self.link.egg_fragment:
+            return self.link.egg_fragment
+        elif self.link and self.link.is_wheel:
+            return os.path.basename(Wheel(self.link.path).name)
         if self._uri_scheme != "uri" and self.path and self.setup_path:
             from distutils.core import run_setup
             try:
                 dist = run_setup(self.setup_path.as_posix(), stop_after='init')
-            except (FileNotFoundError, IOError):
+                name = dist.get_name()
+            except (FileNotFoundError, IOError) as e:
                 dist = None
-            except NameError:
-                from ._compat import InstallRequirement
+            except (NameError, RuntimeError) as e:
+                from ._compat import InstallRequirement, make_abstract_dist
                 try:
-                    _ireq = InstallRequirement.from_line(self.setup_path.as_uri())
-                    dist = _ireq.get_dist()
+                    if self.editable:
+                        _ireq = InstallRequirement.from_editable
+                    else:
+                        _ireq = InstallRequirement.from_line
+                    _ireq = _ireq(self.uri())
+                    dist = make_abstract_dist(_ireq).req.get_dist()
                     name = dist.project_name
-                except (TypeError, ValueError, AttributeError):
+                except (TypeError, ValueError, AttributeError) as e:
                     dist = None
-            else:
-                dist_name = dist.get_name()
-                name = dist_name if dist_name != 'UNKNOWN' else None
         hashed_loc = hashlib.sha256(loc.encode("utf-8")).hexdigest()
         hashed_name = hashed_loc[-7:]
-        if not name:
+        if not name or name == 'UNKNOWN':
             self._has_hashed_name = True
             name = hashed_name
+        if self.link:
+            self.link = Link('{0}#egg={1}'.format(self.link.url, name))
         return name
 
     @link.default
     def get_link(self):
-        target = "{0}#egg={1}".format(self.uri, self.name)
+        target = "{0}".format(self.uri)
+        if hasattr(self, 'name'):
+            target = "{0}#egg={1}".format(target, self.name)
         link = Link(target)
-        if link.is_wheel and self._has_hashed_name:
-            self.name = os.path.basename(Wheel(link.path).name)
         return link
 
     @req.default
