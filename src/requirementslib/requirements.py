@@ -320,12 +320,15 @@ class FileRequirement(BaseRequirement):
             except (NameError, RuntimeError) as e:
                 from ._compat import InstallRequirement, make_abstract_dist
                 try:
-                    if self.editable:
-                        _ireq = InstallRequirement.from_editable
+                    if not isinstance(Path, self.path):
+                        _path = Path(self.path)
                     else:
-                        _ireq = InstallRequirement.from_line
-                    _ireq = _ireq(Path(self.path).as_uri())
-                    dist = make_abstract_dist(_ireq).req.get_dist()
+                        _path = self.path
+                    if self.editable:
+                        _ireq = InstallRequirement.from_editable(_path.as_uri())
+                    else:
+                        _ireq = InstallRequirement.from_line(_path.as_posix())
+                    dist = make_abstract_dist(_ireq).get_dist()
                     name = dist.project_name
                 except (TypeError, ValueError, AttributeError) as e:
                     dist = None
@@ -334,7 +337,7 @@ class FileRequirement(BaseRequirement):
         if not name or name == 'UNKNOWN':
             self._has_hashed_name = True
             name = hashed_name
-        if self.link:
+        if self.link and not self._has_hashed_name:
             self.link = Link('{0}#egg={1}'.format(self.link.url, name))
         return name
 
