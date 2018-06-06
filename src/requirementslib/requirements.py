@@ -21,6 +21,7 @@ from ._compat import (
 from distlib.markers import Evaluator
 from packaging.markers import Marker, InvalidMarker
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
+from pkg_resources import RequirementParseError
 from .utils import (
     SCHEME_LIST,
     VCS_LIST,
@@ -249,7 +250,11 @@ class NamedRequirement(BaseRequirement):
 
     @req.default
     def get_requirement(self):
-        return first(requirements.parse("{0}{1}".format(self.name, self.version)))
+        try:
+            req = first(requirements.parse("{0}{1}".format(self.name, self.version)))
+        except RequirementParseError:
+            raise RequirementError("Error parsing requirement: %s%s" % (self.name, self.version))
+        return req
 
     @classmethod
     def from_line(cls, line):
@@ -379,6 +384,7 @@ class FileRequirement(BaseRequirement):
 
     @classmethod
     def from_line(cls, line):
+        line = line.strip('"').strip("'")
         link = None
         path = None
         editable = line.startswith("-e ")
@@ -715,8 +721,6 @@ class Requirement(object):
         elif is_vcs(stripped_line):
             r = VCSRequirement.from_line(line)
             vcs = r.vcs
-        elif os.path.exists(line) and not is_installable_file(line):
-            raise RequirementError("Not an installable requirement: %r" % line)
         else:
             name = multi_split(stripped_line, "!=<>~")[0]
             if not extras:
