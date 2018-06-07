@@ -747,7 +747,7 @@ class Requirement(object):
         return cls(**args)
 
     @classmethod
-    def from_pipfile(cls, name, indexes, pipfile):
+    def from_pipfile(cls, name, pipfile):
         _pipfile = {}
         if hasattr(pipfile, "keys"):
             _pipfile = dict(pipfile).copy()
@@ -773,7 +773,15 @@ class Requirement(object):
             args["hashes"] = _pipfile.get("hashes", [pipfile.get("hash")])
         return cls(**args)
 
-    def as_line(self, include_index=False, project=None):
+    def as_line(self, sources=None):
+        """Format this requirement as a line in requirements.txt.
+
+        If `sources` provided, it should be an sequence of mappings, containing
+        all possible sources to be used for this requirement.
+
+        If `sources` is omitted or falsy, no index information will be included
+        in the requirement line.
+        """
         line = "{0}{1}{2}{3}{4}".format(
             self.req.line_part,
             self.extras_as_pip,
@@ -781,18 +789,15 @@ class Requirement(object):
             self.markers_as_pip,
             self.hashes_as_pip,
         )
-        if include_index and not (self.requirement.local_file or self.vcs):
+        if sources and not (self.requirement.local_file or self.vcs):
             from .utils import prepare_pip_source_args
-
             if self.index:
-                pip_src_args = [project.get_source(self.index)]
-            else:
-                pip_src_args = project.sources
-            index_string = " ".join(prepare_pip_source_args(pip_src_args))
+                sources = [s for s in sources if s.get('name') == self.index]
+            index_string = " ".join(prepare_pip_source_args(sources))
             line = "{0} {1}".format(line, index_string)
         return line
 
-    def as_pipfile(self, include_index=False):
+    def as_pipfile(self):
         good_keys = (
             "hashes", "extras", "markers", "editable", "version", "index"
         ) + VCS_LIST
