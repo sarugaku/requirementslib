@@ -87,6 +87,15 @@ def test_convert_from_pip(expected, requirement):
     assert Requirement.from_line(requirement).as_pipfile() == expected
 
 
+@pytest.mark.to_line
+@pytest.mark.parametrize('requirement, expected', DEP_PIP_PAIRS)
+def test_convert_from_pipfile(requirement, expected):
+    pkg_name = first(requirement.keys())
+    pkg_pipfile = requirement[pkg_name]
+    req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
+    assert req.as_line() == expected
+
+
 @pytest.mark.utils
 def test_convert_from_pip_fail_if_no_egg():
     """Parsing should fail without `#egg=`.
@@ -96,12 +105,14 @@ def test_convert_from_pip_fail_if_no_egg():
         dep = Requirement.from_line(dep).as_pipfile()
         assert 'pipenv requires an #egg fragment for vcs' in str(e)
 
+
 @pytest.mark.editable
 def test_one_way_editable_extras():
     dep = '-e .[socks]'
     dep = Requirement.from_line(dep).as_pipfile()
     k = first(dep.keys())
     assert dep[k]['extras'] == ['socks']
+
 
 @pytest.mark.utils
 def test_convert_from_pip_git_uri_normalize():

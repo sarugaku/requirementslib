@@ -6,13 +6,13 @@ name = "pypi"
 [packages]
 
 [dev-packages]
+black = "*"
 "flake8" = "*"
 pytest = "*"
 sphinx = "*"
 twine = "*"
 invoke = "*"
 requirementslib = {path = ".", editable = true}
-black = "*"
 sphinx_rtd_theme = "*"
 
 [requires]
