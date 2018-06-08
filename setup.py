@@ -43,7 +43,7 @@ install_requires = [
     'first',
     'six',
     'pathlib2==2.1.0; python_version<"3.4"',
-    'requirements-parser'
+    'requirements-parser',
 ]
 
 

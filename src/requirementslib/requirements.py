@@ -840,6 +840,47 @@ class Requirement(object):
         return self._ireq
 
 
+@attrs
+class Lockfile(object):
+    dev_requirements = attrib(default=list)
+    requirements = attrib(default=list)
+    path = attrib(default=None, validator=_optional_instance_of(Path))
+
+    @classmethod
+    def create(cls, project_path, lockfile_name='Pipfile.lock'):
+        """Create a new lockfile instance
+
+        :param project_path: Path to the project root
+        :type project_path: str or :class:`~pathlib.Path`
+        :returns: List[:class:`~requirementslib.Requirement`] objects
+        """
+
+        if not isinstance(project_path, Path):
+            project_path = Path(project_path)
+        lockfile_path = project_path / lockfile_name
+        requirements = []
+        dev_requirements = []
+        if not lockfile_path.exists():
+            raise FileNotFoundError("No such lockfile: %s" % lockfile_path)
+        import json
+        lockfile = json.loads(lockfile_path.read_text(encoding='utf-8'))
+        for k in lockfile['develop'].keys():
+            dev_requirements.append(Requirement.from_pipfile(k, lockfile['develop'][k]))
+        for k in lockfile['default'].keys():
+            requirements.append(Requirement.from_pipfile(k, lockfile['default'][k]))
+        return cls(path=lockfile_path, requirements=requirements, dev_requirements=dev_requirements)
+
+    def as_requirements(self, include_hashes=False, dev=False):
+        lines = []
+        section = self.dev_requirements if dev else self.requirements
+        for req in section:
+            r = req.as_line()
+            if not include_hashes:
+                r = r.split('--hash', 1)[0]
+            lines.append(r.strip())
+        return lines
+
+
 def _extras_to_string(extras):
     """Turn a list of extras into a string"""
     if isinstance(extras, six.string_types):

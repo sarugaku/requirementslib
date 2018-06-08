@@ -58,7 +58,21 @@ was originally built for converting between these formats in `Pipenv <https://gi
 Usage
 ******
 
-Import the library and create a requirement object from *requirements.txt* format:
+Importing a lockfile into your *setup.py* file
+//////////////////////////////////////////////
+
+You can use RequirementsLib to import your lockfile into your setup file for including your
+**install_requires** dependencies:
+
+  ::
+
+    from requirementslib import Lockfile
+    lockfile = Lockfile('/home/dan/git/pipenv')
+    install_requires = lockfile.as_requirements(dev=False)
+
+
+Create a requirement object from *requirements.txt* format
+///////////////////////////////////////////////////////////
 
   ::
 
