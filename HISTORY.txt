@@ -1,3 +1,5 @@
+0.1.2
+ - Add lockfile parser and allow it to output to requirements format.
 0.1.1
  - Fix editable URI naming on windows.
  - Fixed a bug causing failures on `-e .` paths with extras.
