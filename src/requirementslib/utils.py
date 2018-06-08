@@ -33,7 +33,7 @@ log = setup_logger()
 
 def is_vcs(pipfile_entry):
     import requirements
-    from .requirements import _clean_git_uri
+    from .models.utils import _clean_git_uri
 
     """Determine if dictionary entry from Pipfile is for a vcs dependency."""
     if hasattr(pipfile_entry, "keys"):
