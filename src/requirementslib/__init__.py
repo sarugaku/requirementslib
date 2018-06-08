@@ -1,4 +1,6 @@
 # -*- coding=utf-8 -*-
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
-from .requirements import Requirement, Lockfile
+
+from .exceptions import RequirementError
+from .models import Requirement, Lockfile
