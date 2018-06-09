@@ -71,6 +71,39 @@ You can use RequirementsLib to import your lockfile into your setup file for inc
     install_requires = lockfile.as_requirements(dev=False)
 
 
+Interacting with a *Pipfile* directly
+//////////////////////////////////////
+
+You can also interact directly with a Pipfile:
+
+  ::
+  
+    >>> from requirementslib import Pipfile
+    >>> pf = Pipfile.load('/home/hawk/git/pypa-pipenv')
+    >>> pf.sections
+    [Section(name='packages', requirements=[]), Section(name='dev-packages', requirements=[Requirement(name='pipenv', vcs=None, req=FileRequirement(setup_path=None, path='.', editable=True, uri='file:///home/hawk/git/pypa-pipenv', link=<Link file:///home/hawk/git/pypa-pipenv>, name='pipenv', req=<Requirement: "-e file:///home/hawk/git/pypa-pipenv">), markers='', specifiers=None, index=None, editable=True, hashes=[], extras=None),...]
+
+
+And you can even write it back out into Pipfile's native format:
+
+  ::
+  
+    >>> print(pf.dump(to_dict=False))
+    [packages]
+    
+    [dev-packages]
+    pipenv = {path = ".", editable = true}
+    flake8 = ">=3.3.0,<4"
+    pytest = "*"
+    mock = "*"
+    
+    [scripts]
+    tests = "bash ./run-tests.sh"
+    
+    [pipenv]
+    allow_prereleases = true
+
+
 Create a requirement object from *requirements.txt* format
 ///////////////////////////////////////////////////////////
 

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import attr
+import contoml
 import os
 import toml
 from requirementslib._vendor import pipfile
 from .requirements import Requirement
-from .utils import optional_instance_of
+from .utils import optional_instance_of, filter_none
 from .._compat import Path, FileNotFoundError
 from ..exceptions import RequirementError
 
@@ -15,10 +16,13 @@ class Source(object):
     url = attr.ib(default="pypi")
     #: If False, skip SSL checks
     verify_ssl = attr.ib(
-        default=True, validator=attr.validators.optional(attr.validators.instance_of(bool))
+        default=True, validator=optional_instance_of(bool)
     )
     #: human name to refer to this source (can be referenced in packages or dev-packages)
     name = attr.ib(default="")
+
+    def get_dict(self):
+        return attr.asdict(self)
 
     @property
     def expanded(self):
@@ -35,6 +39,12 @@ class Section(object):
     #: A list of requirements that are contained by the section
     requirements = attr.ib(default=list)
 
+    def get_dict(self):
+        _dict = {}
+        for req in self.requirements:
+            _dict.update(req.as_pipfile())
+        return {self.name: _dict}
+
     @property
     def vcs_requirements(self):
         return [req for req in self.requirements if req.is_vcs]
@@ -49,10 +59,21 @@ class RequiresSection(object):
     python_version = attr.ib(default=None)
     python_full_version = attr.ib(default=None)
 
+    def get_dict(self):
+        requires = attr.asdict(self, filter=filter_none)
+        if not requires:
+            return {}
+        return {'requires': requires}
+
 
 @attr.s
 class PipenvSection(object):
     allow_prereleases = attr.ib(default=False)
+
+    def get_dict(self):
+        if self.allow_prereleases:
+            return {'pipenv': attr.asdict(self)}
+        return {}
 
 
 @attr.s
@@ -66,9 +87,9 @@ class Pipfile(object):
     #: Scripts found in the pipfile
     scripts = attr.ib(default=attr.Factory(dict))
     #: This section stores information about what python version is required
-    requires = attr.ib(default=None)
+    requires = attr.ib(default=attr.Factory(RequiresSection))
     #: This section stores information about pipenv such as prerelease requirements
-    pipenv = attr.ib(default=None)
+    pipenv = attr.ib(default=attr.Factory(PipenvSection))
     #: This is the sha256 hash of the pipfile (without environment interpolation)
     pipfile_hash = attr.ib()
 
@@ -78,18 +99,55 @@ class Pipfile(object):
         return p.hash
 
     @property
-    def requires(self):
-        return self.requires.allow_prereleases
+    def requires_python(self):
+        return self.requires.requires_python
 
     @property
     def allow_prereleases(self):
         return self.pipenv.allow_prereleases
 
-    def dump(self):
+    def get_sources(self):
+        """Return a dictionary with a list of dictionaries of pipfile sources"""
+        _dict = {}
+        for src in self.sources:
+            _dict.update(src.get_dict())
+        return {'source': _dict} if _dict else {}
+
+    def get_sections(self):
+        """Return a dictionary with both pipfile sections and requirements"""
+        _dict = {}
+        for section in self.sections:
+            _dict.update(section.get_dict())
+        return _dict
+
+    def get_pipenv(self):
+        pipenv_dict = self.pipenv.get_dict()
+        if pipenv_dict:
+            return pipenv_dict
+
+    def get_requires(self):
+        req_dict = self.requires.get_dict()
+        return req_dict if req_dict else {}
+
+    def get_dict(self):
+        _dict = attr.asdict(self, recurse=False)
+        for k in ['path', 'pipfile_hash', 'sources', 'sections', 'requires', 'pipenv']:
+            if k in _dict:
+                _dict.pop(k)
+        return _dict
+
+    def dump(self, to_dict=False):
         """Dumps the pipfile to a toml string
         """
 
-        toml.dumps(attr.asdict(self, recurse=True), preserve=True)
+        _dict = self.get_sources()
+        _dict.update(self.get_sections())
+        _dict.update(self.get_dict())
+        _dict.update(self.get_pipenv())
+        _dict.update(self.get_requires())
+        if to_dict:
+            return _dict
+        return contoml.dumps(_dict)
 
     @classmethod
     def load(cls, path):
