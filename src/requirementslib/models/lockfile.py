@@ -4,7 +4,7 @@ import attr
 import json
 from .requirements import Requirement
 from .utils import (
-    _optional_instance_of,
+    optional_instance_of,
 )
 from .._compat import Path, FileNotFoundError
 
@@ -13,7 +13,8 @@ from .._compat import Path, FileNotFoundError
 class Lockfile(object):
     dev_requirements = attr.ib(default=list)
     requirements = attr.ib(default=list)
-    path = attr.ib(default=None, validator=_optional_instance_of(Path))
+    path = attr.ib(default=None, validator=optional_instance_of(Path))
+    pipfile_hash = attr.ib(default=None)
 
     @classmethod
     def create(cls, project_path, lockfile_name="Pipfile.lock"):
@@ -44,6 +45,7 @@ class Lockfile(object):
         )
 
     def as_requirements(self, include_hashes=False, dev=False):
+        """Returns a list of requirements in pip-style format"""
         lines = []
         section = self.dev_requirements if dev else self.requirements
         for req in section:

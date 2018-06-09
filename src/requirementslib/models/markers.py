@@ -3,7 +3,7 @@ import attr
 import six
 from packaging.markers import Marker, InvalidMarker
 from .baserequirement import BaseRequirement
-from .utils import _validate_markers, _filter_none
+from .utils import validate_markers, filter_none
 from ..exceptions import RequirementError
 
 
@@ -11,34 +11,34 @@ from ..exceptions import RequirementError
 class PipenvMarkers(BaseRequirement):
     """System-level requirements - see PEP508 for more detail"""
 
-    os_name = attr.ib(default=None, validator=attr.validators.optional(_validate_markers))
-    sys_platform = attr.ib(default=None, validator=attr.validators.optional(_validate_markers))
+    os_name = attr.ib(default=None, validator=attr.validators.optional(validate_markers))
+    sys_platform = attr.ib(default=None, validator=attr.validators.optional(validate_markers))
     platform_machine = attr.ib(
-        default=None, validator=attr.validators.optional(_validate_markers)
+        default=None, validator=attr.validators.optional(validate_markers)
     )
     platform_python_implementation = attr.ib(
-        default=None, validator=attr.validators.optional(_validate_markers)
+        default=None, validator=attr.validators.optional(validate_markers)
     )
     platform_release = attr.ib(
-        default=None, validator=attr.validators.optional(_validate_markers)
+        default=None, validator=attr.validators.optional(validate_markers)
     )
     platform_system = attr.ib(
-        default=None, validator=attr.validators.optional(_validate_markers)
+        default=None, validator=attr.validators.optional(validate_markers)
     )
     platform_version = attr.ib(
-        default=None, validator=attr.validators.optional(_validate_markers)
+        default=None, validator=attr.validators.optional(validate_markers)
     )
     python_version = attr.ib(
-        default=None, validator=attr.validators.optional(_validate_markers)
+        default=None, validator=attr.validators.optional(validate_markers)
     )
     python_full_version = attr.ib(
-        default=None, validator=attr.validators.optional(_validate_markers)
+        default=None, validator=attr.validators.optional(validate_markers)
     )
     implementation_name = attr.ib(
-        default=None, validator=attr.validators.optional(_validate_markers)
+        default=None, validator=attr.validators.optional(validate_markers)
     )
     implementation_version = attr.ib(
-        default=None, validator=attr.validators.optional(_validate_markers)
+        default=None, validator=attr.validators.optional(validate_markers)
     )
 
     @property
@@ -46,7 +46,7 @@ class PipenvMarkers(BaseRequirement):
         return " and ".join(
             [
                 "{0} {1}".format(k, v)
-                for k, v in attr.asdict(self, filter=_filter_none).items()
+                for k, v in attr.asdict(self, filter=filter_none).items()
             ]
         )
 

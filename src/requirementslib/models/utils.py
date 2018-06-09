@@ -17,17 +17,17 @@ from ..utils import (
 HASH_STRING = " --hash={0}"
 
 
-def _filter_none(k, v):
+def filter_none(k, v):
     if v:
         return True
     return False
 
 
-def _optional_instance_of(cls):
+def optional_instance_of(cls):
     return validators.optional(validators.instance_of(cls))
 
 
-def _extras_to_string(extras):
+def extras_to_string(extras):
     """Turn a list of extras into a string"""
     if isinstance(extras, six.string_types):
         if extras.startswith("["):
@@ -38,7 +38,7 @@ def _extras_to_string(extras):
     return "[{0}]".format(",".join(extras))
 
 
-def _specs_to_string(specs):
+def specs_to_string(specs):
     """Turn a list of specifier tuples into a string"""
     if specs:
         if isinstance(specs, six.string_types):
@@ -53,20 +53,20 @@ def build_vcs_link(vcs, uri, name=None, ref=None, subdirectory=None, extras=None
     vcs_start = "{0}+".format(vcs)
     if not uri.startswith(vcs_start):
         uri = "{0}{1}".format(vcs_start, uri)
-    uri = _clean_git_uri(uri)
+    uri = add_ssh_scheme_to_git_uri(uri)
     if ref:
         uri = "{0}@{1}".format(uri, ref)
     if name:
         uri = "{0}#egg={1}".format(uri, name)
         if extras:
-            extras = _extras_to_string(extras)
+            extras = extras_to_string(extras)
             uri = "{0}{1}".format(uri, extras)
     if subdirectory:
         uri = "{0}&subdirectory={1}".format(uri, subdirectory)
     return Link(uri)
 
 
-def _get_version(pipfile_entry):
+def get_version(pipfile_entry):
     if str(pipfile_entry) == "{}" or is_star(pipfile_entry):
         return ""
 
@@ -80,14 +80,14 @@ def _get_version(pipfile_entry):
     return ""
 
 
-def _strip_ssh_from_git_uri(uri):
+def strip_ssh_from_git_uri(uri):
     """Return git+ssh:// formatted URI to git+git@ format"""
     if isinstance(uri, six.string_types):
         uri = uri.replace("git+ssh://", "git+")
     return uri
 
 
-def _clean_git_uri(uri):
+def add_ssh_scheme_to_git_uri(uri):
     """Cleans VCS uris from pip format"""
     if isinstance(uri, six.string_types):
         # Add scheme for parsing purposes, this is also what pip does
@@ -96,7 +96,7 @@ def _clean_git_uri(uri):
     return uri
 
 
-def _split_markers(line):
+def split_markers_from_line(line):
     """Split markers from a dependency"""
     if not any(line.startswith(uri_prefix) for uri_prefix in SCHEME_LIST):
         marker_sep = ";"
@@ -109,7 +109,7 @@ def _split_markers(line):
     return line, markers
 
 
-def _split_vcs_method(uri):
+def split_vcs_method_from_uri(uri):
     """Split a vcs+uri formatted uri into (vcs, uri)"""
     vcs_start = "{0}+"
     vcs = first([vcs for vcs in VCS_LIST if uri.startswith(vcs_start.format(vcs))])
@@ -118,24 +118,24 @@ def _split_vcs_method(uri):
     return vcs, uri
 
 
-def _validate_vcs(instance, attr_, value):
+def validate_vcs(instance, attr_, value):
     if value not in VCS_LIST:
         raise ValueError("Invalid vcs {0!r}".format(value))
 
 
-def _validate_path(instance, attr_, value):
+def validate_path(instance, attr_, value):
     if not os.path.exists(value):
         raise ValueError("Invalid path {0!r}", format(value))
 
 
-def _validate_markers(instance, attr_, value):
+def validate_markers(instance, attr_, value):
     try:
         Marker("{0}{1}".format(attr_.name, value))
     except InvalidMarker:
         raise ValueError("Invalid Marker {0}{1}".format(attr_, value))
 
 
-def _validate_specifiers(instance, attr_, value):
+def validate_specifiers(instance, attr_, value):
     if value == "":
         return True
     try:
