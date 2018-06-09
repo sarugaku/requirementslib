@@ -227,7 +227,7 @@ def vendor(ctx, vendor_dir, rewrite=True):
 
     # Apply pre-patches
     log("Applying pre-patches...")
-    patch_dir = Path(__file__).parent / 'patches' / vendor_dir.name
+    patch_dir = Path(__file__).parent / 'patches'
 
     # Global import rewrites
     log('Renaming specified libs...')
