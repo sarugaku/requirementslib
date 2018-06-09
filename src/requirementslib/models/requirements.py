@@ -10,19 +10,19 @@ from .baserequirement import BaseRequirement
 from .markers import PipenvMarkers
 from .utils import (
     HASH_STRING,
-    _extras_to_string,
-    _get_version,
-    _specs_to_string,
-    _validate_specifiers,
-    _validate_path,
-    _validate_vcs,
+    extras_to_string,
+    get_version,
+    specs_to_string,
+    validate_specifiers,
+    validate_path,
+    validate_vcs,
     build_vcs_link,
-    _clean_git_uri,
-    _strip_ssh_from_git_uri,
-    _split_vcs_method,
-    _filter_none,
-    _optional_instance_of,
-    _split_markers
+    add_ssh_scheme_to_git_uri,
+    strip_ssh_from_git_uri,
+    split_vcs_method_from_uri,
+    filter_none,
+    optional_instance_of,
+    split_markers_from_line,
 )
 from .._compat import (
     Link,
@@ -50,7 +50,7 @@ from ..utils import (
 @attr.s
 class NamedRequirement(BaseRequirement):
     name = attr.ib()
-    version = attr.ib(validator=attr.validators.optional(_validate_specifiers))
+    version = attr.ib(validator=attr.validators.optional(validate_specifiers))
     req = attr.ib()
 
     @req.default
@@ -68,7 +68,7 @@ class NamedRequirement(BaseRequirement):
         req = first(requirements.parse(line))
         specifiers = None
         if req.specifier:
-            specifiers = _specs_to_string(req.specs)
+            specifiers = specs_to_string(req.specs)
         return cls(name=req.name, version=specifiers, req=req)
 
     @classmethod
@@ -77,7 +77,7 @@ class NamedRequirement(BaseRequirement):
         if hasattr(pipfile, "keys"):
             creation_args = {k: v for k, v in pipfile.items() if k in cls.attr_fields()}
         creation_args["name"] = name
-        version = _get_version(pipfile)
+        version = get_version(pipfile)
         creation_args["version"] = version
         creation_args["req"] = first(requirements.parse("{0}{1}".format(name, version)))
         return cls(**creation_args)
@@ -88,7 +88,7 @@ class NamedRequirement(BaseRequirement):
 
     @property
     def pipfile_part(self):
-        pipfile_dict = attr.asdict(self, filter=_filter_none).copy()
+        pipfile_dict = attr.asdict(self, filter=filter_none).copy()
         if "version" not in pipfile_dict:
             pipfile_dict["version"] = "*"
         name = pipfile_dict.pop("name")
@@ -101,7 +101,7 @@ class FileRequirement(BaseRequirement):
     containing directories."""
 
     setup_path = attr.ib(default=None)
-    path = attr.ib(default=None, validator=attr.validators.optional(_validate_path))
+    path = attr.ib(default=None, validator=attr.validators.optional(validate_path))
     # : path to hit - without any of the VCS prefixes (like git+ / http+ / etc)
     editable = attr.ib(default=None)
     uri = attr.ib()
@@ -149,7 +149,7 @@ class FileRequirement(BaseRequirement):
                         _ireq = InstallRequirement.from_line(_path.as_posix())
                     dist = make_abstract_dist(_ireq).get_dist()
                     name = dist.project_name
-                except (TypeError, ValueError, attr.ibuteError) as e:
+                except (TypeError, ValueError, AttributeError) as e:
                     dist = None
         hashed_loc = hashlib.sha256(loc.encode("utf-8")).hexdigest()
         hashed_name = hashed_loc[-7:]
@@ -268,10 +268,10 @@ class FileRequirement(BaseRequirement):
 
     @property
     def pipfile_part(self):
-        pipfile_dict = {k: v for k, v in attr.asdict(self, filter=_filter_none).items()}
+        pipfile_dict = {k: v for k, v in attr.asdict(self, filter=filter_none).items()}
         name = pipfile_dict.pop("name")
         if "setup_path" in pipfile_dict:
-            _ = pipfile_dict.pop("setup_path")
+            pipfile_dict.pop("setup_path")
         req = self.req
         # For local paths and remote installable artifacts (zipfiles, etc)
         if self.is_remote_artifact:
@@ -286,7 +286,7 @@ class FileRequirement(BaseRequirement):
             collisions = [key for key in ["path", "uri", "file"] if key in pipfile_dict]
             if len(collisions) > 1:
                 for k in collisions[1:]:
-                    _ = pipfile_dict.pop(k)
+                    pipfile_dict.pop(k)
         return {name: pipfile_dict}
 
 
@@ -294,8 +294,8 @@ class FileRequirement(BaseRequirement):
 class VCSRequirement(FileRequirement):
     editable = attr.ib(default=None)
     uri = attr.ib(default=None)
-    path = attr.ib(default=None, validator=attr.validators.optional(_validate_path))
-    vcs = attr.ib(validator=attr.validators.optional(_validate_vcs), default=None)
+    path = attr.ib(default=None, validator=attr.validators.optional(validate_path))
+    vcs = attr.ib(validator=attr.validators.optional(validate_vcs), default=None)
     # : vcs reference name (branch / commit / tag)
     ref = attr.ib(default=None)
     subdirectory = attr.ib(default=None)
@@ -318,7 +318,7 @@ class VCSRequirement(FileRequirement):
     def get_link(self):
         return build_vcs_link(
             self.vcs,
-            _clean_git_uri(self.uri),
+            add_ssh_scheme_to_git_uri(self.uri),
             name=self.name,
             ref=self.ref,
             subdirectory=self.subdirectory,
@@ -355,8 +355,8 @@ class VCSRequirement(FileRequirement):
             and "git+ssh://" in self.link.url
             and "git+git@" in self.uri
         ):
-            req.line = _strip_ssh_from_git_uri(req.line)
-            req.uri = _strip_ssh_from_git_uri(req.uri)
+            req.line = strip_ssh_from_git_uri(req.line)
+            req.uri = strip_ssh_from_git_uri(req.uri)
         if not req.name:
             raise ValueError(
                 "pipenv requires an #egg fragment for version controlled "
@@ -381,7 +381,7 @@ class VCSRequirement(FileRequirement):
         for key in pipfile_keys:
             if key in VCS_LIST:
                 creation_args["vcs"] = key
-                composed_uri = _clean_git_uri(
+                composed_uri = add_ssh_scheme_to_git_uri(
                     "{0}+{1}".format(key, pipfile.get(key))
                 ).lstrip("{0}+".format(key))
                 is_url = is_valid_url(pipfile.get(key)) or is_valid_url(composed_uri)
@@ -398,8 +398,8 @@ class VCSRequirement(FileRequirement):
         if line.startswith("-e "):
             editable = True
             line = line.split(" ", 1)[1]
-        vcs_line = _clean_git_uri(line)
-        vcs_method, vcs_location = _split_vcs_method(vcs_line)
+        vcs_line = add_ssh_scheme_to_git_uri(line)
+        vcs_method, vcs_location = split_vcs_method_from_uri(vcs_line)
         if not is_valid_url(vcs_location) and os.path.exists(vcs_location):
             path = get_converted_relative_path(vcs_location)
             vcs_location = path_to_url(os.path.abspath(vcs_location))
@@ -407,7 +407,7 @@ class VCSRequirement(FileRequirement):
         name = link.egg_fragment
         uri = link.url_without_fragment
         if "git+git@" in line:
-            uri = _strip_ssh_from_git_uri(uri)
+            uri = strip_ssh_from_git_uri(uri)
         subdirectory = link.subdirectory_fragment
         ref = None
         if "@" in link.show_url:
@@ -439,15 +439,15 @@ class VCSRequirement(FileRequirement):
         if src_keys:
             chosen_key = first(src_keys)
             vcs_type = pipfile.pop("vcs")
-            _, pipfile_url = _split_vcs_method(pipfile.get(chosen_key))
+            _, pipfile_url = split_vcs_method_from_uri(pipfile.get(chosen_key))
             pipfile[vcs_type] = pipfile_url
             for removed in src_keys:
-                _ = pipfile.pop(removed)
+                pipfile.pop(removed)
         return pipfile
 
     @property
     def pipfile_part(self):
-        pipfile_dict = attr.asdict(self, filter=_filter_none).copy()
+        pipfile_dict = attr.asdict(self, filter=filter_none).copy()
         if "vcs" in pipfile_dict:
             pipfile_dict = self._choose_vcs_source(pipfile_dict)
         name = pipfile_dict.pop("name")
@@ -457,10 +457,10 @@ class VCSRequirement(FileRequirement):
 @attr.s
 class Requirement(object):
     name = attr.ib()
-    vcs = attr.ib(default=None, validator=attr.validators.optional(_validate_vcs))
-    req = attr.ib(default=None, validator=_optional_instance_of(BaseRequirement))
+    vcs = attr.ib(default=None, validator=attr.validators.optional(validate_vcs))
+    req = attr.ib(default=None, validator=optional_instance_of(BaseRequirement))
     markers = attr.ib(default=None)
-    specifiers = attr.ib(validator=attr.validators.optional(_validate_specifiers))
+    specifiers = attr.ib(validator=attr.validators.optional(validate_specifiers))
     index = attr.ib(default=None)
     editable = attr.ib(default=None)
     hashes = attr.ib(default=attr.Factory(list), converter=list)
@@ -500,7 +500,7 @@ class Requirement(object):
     @specifiers.default
     def get_specifiers(self):
         if self.req and self.req.req.specifier:
-            return _specs_to_string(self.req.req.specs)
+            return specs_to_string(self.req.req.specs)
         return
 
     @property
@@ -528,7 +528,7 @@ class Requirement(object):
             hashes = line.split(" --hash=")
             line, hashes = hashes[0], hashes[1:]
         editable = line.startswith("-e ")
-        line, markers = _split_markers(line)
+        line, markers = split_markers_from_line(line)
         line, extras = _strip_extras(line)
         stripped_line = line.split(" ", 1)[1] if editable else line
         vcs = None
@@ -550,7 +550,7 @@ class Requirement(object):
             r = NamedRequirement.from_line(stripped_line)
         if extras:
             extras = first(
-                requirements.parse("fakepkg{0}".format(_extras_to_string(extras)))
+                requirements.parse("fakepkg{0}".format(extras_to_string(extras)))
             ).extras
             r.req.extras = extras
         if markers:
@@ -573,7 +573,7 @@ class Requirement(object):
         _pipfile = {}
         if hasattr(pipfile, "keys"):
             _pipfile = dict(pipfile).copy()
-        _pipfile["version"] = _get_version(pipfile)
+        _pipfile["version"] = get_version(pipfile)
         vcs = first([vcs for vcs in VCS_LIST if vcs in _pipfile])
         if vcs:
             _pipfile["vcs"] = vcs
@@ -631,7 +631,7 @@ class Requirement(object):
         ) + VCS_LIST
         req_dict = {
             k: v
-            for k, v in attr.asdict(self, recurse=False, filter=_filter_none).items()
+            for k, v in attr.asdict(self, recurse=False, filter=filter_none).items()
             if k in good_keys
         }
         name = self.name
@@ -645,7 +645,7 @@ class Requirement(object):
         if "file" in base_dict and any(k in base_dict for k in conflicting_keys[1:]):
             conflicts = [k for k in (conflicting_keys[1:],) if k in base_dict]
             for k in conflicts:
-                _ = base_dict.pop(k)
+                base_dict.pop(k)
         if "hashes" in base_dict and len(base_dict["hashes"]) == 1:
             base_dict["hash"] = base_dict.pop("hashes")[0]
         if len(base_dict.keys()) == 1 and "version" in base_dict:
