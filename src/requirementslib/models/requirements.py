@@ -517,9 +517,7 @@ class Requirement(object):
 
     @property
     def normalized_name(self):
-        if not self.is_vcs and not self.is_file_or_url:
-            return pep423_name(self.name)
-        return self.name
+        return pep423_name(self.name)
 
     @classmethod
     def from_line(cls, line):
