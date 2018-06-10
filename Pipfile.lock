@@ -88,6 +88,13 @@
             ],
             "version": "==0.3.9"
         },
+        "contoml": {
+            "hashes": [
+                "sha256:2353275caef3726131c4192379252cc48eb4a15c06df3e1046f783de937eba94",
+                "sha256:f62960b57a9489187653787bd67756d15a79e4579c7d779d8b94f581dd260a7d"
+            ],
+            "version": "==0.32"
+        },
         "distlib": {
             "hashes": [
                 "sha256:cd502c66fc27c535bab62dc4f482e403e2369c2c05281a79cc2d4e2f42a87f20"
@@ -139,6 +146,14 @@
             ],
             "index": "pypi",
             "version": "==1.0.0"
+        },
+        "iso8601": {
+            "hashes": [
+                "sha256:210e0134677cc0d02f6028087fee1df1e1d76d372ee1db0bf30bf66c5c1c89a3",
+                "sha256:49c4b20e1f38aa5cf109ddcd39647ac419f928512c869dc01d5c7098eddede82",
+                "sha256:bbbae5fb4a7abfe71d4688fd64bff70b91bbd74ef6a99d964bab18f7fdf286dd"
+            ],
+            "version": "==0.1.12"
         },
         "jinja2": {
             "hashes": [
@@ -289,6 +304,18 @@
                 "sha256:9de47f375baf1ea07cdb3436ff39d7a9c76042c10a769c52353ec46e4e8fc3b9"
             ],
             "version": "==1.1.0"
+        },
+        "strict-rfc3339": {
+            "hashes": [
+                "sha256:5cad17bedfc3af57b399db0fed32771f18fc54bbd917e85546088607ac5e1277"
+            ],
+            "version": "==0.7"
+        },
+        "timestamp": {
+            "hashes": [
+                "sha256:b5c7a4539f0d8742b7d6c78febd241ab24903c73c38045690725220ca7eae4ac"
+            ],
+            "version": "==0.0.1"
         },
         "toml": {
             "hashes": [
