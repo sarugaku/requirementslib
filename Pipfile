@@ -15,6 +15,7 @@ invoke = "*"
 requirementslib = {path = ".", editable = true}
 sphinx_rtd_theme = "*"
 rope = "*"
+towncrier = "*"
 
 [requires]
 python_version = "3.6"

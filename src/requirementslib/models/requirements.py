@@ -194,6 +194,15 @@ class FileRequirement(BaseRequirement):
             and not self.req.editable
         )
 
+    @property
+    def formatted_path(self):
+        if self.path:
+            path = self.path
+            if not isinstance(path, Path):
+                path = Path(path)
+            return path.as_posix()
+        return
+
     @classmethod
     def from_line(cls, line):
         line = line.strip('"').strip("'")
@@ -259,7 +268,7 @@ class FileRequirement(BaseRequirement):
 
     @property
     def line_part(self):
-        seed = self.path or self.link.url or self.uri
+        seed = self.formatted_path or self.link.url or self.uri
         # add egg fragments to remote artifacts (valid urls only)
         if not self._has_hashed_name and self.is_remote_artifact:
             seed += "#egg={0}".format(self.name)
@@ -281,7 +290,7 @@ class FileRequirement(BaseRequirement):
             target_keys = [k for k in pipfile_dict.keys() if k in ["uri", "path"]]
             pipfile_dict[dict_key] = pipfile_dict.pop(first(target_keys))
             if len(target_keys) > 1:
-                _ = pipfile_dict.pop(target_keys[1])
+                pipfile_dict.pop(target_keys[1])
         else:
             collisions = [key for key in ["path", "uri", "file"] if key in pipfile_dict]
             if len(collisions) > 1:
@@ -529,6 +538,8 @@ class Requirement(object):
         line, markers = split_markers_from_line(line)
         line, extras = _strip_extras(line)
         stripped_line = line.split(" ", 1)[1] if editable else line
+        stripped_line = stripped_line.strip('"').strip('"')
+        line = '-e {0}'.format(stripped_line) if editable else line
         vcs = None
         # Installable local files and installable non-vcs urls are handled
         # as files, generally speaking

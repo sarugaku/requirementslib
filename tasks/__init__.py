@@ -4,5 +4,6 @@
 import invoke
 
 from . import vendoring
+from . import news
 
-ns = invoke.Collection(vendoring)
+ns = invoke.Collection(vendoring, news)
