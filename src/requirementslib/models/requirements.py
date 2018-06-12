@@ -166,8 +166,8 @@ class FileRequirement(BaseRequirement):
         if self.link and self.link.egg_fragment:
             return self.link.egg_fragment
         elif self.link and self.link.is_wheel:
-            return os.path.basename(Wheel(self.link.path).name)
-        if self._uri_scheme != "uri" and self.path and self.setup_path:
+            return Wheel(self.link.filename).name
+        if self._uri_scheme != "uri" and self.path and self.setup_path.exists():
             from distutils.core import run_setup
 
             try:
@@ -264,9 +264,8 @@ class FileRequirement(BaseRequirement):
                 vcs_type, relpath, uri, link = cls.get_link_from_line(line)
                 # link = Link("{0}".format(line))
                 if parsed.scheme == "file":
-                    path = Path(relpath)
-                    setup_path = path / "setup.py"
-                    path = path.absolute().as_posix()
+                    path = link.path
+                    setup_path = Path(path) / "setup.py"
             else:
                 vcs_type, relpath, uri, link = cls.get_link_from_line(line)
                 path = Path(relpath)
