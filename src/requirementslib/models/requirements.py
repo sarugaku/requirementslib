@@ -535,28 +535,38 @@ class Requirement(object):
             hashes = line.split(" --hash=")
             line, hashes = hashes[0], hashes[1:]
         editable = line.startswith("-e ")
+        line = line.split(" ", 1)[1] if editable else line
         line, markers = split_markers_from_line(line)
         line, extras = _strip_extras(line)
-        stripped_line = line.split(" ", 1)[1] if editable else line
-        stripped_line = stripped_line.strip('"').strip('"')
-        line = '-e {0}'.format(stripped_line) if editable else line
+        line = line.strip('"').strip("'")
+        line_with_prefix = "-e {0}".format(line) if editable else line
         vcs = None
         # Installable local files and installable non-vcs urls are handled
         # as files, generally speaking
         if (
-            is_installable_file(stripped_line)
-            or is_installable_file(line)
-            or (is_valid_url(stripped_line) and not is_vcs(stripped_line))
+            is_installable_file(line)
+            or (is_valid_url(line) and not is_vcs(line))
         ):
-            r = FileRequirement.from_line(line)
-        elif is_vcs(stripped_line):
-            r = VCSRequirement.from_line(line)
+            r = FileRequirement.from_line(line_with_prefix)
+        elif is_vcs(line):
+            r = VCSRequirement.from_line(line_with_prefix)
             vcs = r.vcs
+        elif line == '.' and not is_installable_file(line):
+            raise RequirementError('Error parsing requirement %s -- are you sure it is installable?' % line)
         else:
-            name = multi_split(stripped_line, "!=<>~")[0]
+            specs = '!=<>~'
+            spec_matches = set(specs) & set(line)
+            version = None
+            name = line
+            if spec_matches:
+                spec_idx = min((line.index(match) for match in spec_matches))
+                name = line[:spec_idx]
+                version = line[spec_idx:]
             if not extras:
                 name, extras = _strip_extras(name)
-            r = NamedRequirement.from_line(stripped_line)
+            if version:
+                name = '{0}{1}'.format(name, version)
+            r = NamedRequirement.from_line(name)
         if extras:
             extras = first(
                 requirements.parse("fakepkg{0}".format(extras_to_string(extras)))
