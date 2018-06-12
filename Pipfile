@@ -17,6 +17,11 @@ sphinx_rtd_theme = "*"
 rope = "*"
 towncrier = "*"
 
+[scripts]
+black = 'black src/requirementslib/ --exclude "/(\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist|src/requirementslib/_vendor)/"'
+mknews = "inv news.generate"
+news = "inv news.add"
+
 [requires]
 python_version = "3.6"
 

@@ -7,11 +7,7 @@ from first import first
 from packaging.markers import Marker, InvalidMarker
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 from .._compat import Link
-from ..utils import (
-    SCHEME_LIST,
-    VCS_LIST,
-    is_star,
-)
+from ..utils import SCHEME_LIST, VCS_LIST, is_star
 
 
 HASH_STRING = " --hash={0}"

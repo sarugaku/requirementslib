@@ -126,18 +126,26 @@ class FileRequirement(BaseRequirement):
         parsed_url = urllib_parse.urlsplit(vcs_line)
         vcs_type = None
         scheme = parsed_url.scheme
-        if '+' in parsed_url.scheme:
-            vcs_type, scheme = parsed_url.scheme.split('+')
-        if (scheme == 'file' or not scheme) and parsed_url.path and os.path.exists(parsed_url.path):
+        if "+" in parsed_url.scheme:
+            vcs_type, scheme = parsed_url.scheme.split("+")
+        if (
+            (scheme == "file" or not scheme)
+            and parsed_url.path
+            and os.path.exists(parsed_url.path)
+        ):
             path = Path(parsed_url.path).absolute().as_posix()
             uri = path_to_url(path)
             if not parsed_url.scheme:
                 relpath = get_converted_relative_path(path)
-            uri = '{0}#{1}'.format(uri, parsed_url.fragment) if parsed_url.fragment else uri
+            uri = (
+                "{0}#{1}".format(uri, parsed_url.fragment)
+                if parsed_url.fragment
+                else uri
+            )
         else:
             path = None
             uri = urllib_parse.urlunsplit((scheme,) + parsed_url[1:])
-        vcs_line = '{0}+{1}'.format(vcs_type, uri) if vcs_type else uri
+        vcs_line = "{0}+{1}".format(vcs_type, uri) if vcs_type else uri
         link = Link(vcs_line)
         if added_ssh_scheme:
             uri = strip_ssh_from_git_uri(uri)
@@ -362,13 +370,12 @@ class VCSRequirement(FileRequirement):
         split = urllib_parse.urlsplit(self.uri)
         scheme, rest = split[0], split[1:]
         vcs_type = ""
-        if '+' in scheme:
-            vcs_type, scheme = scheme.split('+', 1)
+        if "+" in scheme:
+            vcs_type, scheme = scheme.split("+", 1)
             vcs_type = "{0}+".format(vcs_type)
         new_uri = urllib_parse.urlunsplit((scheme,) + rest)
         new_uri = "{0}{1}".format(vcs_type, new_uri)
         self.uri = new_uri
-
 
     @link.default
     def get_link(self):
@@ -459,18 +466,26 @@ class VCSRequirement(FileRequirement):
         parsed_url = urllib_parse.urlsplit(vcs_line)
         vcs_type = None
         scheme = parsed_url.scheme
-        if '+' in parsed_url.scheme:
-            vcs_type, scheme = parsed_url.scheme.split('+')
-        if (scheme == 'file' or not scheme) and parsed_url.path and os.path.exists(parsed_url.path):
+        if "+" in parsed_url.scheme:
+            vcs_type, scheme = parsed_url.scheme.split("+")
+        if (
+            (scheme == "file" or not scheme)
+            and parsed_url.path
+            and os.path.exists(parsed_url.path)
+        ):
             path = Path(parsed_url.path).absolute().as_posix()
             uri = path_to_url(path)
             if not parsed_url.scheme:
                 relpath = get_converted_relative_path(path)
-            uri = '{0}#{1}'.format(uri, parsed_url.fragment) if parsed_url.fragment else uri                
+            uri = (
+                "{0}#{1}".format(uri, parsed_url.fragment)
+                if parsed_url.fragment
+                else uri
+            )
         else:
             path = None
             uri = urllib_parse.urlunsplit((scheme,) + parsed_url[1:])
-        vcs_line = '{0}+{1}'.format(vcs_type, uri) if vcs_type else uri
+        vcs_line = "{0}+{1}".format(vcs_type, uri) if vcs_type else uri
         link = Link(vcs_line)
         name = link.egg_fragment
         uri = link.url_without_fragment
@@ -602,18 +617,17 @@ class Requirement(object):
         vcs = None
         # Installable local files and installable non-vcs urls are handled
         # as files, generally speaking
-        if (
-            is_installable_file(line)
-            or (is_valid_url(line) and not is_vcs(line))
-        ):
+        if is_installable_file(line) or (is_valid_url(line) and not is_vcs(line)):
             r = FileRequirement.from_line(line_with_prefix)
         elif is_vcs(line):
             r = VCSRequirement.from_line(line_with_prefix)
             vcs = r.vcs
-        elif line == '.' and not is_installable_file(line):
-            raise RequirementError('Error parsing requirement %s -- are you sure it is installable?' % line)
+        elif line == "." and not is_installable_file(line):
+            raise RequirementError(
+                "Error parsing requirement %s -- are you sure it is installable?" % line
+            )
         else:
-            specs = '!=<>~'
+            specs = "!=<>~"
             spec_matches = set(specs) & set(line)
             version = None
             name = line
@@ -624,7 +638,7 @@ class Requirement(object):
             if not extras:
                 name, extras = _strip_extras(name)
             if version:
-                name = '{0}{1}'.format(name, version)
+                name = "{0}{1}".format(name, version)
             r = NamedRequirement.from_line(line)
         if extras:
             extras = first(
@@ -745,7 +759,7 @@ class Requirement(object):
         if not self._ireq:
             ireq_line = self.as_line()
             if ireq_line.startswith("-e "):
-                ireq_line = ireq_line[len("-e "):]
+                ireq_line = ireq_line[len("-e ") :]
                 self._ireq = InstallRequirement.from_editable(ireq_line)
             else:
                 self._ireq = InstallRequirement.from_line(ireq_line)
