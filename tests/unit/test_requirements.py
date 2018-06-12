@@ -74,6 +74,12 @@ DEP_PIP_PAIRS = [
         }},
         'FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
     ),
+    (
+        {'six': {
+            'file': 'file:///test/path/to/wheels/six/six-1.11.0-py2.py3-none-any.whl'
+        }},
+        'file:///test/path/to/wheels/six/six-1.11.0-py2.py3-none-any.whl'
+    ),
 ]
 
 
@@ -171,3 +177,8 @@ def test_get_requirements():
     assert not git_reformat.local_file
     # Test regression where VCS uris were being handled as paths rather than VCS entries
     assert git_reformat.vcs == 'git'
+    # these will fail due to not being real paths
+    # local_wheel = Requirement.from_pipfile('six', {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'})
+    # assert local_wheel.as_line() == 'file:///home/hawk/git/wheels/six/six-1.11.0-py2.py3-none-any.whl'
+    # local_wheel_from_line = Requirement.from_line('../wheels/six/six-1.11.0-py2.py3-none-any.whl')
+    # assert local_wheel_from_line.as_pipfile() == {'six': {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'}}

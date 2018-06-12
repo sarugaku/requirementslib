@@ -113,7 +113,7 @@ class FileRequirement(BaseRequirement):
     name = attr.ib()
     req = attr.ib()
     _has_hashed_name = False
-    _uri_scheme = None
+    _uri_scheme = attr.ib(default=None)
 
     @classmethod
     def get_link_from_line(cls, line):
@@ -248,6 +248,7 @@ class FileRequirement(BaseRequirement):
         line = line.strip('"').strip("'")
         link = None
         path = None
+        uri_scheme = None
         editable = line.startswith("-e ")
         line = line.split(" ", 1)[1] if editable else line
         setup_path = None
@@ -259,33 +260,29 @@ class FileRequirement(BaseRequirement):
         if is_valid_url(line) and not is_installable_file(line):
             vcs_type, relpath, uri, link = cls.get_link_from_line(line)
         else:
+            parsed = urlparse(line)
             if is_valid_url(line):
-                parsed = urlparse(line)
                 vcs_type, relpath, uri, link = cls.get_link_from_line(line)
-                # link = Link("{0}".format(line))
+                uri_scheme = parsed.scheme
                 if parsed.scheme == "file":
-                    path = link.path
+                    path = parsed.path
                     setup_path = Path(path) / "setup.py"
             else:
                 vcs_type, relpath, uri, link = cls.get_link_from_line(line)
-                path = Path(relpath)
+                path = Path(parsed.path)
                 setup_path = path / "setup.py"
                 path = path.as_posix()
-                # link = Link(unquote(_path.absolute().as_uri()))
-                # if _path.is_absolute() or _path.as_posix() == ".":
-                #     path = _path.as_posix()
-                # else:
-                #     path = get_converted_relative_path(line)
-        # print(link)
-        print(uri)
         arg_dict = {
             "path": path,
             "uri": link.url_without_fragment,
             "link": link,
             "editable": editable,
             "setup_path": setup_path,
+            "uri_scheme": uri_scheme,
         }
-        if link.egg_fragment:
+        if link and link.is_wheel:
+            arg_dict["name"] = Wheel(link.filename).name
+        elif link.egg_fragment:
             arg_dict["name"] = link.egg_fragment
         created = cls(**arg_dict)
         return created
@@ -293,14 +290,17 @@ class FileRequirement(BaseRequirement):
     @classmethod
     def from_pipfile(cls, name, pipfile):
         uri_key = first((k for k in ["uri", "file"] if k in pipfile))
-        uri = pipfile.get(uri_key, pipfile.get("path"))
-        if not uri_key:
-            abs_path = os.path.abspath(uri)
-            uri = path_to_url(abs_path) if os.path.exists(abs_path) else None
+        path = pipfile.get("path")
+        uri = pipfile.get(uri_key, path)
+        parsed = urlparse(uri)
+        if not parsed.scheme:
+            path = parsed.path
+            abs_path = Path(uri).absolute().as_posix()
+            uri = path_to_url(abs_path)
         link = Link(unquote(uri)) if uri else None
         arg_dict = {
             "name": name,
-            "path": pipfile.get("path"),
+            "path": path,
             "uri": unquote(link.url_without_fragment if link else uri),
             "editable": pipfile.get("editable"),
             "link": link,
@@ -309,7 +309,10 @@ class FileRequirement(BaseRequirement):
 
     @property
     def line_part(self):
-        seed = self.formatted_path or self.link.url or self.uri
+        if (self._uri_scheme and self._uri_scheme == 'file') or (self.link.is_artifact or self.link.is_wheel) and self.link.url:
+            seed = self.link.url_without_fragment or self.uri
+        else:
+            seed = self.formatted_path or self.link.url or self.uri
         # add egg fragments to remote artifacts (valid urls only)
         if not self._has_hashed_name and self.is_remote_artifact:
             seed += "#egg={0}".format(self.name)
@@ -320,20 +323,34 @@ class FileRequirement(BaseRequirement):
     def pipfile_part(self):
         pipfile_dict = {k: v for k, v in attr.asdict(self, filter=filter_none).items()}
         name = pipfile_dict.pop("name")
+        if '_uri_scheme' in pipfile_dict:
+            pipfile_dict.pop('_uri_scheme')
         if "setup_path" in pipfile_dict:
             pipfile_dict.pop("setup_path")
         req = self.req
         # For local paths and remote installable artifacts (zipfiles, etc)
-        if self.is_remote_artifact:
+        collision_keys = {'file', 'uri', 'path'}
+        if self._uri_scheme:
+            dict_key = self._uri_scheme
+            target_key = dict_key if dict_key in pipfile_dict else next((k for k in ('file', 'uri', 'path') if k in pipfile_dict), None)
+            if target_key:
+                winning_value = pipfile_dict.pop(target_key)
+                collisions = (k for k in collision_keys if k in pipfile_dict)
+                for key in collisions:
+                    pipfile_dict.pop(key)
+                pipfile_dict[dict_key] = winning_value
+        elif self.is_remote_artifact or self.link.is_artifact and (self._uri_scheme and self._uri_scheme == 'file'):
             dict_key = "file"
             # Look for uri first because file is a uri format and this is designed
             # to make sure we add file keys to the pipfile as a replacement of uri
-            target_keys = [k for k in pipfile_dict.keys() if k in ["uri", "path"]]
-            pipfile_dict[dict_key] = pipfile_dict.pop(first(target_keys))
-            if len(target_keys) > 1:
-                pipfile_dict.pop(target_keys[1])
+            target_key = next((k for k in ('file', 'uri', 'path') if k in pipfile_dict), None)
+            winning_value = pipfile_dict.pop(target_key)
+            key_to_remove = (k for k in collision_keys if k in pipfile_dict)
+            for key in key_to_remove:
+                pipfile_dict.pop(key)
+            pipfile_dict[dict_key] = winning_value
         else:
-            collisions = [key for key in ["path", "uri", "file"] if key in pipfile_dict]
+            collisions = [key for key in ["path", "file", "uri",] if key in pipfile_dict]
             if len(collisions) > 1:
                 for k in collisions[1:]:
                     pipfile_dict.pop(k)
