@@ -1,0 +1,1 @@
+Add pipfile parser to parse all requirements from pipfile to requirement format and generate pipfile hashes

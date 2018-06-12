@@ -1,6 +1,7 @@
 0.2.0
  - Add lockfile parser and allow it to output to requirements format.
  - Reorganize and format codebase, refactor code.
+ - Normalize windows paths for local non-vcs requirements.
 0.1.1
  - Fix editable URI naming on windows.
  - Fixed a bug causing failures on `-e .` paths with extras.

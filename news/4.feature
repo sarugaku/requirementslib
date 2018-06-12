@@ -1,0 +1,1 @@
+Implement lockfile parser and allow it to output to requirements.txt format
