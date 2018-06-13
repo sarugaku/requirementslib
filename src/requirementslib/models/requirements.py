@@ -218,7 +218,6 @@ class FileRequirement(BaseRequirement):
 
         return LinkInfo(vcs_type, prefer, relpath, path, uri, link)
 
-
     @uri.default
     def get_uri(self):
         if self.path and not self.uri:
@@ -329,7 +328,7 @@ class FileRequirement(BaseRequirement):
             setup_path = None
         arg_dict = {
             "path": relpath or path,
-            "uri": link.url_without_fragment,
+            "uri": uri,
             "link": link,
             "editable": editable,
             "setup_path": setup_path,
@@ -377,7 +376,7 @@ class FileRequirement(BaseRequirement):
 
     @property
     def pipfile_part(self):
-        pipfile_dict = {k: v for k, v in attr.asdict(self, filter=filter_none).items()}
+        pipfile_dict = attr.asdict(self, filter=filter_none).copy()
         name = pipfile_dict.pop("name")
         if '_uri_scheme' in pipfile_dict:
             pipfile_dict.pop('_uri_scheme')
