@@ -13,9 +13,10 @@ except:
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DIR = os.path.dirname(UNIT_TEST_DIR)
 ARTIFACTS_DIR = os.path.join(TEST_DIR, 'artifacts')
-TEST_PROJECT_DIR = os.path.join(ARTIFACTS_DIR, 'test_project')
-TEST_PROJECT_DIR_URI = Path(TEST_PROJECT_DIR).as_uri()
-TEST_PROJECT_RELATIVE_DIR = 'tests\\artifacts\\test_project'
+TEST_WHEEL = os.path.join(ARTIFACTS_DIR, 'six', 'six-1.11.0-py2.py3-none-any.whl')
+TEST_WHEEL_PATH = Path(TEST_WHEEL)
+TEST_WHEEL_URI = TEST_WHEEL_PATH.absolute().as_uri()
+TEST_PROJECT_RELATIVE_DIR = 'tests/artifacts/six/six-1.11.0-py2.py3-none-any.whl'
 
 # Pipfile format <-> requirements.txt format.
 DEP_PIP_PAIRS = [
@@ -88,9 +89,9 @@ DEP_PIP_PAIRS = [
     ),
     (
         {'six': {
-            'file': 'file:///test/path/to/wheels/six/six-1.11.0-py2.py3-none-any.whl'
+            'file': '{0}'.format(TEST_WHEEL_URI)
         }},
-        'file:///test/path/to/wheels/six/six-1.11.0-py2.py3-none-any.whl'
+        TEST_WHEEL_URI
     ),
 ]
 

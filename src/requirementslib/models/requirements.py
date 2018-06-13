@@ -319,9 +319,10 @@ class FileRequirement(BaseRequirement):
                 "Supplied requirement is not installable: {0!r}".format(line)
             )
         vcs_type, prefer, relpath, path, uri, link = cls.get_link_from_line(line)
-        setup_path = Path(path) / "setup.py"
-        if not setup_path.exists():
-            setup_path = None
+        if path:
+            setup_path = Path(path) / "setup.py"
+            if not setup_path.exists():
+                setup_path = None
         arg_dict = {
             "path": relpath or path,
             "uri": unquote(link.url_without_fragment),
