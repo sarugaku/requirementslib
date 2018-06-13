@@ -133,11 +133,11 @@ class FileRequirement(BaseRequirement):
             vcs_type, scheme = parsed_url.scheme.split("+")
             prefer = 'uri'
         if (
-            (scheme == "file" or scheme == drive or not scheme)
+            (scheme == "file" or (drive and scheme == drive) or not scheme)
             and parsed_url.path
         ):
             path = None
-            if scheme == drive:
+            if scheme == drive and scheme != '':
                 uri = path_to_url(path)
                 path = url_to_path(uri)
                 # path = Path(parsed_url.geturl()).as_posix()
@@ -148,7 +148,7 @@ class FileRequirement(BaseRequirement):
                 else:
                     path = Path(parsed_url.path).absolute().as_posix()
                 prefer = 'file' if not prefer else prefer
-            uri = path_to_url(path) if not uri else uri
+            uri = path_to_url(parsed_url.path) if not uri else uri
             if not scheme:
                 if not os.name == 'nt':
                     path = Path(parsed_url.path).absolute().as_posix()
@@ -163,8 +163,10 @@ class FileRequirement(BaseRequirement):
             )
         else:
             path = None
-            uri = urllib_parse.urlunsplit((scheme,) + parsed_url[1:])
-        vcs_line = "{0}+{1}".format(vcs_type, uri) if vcs_type else uri
+            # leave off the egg fragment for the URI
+            uri = urllib_parse.urlunsplit(parsed_url[:-1] + ('',))
+        original_url = urllib_parse.urlunsplit((scheme,) + (parsed_url[1:]))
+        vcs_line = "{0}+{1}".format(vcs_type, original_url) if vcs_type else original_url
         link = Link(vcs_line)
         if added_ssh_scheme:
             uri = strip_ssh_from_git_uri(uri)
@@ -387,7 +389,6 @@ class VCSRequirement(FileRequirement):
     )
 
     def __attrs_post_init__(self):
-        print(self.uri)
         split = urllib_parse.urlsplit(self.uri)
         scheme, rest = split[0], split[1:]
         vcs_type = ""
@@ -435,7 +436,7 @@ class VCSRequirement(FileRequirement):
             req.editable = True
         req.link = self.link
         if (
-            self.uri != self.link.url
+            self.uri != self.link.url_without_fragment
             and "git+ssh://" in self.link.url
             and "git+git@" in self.uri
         ):
@@ -511,7 +512,6 @@ class VCSRequirement(FileRequirement):
         # vcs_line = "{0}+{1}".format(vcs_type, uri) if vcs_type else uri
         # link = Link(vcs_line)
         name = link.egg_fragment
-        uri = link.url_without_fragment
         subdirectory = link.subdirectory_fragment
         ref = None
         if "@" in link.show_url:
