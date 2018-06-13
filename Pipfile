@@ -21,6 +21,7 @@ towncrier = "*"
 black = 'black src/requirementslib/ --exclude "/(\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist|src/requirementslib/_vendor)/"'
 mknews = "inv news.generate"
 news = "inv news.add"
+tests = "pytest -v --ignore=src/requirementslib/_vendor/ tests"
 
 [requires]
 python_version = "3.6"
