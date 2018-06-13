@@ -117,6 +117,32 @@ class FileRequirement(BaseRequirement):
 
     @classmethod
     def get_link_from_line(cls, line):
+        """Parse link information from given requirement line.
+
+        Return a 6-tuple:
+
+        - `vcs_type` indicates the VCS to use (e.g. "git"), or None.
+        - `prefer` is either "path" or "uri", indicating whether we should
+            prefer local file path or an absolute URI in later stages.
+        - `relpath` is the relative path to use when recording the dependency,
+            instead of the absolute path/URI used to perform installation.
+            This can be None (to prefer the absolute path or URI).
+        - `path` is the absolute file path to the package.
+        - `uri` is the absolute URI to the package.
+        - `link` is an instance of :class:`pip._internal.index.Link`,
+            representing a URI parse result based on the value of `uri`.
+
+        This function is provided to deal with edge cases concerning URIs
+        without a valid netloc. Those URIs are problematic to a straight
+        ``urlsplit` call because they cannot be reliably reconstructed with
+        ``urlunsplit`` due to a bug in the standard library:
+
+        >>> from urllib.parse import urlsplit, urlunsplit
+        >>> urlunsplit(urlsplit('uncommon-scheme:///foo'))
+        'uncommon-scheme:/foo'
+
+        See `https://bugs.python.org/issue23505#msg277350`.
+        """
         relpath = None
         if line.startswith("-e "):
             editable = True
