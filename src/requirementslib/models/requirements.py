@@ -188,7 +188,7 @@ class FileRequirement(BaseRequirement):
             return self.link.egg_fragment
         elif self.link and self.link.is_wheel:
             return Wheel(self.link.filename).name
-        if self._uri_scheme != "uri" and self.path and self.setup_path.exists():
+        if self._uri_scheme != "uri" and self.path and is_installable_file(self.path) and self.setup_path.exists():
             from distutils.core import run_setup
 
             try:
@@ -277,7 +277,9 @@ class FileRequirement(BaseRequirement):
                 "Supplied requirement is not installable: {0!r}".format(line)
             )
         vcs_type, prefer, relpath, path, uri, link = cls.get_link_from_line(line)
-        setup_path = Path(path) / "setup.py" if path else None
+        setup_path = Path(path) / "setup.py"
+        if not setup_path.exists():
+            setup_path = None
         arg_dict = {
             "path": path,
             "uri": link.url_without_fragment,
@@ -395,7 +397,7 @@ class VCSRequirement(FileRequirement):
         if "+" in scheme:
             vcs_type, scheme = scheme.split("+", 1)
             vcs_type = "{0}+".format(vcs_type)
-        new_uri = urllib_parse.urlunsplit((scheme,) + rest)
+        new_uri = urllib_parse.urlunsplit((scheme,) + rest[:-1] + ('',))
         new_uri = "{0}{1}".format(vcs_type, new_uri)
         self.uri = new_uri
 
