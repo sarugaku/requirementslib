@@ -4,6 +4,18 @@ import pytest
 from first import first
 from requirementslib import Requirement
 
+try:
+    from pathlib import Path
+except:
+    from pathlib2 import Path
+
+
+UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+TEST_DIR = os.path.dirname(UNIT_TEST_DIR)
+ARTIFACTS_DIR = os.path.join(TEST_DIR, 'artifacts')
+TEST_PROJECT_DIR = os.path.join(ARTIFACTS_DIR, 'test_project')
+TEST_PROJECT_DIR_URI = Path(TEST_PROJECT_DIR).as_uri()
+TEST_PROJECT_RELATIVE_DIR = 'tests\\artifacts\\test_project'
 
 # Pipfile format <-> requirements.txt format.
 DEP_PIP_PAIRS = [
