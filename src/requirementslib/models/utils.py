@@ -120,7 +120,6 @@ def validate_vcs(instance, attr_, value):
 
 
 def validate_path(instance, attr_, value):
-    return True
     if not os.path.exists(value):
         raise ValueError("Invalid path {0!r}", format(value))
 
