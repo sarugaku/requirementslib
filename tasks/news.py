@@ -17,6 +17,10 @@ def get_toml_file(ctx):
     return _get_git_root(ctx) / 'pyproject.toml'
 
 
+def get_random():
+    return str(uuid.uuid4())[:8]
+
+
 @invoke.task
 def add(ctx, description, type_='feature', issue=None):
     toml_file = get_toml_file(ctx)
@@ -31,7 +35,7 @@ def add(ctx, description, type_='feature', issue=None):
     target_dir = _get_news_dir(ctx)
     existing_files = [f.stem.split('-')[0] for f in target_dir.glob('*.{0}'.format(type_)) if f.stem.split('-')[0].isdigit()]
     if not existing_files and not issue:
-        nextfile = target_dir / '1-{0}.{1}'.format(uuid.uuid4(), type_)
+        nextfile = target_dir / '1-{0}.{1}'.format(get_random(), type_)
     elif issue:
         nextfile = target_dir / '{0}.{1}'.format(issue, type_)
     else:
