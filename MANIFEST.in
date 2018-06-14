@@ -1,2 +1,3 @@
 include README.rst LICENSE NOTICES HISTORY.txt CHANGELOG.rst
+recursive-include src/requirementslib/_vendor/ *LICENSE*
 recursive-include src *LICENSE* *COPYING*
