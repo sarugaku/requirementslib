@@ -1,6 +1,7 @@
 # -*- coding=utf-8 -*-
 import invoke
 import toml
+import uuid
 from pathlib import Path
 
 
@@ -28,13 +29,13 @@ def add(ctx, description, type_='feature', issue=None):
         print("Valid news types: {0}".format(' '.join(allowed_types)))
         return
     target_dir = _get_news_dir(ctx)
-    existing_files = [f.stem for f in target_dir.glob('*.{0}'.format(type_)) if f.stem.isdigit()]
+    existing_files = [f.stem.split('-')[0] for f in target_dir.glob('*.{0}'.format(type_)) if f.stem.split('-')[0].isdigit()]
     if not existing_files and not issue:
-        nextfile = target_dir / '1.{0}'.format(type_)
+        nextfile = target_dir / '1-{0}.{1}'.format(uuid.uuid4(), type_)
     elif issue:
         nextfile = target_dir / '{0}.{1}'.format(issue, type_)
     else:
-        nextfile = '{0}.{1}'.format(int(sorted(existing_files).pop()) + 1, type_)
+        nextfile = '{0}-{1}.{2}'.format(int(sorted(existing_files).pop()) + 1, uuid.uui4(), type_)
         nextfile = target_dir / nextfile
     print("[news.add] Adding newsfile {0} => [{1}] {2}".format(nextfile.name, type_.upper(), description))
     nextfile.write_text(description)
