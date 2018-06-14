@@ -561,7 +561,7 @@ class VCSRequirement(FileRequirement):
         name = link.egg_fragment
         subdirectory = link.subdirectory_fragment
         ref = None
-        if "@" in link.show_url:
+        if "@" in link.show_url and "@" in uri:
             uri, ref = uri.rsplit("@", 1)
         return cls(
             name=name,
