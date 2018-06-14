@@ -1,1 +1,0 @@
-Raise an explicit error when handling the current directory as a requirement if it isn't installable
