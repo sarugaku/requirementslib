@@ -1,2 +1,2 @@
-include README.rst LICENSE NOTICES HISTORY.txt
+include README.rst LICENSE NOTICES HISTORY.txt CHANGELOG.rst
 recursive-include src *LICENSE* *COPYING*
