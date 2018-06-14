@@ -39,7 +39,7 @@ def add(ctx, description, type_='feature', issue=None):
     elif issue:
         nextfile = target_dir / '{0}.{1}'.format(issue, type_)
     else:
-        nextfile = '{0}-{1}.{2}'.format(int(sorted(existing_files).pop()) + 1, uuid.uui4(), type_)
+        nextfile = '{0}-{1}.{2}'.format(int(sorted(existing_files).pop()) + 1, get_random(), type_)
         nextfile = target_dir / nextfile
     print("[news.add] Adding newsfile {0} => [{1}] {2}".format(nextfile.name, type_.upper(), description))
     nextfile.write_text(description)
