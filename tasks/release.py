@@ -27,8 +27,7 @@ def get_version(ctx):
 
 
 def log(msg):
-    global TASK_NAME
-    print('[release.%s] %s' % TASK_NAME, msg)
+    print('[release] %s' % msg)
 
 
 def get_dist_dir(ctx):
@@ -48,8 +47,6 @@ def drop_dist_dirs(ctx):
 
 @invoke.task
 def build_dists(ctx):
-    global TASK_NAME
-    TASK_NAME = 'BUILD_DISTS'
     drop_dist_dirs(ctx)
     log('Building sdist using %s ....' % sys.executable)
     ctx.run('%s setup.py sdist' % sys.executable)
@@ -59,16 +56,12 @@ def build_dists(ctx):
 
 @invoke.task(build_dists)
 def upload_dists(ctx):
-    global TASK_NAME
-    TASK_NAME = 'UPLOAD_RELEASE'
     log('Uploading distributions to pypi...')
     ctx.run('twine upload dist/*')
 
 
 @invoke.task
 def generate_changelog(ctx, commit=False):
-    global TASK_NAME
-    TASK_NAME = 'LOCK_CHANGELOG'
     log('Generating changelog...')
     ctx.run('towncrier')
     if commit:
@@ -79,8 +72,6 @@ def generate_changelog(ctx, commit=False):
 
 @invoke.task
 def tag_version(ctx, push=False):
-    global TASK_NAME
-    TASK_NAME = 'TAG_VERSION'
     version = get_version(ctx)
     log('Tagging revision: v%s' % version)
     ctx.run('git tag v%s' % version)
