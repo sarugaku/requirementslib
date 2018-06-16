@@ -9,8 +9,8 @@ from .._compat import Path, FileNotFoundError
 
 @attr.s
 class Lockfile(object):
-    dev_requirements = attr.ib(default=list)
-    requirements = attr.ib(default=list)
+    dev_requirements = attr.ib(default=attr.Factory(list))
+    requirements = attr.ib(default=attr.Factory(list))
     path = attr.ib(default=None, validator=optional_instance_of(Path))
     pipfile_hash = attr.ib(default=None)
 
