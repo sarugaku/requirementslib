@@ -31,7 +31,8 @@ class Lockfile(object):
         if not lockfile_path.exists():
             raise FileNotFoundError("No such lockfile: %s" % lockfile_path)
 
-        lockfile = json.loads(lockfile_path.read_text(encoding="utf-8"))
+        with lockfile_path.open(encoding="utf-8") as f:
+            lockfile = json.loads(f.read())
         for k in lockfile["develop"].keys():
             dev_requirements.append(Requirement.from_pipfile(k, lockfile["develop"][k]))
         for k in lockfile["default"].keys():
