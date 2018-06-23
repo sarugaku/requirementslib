@@ -1,3 +1,19 @@
+1.0.2 (2018-06-22)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a problem with loading relative paths in pipfiles with windows-style
+  slashes. (#11)
+- Fixed a bug with default values used during lockfile generation. (#9)
+
+Improved Documentation
+----------------------
+
+- Fixed usage documentation. (#9)
+
+
 1.0.1 (2018-06-15)
 ==================
 
