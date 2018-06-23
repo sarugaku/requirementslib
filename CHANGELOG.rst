@@ -1,3 +1,24 @@
+1.0.1 (2018-06-15)
+==================
+
+Features
+--------
+
+- Updated automation scripts to add release scripts and tagging scripts.
+  (1-d0479c0a)
+
+Bug Fixes
+---------
+
+- Fix parsing bug with local VCS uris (1-22283f73)
+- Fix bug which kept vcs refs in local relative paths (2-34b712ee)
+
+Removals and Deprecations
+-------------------------
+
+- Cleanup unused imports and migrate history file to changelog. (1-1cddf326)
+
+
 1.0.0 (2018-06-14)
 ==================
 
