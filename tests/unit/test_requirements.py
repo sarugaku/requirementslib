@@ -6,7 +6,7 @@ from requirementslib import Requirement
 
 try:
     from pathlib import Path
-except:
+except ImportError:
     from pathlib2 import Path
 
 

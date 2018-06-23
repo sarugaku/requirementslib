@@ -67,7 +67,7 @@ You can use RequirementsLib to import your lockfile into your setup file for inc
   ::
 
     from requirementslib import Lockfile
-    lockfile = Lockfile('/home/dan/git/pipenv')
+    lockfile = Lockfile.create('/path/to/project/dir')
     install_requires = lockfile.as_requirements(dev=False)
 
 
@@ -77,7 +77,7 @@ Interacting with a *Pipfile* directly
 You can also interact directly with a Pipfile:
 
   ::
-  
+
     >>> from requirementslib import Pipfile
     >>> pf = Pipfile.load('/home/hawk/git/pypa-pipenv')
     >>> pf.sections
@@ -87,19 +87,19 @@ You can also interact directly with a Pipfile:
 And you can even write it back out into Pipfile's native format:
 
   ::
-  
+
     >>> print(pf.dump(to_dict=False))
     [packages]
-    
+
     [dev-packages]
     pipenv = {path = ".", editable = true}
     flake8 = ">=3.3.0,<4"
     pytest = "*"
     mock = "*"
-    
+
     [scripts]
     tests = "bash ./run-tests.sh"
-    
+
     [pipenv]
     allow_prereleases = true
 
