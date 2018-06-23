@@ -324,7 +324,7 @@ class FileRequirement(BaseRequirement):
         vcs_type, prefer, relpath, path, uri, link = cls.get_link_from_line(line)
         setup_path = Path(path) / "setup.py" if path else None
         arg_dict = {
-            "path": relpath or path,
+            "path": relpath if relpath else path,
             "uri": unquote(link.url_without_fragment),
             "link": link,
             "editable": editable,
@@ -347,6 +347,8 @@ class FileRequirement(BaseRequirement):
         uri = pipfile.get("uri")
         fil = pipfile.get("file")
         path = pipfile.get("path")
+        if not os.path.isabs(path):
+            path = get_converted_relative_path(path)
         if path and uri:
             raise ValueError("do not specify both 'path' and 'uri'")
         if path and fil:
