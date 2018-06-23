@@ -347,8 +347,11 @@ class FileRequirement(BaseRequirement):
         uri = pipfile.get("uri")
         fil = pipfile.get("file")
         path = pipfile.get("path")
-        if not os.path.isabs(path):
-            path = get_converted_relative_path(path)
+        if path:
+            if isinstance(path, Path) and not path.is_absolute():
+                path = get_converted_relative_path(path.as_posix())
+            elif not os.path.isabs(path):
+                path = get_converted_relative_path(path)
         if path and uri:
             raise ValueError("do not specify both 'path' and 'uri'")
         if path and fil:
