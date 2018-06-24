@@ -1,3 +1,15 @@
+1.0.3 (2018-06-23)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug which caused the base relative path to be listed as ``./.``
+  instead of ``.``. (#12)
+- Fixed a bug that caused egg fragments to be added to
+  ``Requirement.as_line()`` output for file requirements. (#13)
+
+
 1.0.2 (2018-06-22)
 ==================
 

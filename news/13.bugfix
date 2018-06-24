@@ -1,1 +1,0 @@
-Fixed a bug that caused egg fragments to be added to ``Requirement.as_line()`` output for file requirements.
