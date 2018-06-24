@@ -1,0 +1,1 @@
+Fixed a bug which caused the base relative path to be listed as ``./.`` instead of ``.``.
