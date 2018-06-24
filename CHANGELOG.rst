@@ -1,3 +1,13 @@
+1.0.5 (2018-06-24)
+==================
+
+Features
+--------
+
+- Cleaned up relative path conversions to ensure they are always handled in
+  posix style. (#15)
+
+
 1.0.4 (2018-06-24)
 ==================
 
