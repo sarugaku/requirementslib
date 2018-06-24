@@ -1,3 +1,12 @@
+1.0.4 (2018-06-24)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug which caused converting relative paths to return ``None``. (#14)
+
+
 1.0.3 (2018-06-23)
 ==================
 
