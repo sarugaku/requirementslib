@@ -1,1 +1,0 @@
-Fixed a quotation error when passing markers to ``Requirement.constraint_line`` and ``Requirement.markers_as_pip``.
