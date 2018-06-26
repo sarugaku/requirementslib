@@ -1,3 +1,12 @@
+1.0.6 (2018-06-25)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a quotation error when passing markers to ``Requirement.constraint_line`` and ``Requirement.markers_as_pip``. (#17)
+
+
 1.0.5 (2018-06-24)
 ==================
 
