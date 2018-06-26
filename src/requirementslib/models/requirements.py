@@ -236,7 +236,7 @@ class FileRequirement(BaseRequirement):
         ):
             from distutils.core import run_setup
 
-            old_curdir = os.getcwd()
+            old_curdir = os.path.abspath(os.getcwd())
             try:
                 os.chdir(str(self.setup_path.parent))
                 dist = run_setup(self.setup_path.as_posix(), stop_after="init")
