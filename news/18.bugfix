@@ -1,0 +1,1 @@
+Fixed an issue with resolving certain packages which imported and executed other libraries (such as ``versioneer``) during ``setup.py`` execution.
