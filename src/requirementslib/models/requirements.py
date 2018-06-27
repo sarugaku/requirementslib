@@ -157,6 +157,8 @@ class FileRequirement(BaseRequirement):
         # Add "ssh://" so we can parse correctly, and restore afterwards.
         fixed_line = add_ssh_scheme_to_git_uri(line)
         added_ssh_scheme = fixed_line != line
+        if added_ssh_scheme:
+            fixed_line.
 
         # We can assume a lot of things if this is a local filesystem path.
         if "://" not in fixed_line:
@@ -173,6 +175,10 @@ class FileRequirement(BaseRequirement):
         # This is an URI. We'll need to perform some elaborated parsing.
 
         parsed_url = urllib_parse.urlsplit(fixed_line)
+        if added_ssh_scheme and ':' in parsed.netloc:
+            netloc, path_start = parsed.netloc.rsplit(':', 1)
+            uri_path = '/{0}{1}'.format(path_start, parsed.path)
+            parsed_url = parsed_url._replace(netloc=netloc, path=uri_path)
 
         # Split the VCS part out if needed.
         original_scheme = parsed_url.scheme
