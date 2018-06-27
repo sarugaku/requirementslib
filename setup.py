@@ -104,7 +104,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(
         where="src",
-        exclude=["docs", "tests*"],
+        exclude=["docs", "tests*", "tasks"],
     ),
     entry_points={},
     tests_require=tests_require,
