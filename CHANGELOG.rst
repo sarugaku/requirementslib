@@ -1,3 +1,12 @@
+1.0.7 (2018-06-27)
+==================
+
+Bug Fixes
+---------
+
+- Fixed an issue with resolving certain packages which imported and executed other libraries (such as ``versioneer``) during ``setup.py`` execution. (#18)
+
+
 1.0.6 (2018-06-25)
 ==================
 
