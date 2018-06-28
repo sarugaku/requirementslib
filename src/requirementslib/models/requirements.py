@@ -174,9 +174,10 @@ class FileRequirement(BaseRequirement):
 
         parsed_url = urllib_parse.urlsplit(fixed_line)
         if added_ssh_scheme and ':' in parsed_url.netloc:
-            netloc, path_start = parsed_url.netloc.rsplit(':', 1)
-            uri_path = '/{0}{1}'.format(path_start, parsed_url.path)
-            parsed_url = parsed_url._replace(netloc=netloc, path=uri_path)
+            original_netloc, original_path_start = parsed_url.netloc.rsplit(':', 1)
+            uri_path = '/{0}{1}'.format(original_path_start, parsed_url.path)
+            original_url = parsed_url
+            parsed_url = original_url._replace(netloc=original_netloc, path=uri_path)
 
         # Split the VCS part out if needed.
         original_scheme = parsed_url.scheme
@@ -207,7 +208,8 @@ class FileRequirement(BaseRequirement):
             )
 
         if added_ssh_scheme:
-            uri = strip_ssh_from_git_uri(uri)
+            original_uri = urllib_parse.urlunsplit(original_url._replace(scheme=original_scheme, fragment=""))
+            uri = strip_ssh_from_git_uri(original_uri)
 
         # Re-attach VCS prefix to build a Link.
         link = Link(
@@ -400,7 +402,7 @@ class FileRequirement(BaseRequirement):
         ):
             seed = unquote(self.link.url_without_fragment) or self.uri
         else:
-            seed = self.formatted_path or unquote(self.link.url_without_fragment) or self.uri
+            seed = self.path or unquote(self.link.url_without_fragment) or self.uri
         # add egg fragments to remote artifacts (valid urls only)
         if not self._has_hashed_name and self.is_remote_artifact:
             seed += "#egg={0}".format(self.name)
