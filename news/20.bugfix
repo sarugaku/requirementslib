@@ -1,0 +1,1 @@
+Requirementslib will no longer incorrectly write absolute paths or uris where relative paths were provided as inputs.
