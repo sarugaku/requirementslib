@@ -1,1 +1,1 @@
-Fixed a bug with formatting VCS requirements when translating implicit SSH URIs to ssh URLs.
+Requirementslib will no longer incorrectly write absolute paths or uris where relative paths were provided as inputs.
