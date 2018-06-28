@@ -16,6 +16,7 @@ requirementslib = {path = ".", editable = true}
 sphinx_rtd_theme = "*"
 rope = "*"
 towncrier = "*"
+ptpython = "*"
 
 [scripts]
 black = 'black src/requirementslib/ --exclude "/(\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist|src/requirementslib/_vendor)/"'
