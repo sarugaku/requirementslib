@@ -534,8 +534,8 @@ class VCSRequirement(FileRequirement):
             and "git+ssh://" in self.link.url
             and "git+git@" in self.uri
         ):
-            req.line = strip_ssh_from_git_uri(req.line)
-            req.uri = strip_ssh_from_git_uri(req.uri)
+            req.line = self.uri
+            req.uri = self.uri
         if not req.name:
             raise ValueError(
                 "pipenv requires an #egg fragment for version controlled "
