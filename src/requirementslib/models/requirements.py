@@ -395,14 +395,14 @@ class FileRequirement(BaseRequirement):
 
     @property
     def line_part(self):
-        if (
+        if self._uri_scheme and self._uri_scheme == 'path':
+            seed = self.path or unquote(self.link.url_without_fragment) or self.uri
+        elif (
             (self._uri_scheme and self._uri_scheme == "file")
-            or (self.link.is_artifact or self.link.is_wheel)
-            and self.link.url
+            or ((self.link.is_artifact or self.link.is_wheel)
+            and self.link.url)
         ):
             seed = unquote(self.link.url_without_fragment) or self.uri
-        else:
-            seed = self.path or unquote(self.link.url_without_fragment) or self.uri
         # add egg fragments to remote artifacts (valid urls only)
         if not self._has_hashed_name and self.is_remote_artifact:
             seed += "#egg={0}".format(self.name)
