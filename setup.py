@@ -106,6 +106,9 @@ setup(
         where="src",
         exclude=["docs", "tests*", "tasks"],
     ),
+    package_data={
+        '': ['LICENSE'],
+    },
     entry_points={},
     tests_require=tests_require,
     zip_safe=False,
