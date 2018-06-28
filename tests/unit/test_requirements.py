@@ -190,7 +190,7 @@ def test_get_requirements():
     assert not git_reformat.local_file
     # Test regression where VCS uris were being handled as paths rather than VCS entries
     assert git_reformat.vcs == 'git'
-    assert git_reformat.req.link.url == 'git+ssh://git@github.com/pypa/pipenv.git#egg=pipenv'
+    assert git_reformat.link.url == 'git+ssh://git@github.com/pypa/pipenv.git#egg=pipenv'
     # these will fail due to not being real paths
     # local_wheel = Requirement.from_pipfile('six', {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'})
     # assert local_wheel.as_line() == 'file:///home/hawk/git/wheels/six/six-1.11.0-py2.py3-none-any.whl'
