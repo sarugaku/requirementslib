@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import invoke
+from parver import Version
 import re
 import sys
 from .vendoring import mkdir_p, drop_dir, remove_all, _get_git_root
@@ -46,8 +47,9 @@ def drop_dist_dirs(ctx):
 
 
 @invoke.task
-def build_dists(ctx):
-    drop_dist_dirs(ctx)
+def build_dists(ctx, drop_existing=True):
+    if drop_existing:
+        drop_dist_dirs(ctx)
     log('Building sdist using %s ....' % sys.executable)
     ctx.run('%s setup.py sdist' % sys.executable)
     log('Building wheel using %s ....' % sys.executable)
@@ -55,7 +57,9 @@ def build_dists(ctx):
 
 
 @invoke.task(build_dists)
-def upload_dists(ctx):
+def upload_dists(ctx, build=False):
+    if build:
+        build_dists(ctx)
     log('Uploading distributions to pypi...')
     ctx.run('twine upload dist/*')
 
@@ -78,3 +82,41 @@ def tag_version(ctx, push=False):
     if push:
         log('Pushing tags...')
         ctx.run('git push --tags')
+
+
+@invoke.task
+def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=False, pre=False, tag=None, clear=False, commit=False,):
+    _current_version = get_version(ctx)
+    current_version = Version.parse(_current_version)
+    if pre and not tag:
+        print('Using "pre" requires a corresponding tag.')
+        return
+    if not dev and not pre:
+        new_version = current_version.clear(pre=True, dev=True)
+    if pre and dev:
+        print("Pre and dev cannot be used together.")
+        return
+    elif dev:
+        new_version = new_version.bump_dev()
+    elif pre:
+        new_version = new_version.bump_pre(tag=tag)
+    if major:
+        new_version = new_version.bump_release(0)
+    elif minor:
+        new_version = new_version.bump_release(1)
+    elif micro:
+        new_version = new_version.bump_release(2)
+    if clear:
+        new_version = new_version.clear(dev=True, pre=True, post=True)
+    log('Updating version to %s' % new_version.normalize())
+    version_file = get_version_file(ctx)
+    file_contents = version_file.read_text()
+    log('Found current version: %s' % _current_version)
+    if dry_run:
+        log('Would update to: %s' % new_version.normalize())
+    else:
+        log('Updating to: %s' % new_version.normalize())
+        version_file.write_text(file_contents.replace(_current_version, str(new_version.normalize())))
+        if commit:
+            log('Committing...')
+            ctx.run('git commit -s -m "Bumped version."')
