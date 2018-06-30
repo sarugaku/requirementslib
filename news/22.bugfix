@@ -1,0 +1,1 @@
+Use ``hostname`` instead of ``netloc`` to format urls to avoid dropping usernames when they are included.
