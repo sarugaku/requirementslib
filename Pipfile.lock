@@ -7,13 +7,11 @@
         "requires": {
             "python_version": "3.6"
         },
-        "sources": [
-            {
-                "name": "pypi",
-                "url": "https://pypi.python.org/simple",
-                "verify_ssl": true
-            }
-        ]
+        "sources": [{
+            "name": "pypi",
+            "url": "https://pypi.python.org/simple",
+            "verify_ssl": true
+        }]
     },
     "default": {},
     "develop": {
@@ -81,6 +79,14 @@
             ],
             "version": "==6.7"
         },
+        "colorama": {
+            "hashes": [
+                "sha256:463f8483208e921368c9f306094eb6f725c6ca42b0f97e313cb5d5512459feda",
+                "sha256:48eb22f4f8461b1df5734a074b57042430fb06e1d61bd1e11b078c0fe6d7a1f1"
+            ],
+            "markers": "sys_platform == 'win32'",
+            "version": "==0.3.9"
+        },
         "contoml": {
             "hashes": [
                 "sha256:2353275caef3726131c4192379252cc48eb4a15c06df3e1046f783de937eba94",
@@ -122,6 +128,14 @@
             ],
             "index": "pypi",
             "version": "==3.5.0"
+        },
+        "flaky": {
+            "hashes": [
+                "sha256:4ad7880aef8c35a34ddb394d4fa33047765bca1e3d67d182bf6eba9c8eabf3a2",
+                "sha256:d0533f473a46b916e6db6e84e20b06d8a70656600a0c14e819b0760b63f70226"
+            ],
+            "index": "pypi",
+            "version": "==3.4.0"
         },
         "idna": {
             "hashes": [
@@ -274,6 +288,11 @@
         "pyparsing": {
             "hashes": [
                 "sha256:0832bcf47acd283788593e7a0f542407bd9550a55a8a8435214a1960e04bcb04",
+                "sha256:281683241b25fe9b80ec9d66017485f6deff1af5cde372469134b56ca8447a07",
+                "sha256:8f1e18d3fd36c6795bb7e02a39fd05c611ffc2596c1e0d995d34d67630426c18",
+                "sha256:9e8143a3e15c13713506886badd96ca4b579a87fbdf49e550dbfc057d6cb218e",
+                "sha256:b8b3117ed9bdf45e14dcc89345ce638ec7e0e29b2b579fa1ecf32ce45ebac8a5",
+                "sha256:e4d45427c6e20a59bf4f88c639dcc03ce30d193112047f94012102f235853a58",
                 "sha256:fee43f17a9c4087e7ed1605bd6df994c6173c1e977d7ade7b651292fab2bd010"
             ],
             "version": "==2.2.0"
