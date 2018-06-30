@@ -5,7 +5,7 @@ Bug Fixes
 ---------
 
 - Requirementslib will no longer incorrectly write absolute paths or uris where relative paths were provided as inputs.
-  Fixed a bug with formatting VCS requirements when translating implicit SSH URIs to ssh URLs. (#20)
+- Fixed a bug with formatting VCS requirements when translating implicit SSH URIs to ssh URLs. (#20)
 
 
 1.0.7 (2018-06-27)
