@@ -1,3 +1,17 @@
+1.0.9 (2018-06-30)
+==================
+
+Features
+--------
+
+- Move slow imports to improve import times. (#23)
+
+Bug Fixes
+---------
+
+- Use ``hostname`` instead of ``netloc`` to format urls to avoid dropping usernames when they are included. (#22)
+
+
 1.0.8 (2018-06-27)
 ==================
 
