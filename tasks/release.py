@@ -118,5 +118,6 @@ def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=F
         log('Updating to: %s' % new_version.normalize())
         version_file.write_text(file_contents.replace(_current_version, str(new_version.normalize())))
         if commit:
+            ctx.run('git add {0}'.format(get_version_file(ctx)))
             log('Committing...')
             ctx.run('git commit -s -m "Bumped version."')
