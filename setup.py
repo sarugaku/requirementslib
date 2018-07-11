@@ -68,7 +68,7 @@ class UploadCommand(Command):
     def run(self):
         # self.status('Building Source distribution…')
         # os.system('{0} setup.py sdist'.format(sys.executable))
-        self.status('Uploading the package to PyPi via Twine…')
+        self.status('Uploading the package to PyPi via Twine...')
         os.system('twine upload dist/*')
         self.status('Pushing git tags…')
         os.system('git tag v{0}'.format(find_version("src", "requirementslib", "__init__.py")))
@@ -108,6 +108,7 @@ setup(
     ),
     package_data={
         '': ['LICENSE'],
+        "src._vendor.pipfile": ["LICENSE.*"],
     },
     entry_points={},
     tests_require=tests_require,
