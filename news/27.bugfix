@@ -1,0 +1,1 @@
+requirementslib will now correctly handle subdirectory fragments on output and input for both pipfile and pip-style requirements.
