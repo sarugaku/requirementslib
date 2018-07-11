@@ -764,11 +764,14 @@ class Requirement(object):
             r = FileRequirement.from_pipfile(name, pipfile)
         else:
             r = NamedRequirement.from_pipfile(name, pipfile)
+        markers = PipenvMarkers.from_pipfile(name, _pipfile)
+        if markers:
+            markers = str(markers)
         args = {
             "name": r.name,
             "vcs": vcs,
             "req": r,
-            "markers": PipenvMarkers.from_pipfile(name, _pipfile).line_part,
+            "markers": markers,
             "extras": _pipfile.get("extras"),
             "editable": _pipfile.get("editable", False),
             "index": _pipfile.get("index"),

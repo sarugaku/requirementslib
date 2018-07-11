@@ -84,4 +84,10 @@ class PipenvMarkers(BaseRequirement):
         markers = []
         for marker in marker_strings:
             markers.append(marker)
-        return cls.make_marker(" and ".join(markers))
+        marker = ''
+        try:
+            marker = cls.make_marker(" and ".join(markers))
+        except RequirementError:
+            pass
+        else:
+            return marker
