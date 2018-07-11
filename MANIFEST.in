@@ -2,12 +2,12 @@ include README.rst
 include LICENSE
 include HISTORY.txt
 include CHANGELOG.rst
-recursive-include src/requirementslib/_vendor/ *LICENSE*
+recursive-include src/requirementslib/_vendor/ *LICENSE* LICENSE.*
 recursive-include src *LICENSE* *COPYING*
 recursive-include docs Makefile *.rst *.py *.bat
 include pyproject.toml
 include src/requirementslib/_vendor/requirements.txt
-include src/requirementslib/_vendor/pipfile/LICENSE*
+include src/requirementslib/_vendor/pipfile/LICENSE* LICENSE.*
 exclude .travis.yml
 exclude appveyor.yml
 prune .github
