@@ -1,3 +1,13 @@
+1.0.10 (2018-07-11)
+===================
+
+Bug Fixes
+---------
+
+- Fixed a bug which prevented the inclusion of all markers when parsing requirements from existing pipfile entries.  `pypa/pipenv#2520 <https://github.com/pypa/pipenv/issues/2520>`_ (#26)
+- requirementslib will now correctly handle subdirectory fragments on output and input for both pipfile and pip-style requirements. (#27)
+
+
 1.0.9 (2018-06-30)
 ==================
 
