@@ -1,0 +1,1 @@
+Fixed a bug which prevented the inclusion of all markers when parsing requirements from existing pipfile entries.  `pypa/pipenv#2520 <https://github.com/pypa/pipenv/issues/2520>`_
