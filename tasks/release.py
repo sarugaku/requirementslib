@@ -88,14 +88,15 @@ def tag_version(ctx, push=False):
 def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=False, pre=False, tag=None, clear=False, commit=False,):
     _current_version = get_version(ctx)
     current_version = Version.parse(_current_version)
-    if pre and not tag:
+    new_version = current_version
+    if pre and not tag and not clear:
         print('Using "pre" requires a corresponding tag.')
         return
-    if not dev and not pre:
-        new_version = current_version.clear(pre=True, dev=True)
-    if pre and dev:
+    if pre and dev and not clear:
         print("Pre and dev cannot be used together.")
         return
+    if not dev and not pre:
+        new_version = new_version.clear(pre=True, dev=True)
     elif dev:
         new_version = new_version.bump_dev()
     elif pre:
