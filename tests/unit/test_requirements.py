@@ -93,6 +93,13 @@ DEP_PIP_PAIRS = [
         }},
         TEST_WHEEL_URI
     ),
+    (
+        {'pythonfinder': {
+            'ref': 'master', 'git': 'https://github.com/techalchemy/pythonfinder.git',
+            'subdirectory': 'mysubdir', 'extras': ['dev'], 'editable': True
+        }},
+        '-e git+https://github.com/techalchemy/pythonfinder.git@master#egg=pythonfinder[dev]&subdirectory=mysubdir'
+    )
 ]
 
 
