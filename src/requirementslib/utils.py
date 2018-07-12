@@ -87,6 +87,7 @@ def get_converted_relative_path(path, relative_to=os.curdir):
     ):
         start = start_path.absolute()
 
+    path = start.joinpath(path).relative_to(start)
 
     relpath_s = posixpath.normpath(path.as_posix())
     if not (relpath_s == "." or relpath_s.startswith("./")):
