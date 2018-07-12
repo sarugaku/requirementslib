@@ -69,12 +69,24 @@ def get_converted_relative_path(path, relative_to=os.curdir):
     This performs additional conversion to ensure the result is of POSIX form,
     and starts with `./`, or is precisely `.`.
     """
-    start = Path(relative_to)
+    
+    start_path = Path(relative_to)
     try:
-        start = start.resolve()
+        start = start_path.resolve()
     except OSError:
-        start = start.absolute()
-    path = start.joinpath(path).relative_to(start)
+        start = start_path.absolute()
+
+    # check if there is a drive letter or mount point
+    # if it is a mountpoint use the original absolute path
+    # instead of the unc path
+    if (
+        os.name == "nt"
+        and len(start.drive) > 2
+        and not start.drive[0].isalpha()
+        and start.drive[1] != ":"
+    ):
+        start = start_path.absolute()
+
 
     relpath_s = posixpath.normpath(path.as_posix())
     if not (relpath_s == "." or relpath_s.startswith("./")):
