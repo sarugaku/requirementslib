@@ -1,3 +1,13 @@
+1.0.11 (2018-07-20)
+===================
+
+Bug Fixes
+---------
+
+- If a package is stored on a network share drive, we now resolve it in a way that gets the correct relative path (#29)
+- Properly handle malformed urls and avoid referencing unbound variables. (#32)
+
+
 1.0.10 (2018-07-11)
 ===================
 
