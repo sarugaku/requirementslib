@@ -859,20 +859,20 @@ class Requirement(object):
             base_dict = base_dict.get("version")
         return {name: base_dict}
 
+    def as_ireq(self):
+        ireq_line = self.as_line()
+        if ireq_line.startswith("-e "):
+            ireq_line = ireq_line[len("-e ") :]
+            return InstallRequirement.from_editable(ireq_line)
+        return InstallRequirement.from_line(ireq_line)
+
     @property
     def pipfile_entry(self):
         return self.as_pipfile().copy().popitem()
 
     @property
     def ireq(self):
-        if not self._ireq:
-            ireq_line = self.as_line()
-            if ireq_line.startswith("-e "):
-                ireq_line = ireq_line[len("-e ") :]
-                self._ireq = InstallRequirement.from_editable(ireq_line)
-            else:
-                self._ireq = InstallRequirement.from_line(ireq_line)
-        return self._ireq
+        return self.as_ireq()
 
     def get_dependencies(self, sources=None):
         if not sources:
