@@ -4,8 +4,11 @@ import logging
 import os
 import posixpath
 import six
-
+import stat
+import sys
+from contextlib import contextmanager
 from itertools import product
+from ._compat import Command, cmdoptions
 
 try:
     from urllib.parse import urlparse
@@ -197,3 +200,87 @@ def prepare_pip_source_args(sources, pip_args=None):
                         ["--trusted-host", urlparse(source["url"]).hostname]
                     )
     return pip_args
+
+
+@contextmanager
+def atomic_open_for_write(target, binary=False, newline=None, encoding=None):
+    """Atomically open `target` for writing.
+
+    This is based on Lektor's `atomic_open()` utility, but simplified a lot
+    to handle only writing, and skip many multi-process/thread edge cases
+    handled by Werkzeug.
+
+    How this works:
+
+    * Create a temp file (in the same directory of the actual target), and
+      yield for surrounding code to write to it.
+    * If some thing goes wrong, try to remove the temp file. The actual target
+      is not touched whatsoever.
+    * If everything goes well, close the temp file, and replace the actual
+      target with this new file.
+    """
+    from ._compat import NamedTemporaryFile
+
+    mode = "w+b" if binary else "w"
+    f = NamedTemporaryFile(
+        dir=os.path.dirname(target),
+        prefix=".__atomic-write",
+        mode=mode,
+        encoding=encoding,
+        newline=newline,
+        delete=False,
+    )
+    # set permissions to 0644
+    os.chmod(f.name, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+    try:
+        yield f
+    except BaseException:
+        f.close()
+        try:
+            os.remove(f.name)
+        except OSError:
+            pass
+        raise
+    else:
+        f.close()
+        try:
+            os.remove(target)  # This is needed on Windows.
+        except OSError:
+            pass
+        os.rename(f.name, target)  # No os.replace() on Python 2.
+
+
+def fs_str(string):
+    """Encodes a string into the proper filesystem encoding
+
+    Borrowed from pip-tools
+    """
+    if isinstance(string, str):
+        return string
+    assert not isinstance(string, bytes)
+    return string.encode(_fs_encoding)
+
+
+_fs_encoding = sys.getfilesystemencoding() or sys.getdefaultencoding()
+
+
+class PipCommand(Command):
+    name = 'PipCommand'
+
+
+def get_pip_command():
+    # Use pip's parser for pip.conf management and defaults.
+    # General options (find_links, index_url, extra_index_url, trusted_host,
+    # and pre) are defered to pip.
+    import optparse
+    pip_command = PipCommand()
+    pip_command.parser.add_option(cmdoptions.no_binary())
+    pip_command.parser.add_option(cmdoptions.only_binary())
+    index_opts = cmdoptions.make_option_group(
+        cmdoptions.index_group,
+        pip_command.parser,
+    )
+    pip_command.parser.insert_option_group(0, index_opts)
+    pip_command.parser.add_option(optparse.Option('--pre', action='store_true', default=False))
+
+    return pip_command
