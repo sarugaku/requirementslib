@@ -11,6 +11,7 @@ from first import first
 from six.moves.urllib import parse as urllib_parse
 
 from .baserequirement import BaseRequirement
+from .dependency import get_dependencies
 from .markers import PipenvMarkers
 from .utils import (
     HASH_STRING,
@@ -870,3 +871,8 @@ class Requirement(object):
             else:
                 self._ireq = InstallRequirement.from_line(ireq_line)
         return self._ireq
+
+    def get_dependencies(self, sources=None):
+        if not sources:
+            sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
+        return get_dependencies(self.ireq, sources)
