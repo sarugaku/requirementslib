@@ -8,6 +8,7 @@ from .requirements import Requirement
 from .utils import optional_instance_of, filter_none
 from .._compat import Path, FileNotFoundError
 from ..exceptions import RequirementError
+from first import first
 
 
 @attr.s
@@ -27,6 +28,21 @@ class Source(object):
         source_dict = attr.asdict(self).copy()
         source_dict["url"] = os.path.expandvars(source_dict.get("url"))
         return source_dict
+
+
+@attr.s
+class Hash(object):
+    hash_type = attr.ib(default="sha256")
+    value = attr.ib(default=None)
+
+    def get_dict(self):
+        return {self.hash_type: self.value}
+
+    @classmethod
+    def create(cls, *args, **kwargs):
+        hash_type = next((k for k in kwargs.keys()), None)
+        value = kwargs.get(hash_type)
+        return cls(hash_type=hash_type, value=value)
 
 
 @attr.s
@@ -62,6 +78,10 @@ class RequiresSection(object):
         if not requires:
             return {}
         return {"requires": requires}
+
+    @classmethod
+    def create(cls, *args, **kwargs):
+        return cls(**kwargs)
 
 
 @attr.s
@@ -171,6 +191,14 @@ class Pipfile(object):
         if pipenv:
             creation_dict["pipenv"] = PipenvSection(**pipenv)
         return cls(**creation_dict)
+
+    @property
+    def dev_packages(self):
+        return first(s for s in self.sections if s.name == "dev-packages")
+
+    @property
+    def packages(self):
+        return first(s for s in self.sections if s.name == "packages")
 
     @staticmethod
     def get_section(pf_dict, section):

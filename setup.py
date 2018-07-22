@@ -40,9 +40,11 @@ install_requires = [
     "first",
     "six",
     'pathlib2; python_version<"3.4"',
+    'backports.weakref; python_version<"3.4"',
     "requirements-parser",
     "toml",
     "contoml",
+    "prettytoml",
     'modutil; python_version>="3.7"',
 ]
 

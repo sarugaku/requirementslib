@@ -255,6 +255,13 @@
             "markers": "python_version != '3.0.*' and python_version != '3.3.*' and python_version >= '2.7' and python_version != '3.2.*' and python_version != '3.1.*'",
             "version": "==0.6.0"
         },
+        "prettytoml": {
+            "hashes": [
+                "sha256:c1bdadbc561c1852ca59ba406dc186281f6bf599afc9453e45a907c11be92693",
+                "sha256:e74f3c4469b66356f0ab041a00179b451c72edbbb150f21b4b60fffb2e69c2c8"
+            ],
+            "version": "==0.3"
+        },
         "prompt-toolkit": {
             "hashes": [
                 "sha256:1df952620eccb399c53ebb359cc7d9a8d3a9538cb34c5a1344bdbeb29fbcc381",
@@ -320,6 +327,12 @@
             ],
             "index": "pypi",
             "version": "==3.6.3"
+        },
+        "pytoml": {
+            "hashes": [
+                "sha256:dae3c4e31d09eb06a6076d671f2281ee5d2c43cbeae16599c3af20881bb818ac"
+            ],
+            "version": "==0.1.18"
         },
         "pytz": {
             "hashes": [
