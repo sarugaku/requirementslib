@@ -1,7 +1,7 @@
 # -*- coding=utf-8 -*-
 import functools
+import importlib
 import io
-import modutil
 import os
 import six
 import sys
@@ -25,6 +25,8 @@ except ImportError:
                 _types.add(type(arg))
         return _types.pop()
 
+if sys.version_info[:2] >= (3, 7):
+    import modutil
 
 if sys.version_info[:2] >= (3, 5):
     try:
@@ -58,18 +60,42 @@ except ImportError:
     from urlparse import urlparse, unquote
 
 
+def get_package(module, subimport=None):
+    package = None
+    if subimport:
+        package = subimport
+    else:
+        module, _, package = module.rpartition(".")
+    return module, package
+
+
 def do_import(module_path, subimport=None, old_path=None):
     old_path = old_path or module_path
     internal = "pip._internal.{0}".format(module_path)
     pip9 = "pip.{0}".format(old_path)
-    mod, imp_getattr = modutil.lazy_import(__name__, {internal,})
-    mod, old_getattr = modutil.lazy_import(__name__, {pip9,})
-    chained = modutil.chained___getattr__(__name__, imp_getattr, old_getattr,)
-    package = module_path.rsplit(".", 1)[-1]
-    imported = chained(package)
-    if subimport:
-        return getattr(imported, subimport)
-    return imported
+    imported = None
+    if sys.version_info[:2] >= (3, 7):
+        to_import, package = get_package(internal, subimport)
+        mod, imp_getattr = modutil.lazy_import(__name__, {to_import,})
+        old_import, package = get_package(pip9, subimport)
+        mod, old_getattr = modutil.lazy_import(__name__, {old_import,})
+        chained = modutil.chained___getattr__(__name__, imp_getattr, old_getattr,)
+        _, _, module_name = to_import.rpartition(".")
+        try:
+            imported = chained(module_name)
+        except modutil.ModuleAttributeError:
+            _, _, module_name = old_import.rpartition(".")
+            imported = chained(module_name)
+        if subimport:
+            return getattr(imported, subimport)
+        return imported
+    to_import, package = get_package(internal, subimport)
+    try:
+        imported = importlib.import_module(to_import)
+    except ImportError:
+        to_import, package = get_package(pip9, subimport)
+        imported = importlib.import_module(to_import)
+    return getattr(imported, package)
 
 
 InstallRequirement = do_import("req.req_install", "InstallRequirement")
