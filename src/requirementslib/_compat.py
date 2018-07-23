@@ -25,6 +25,11 @@ except ImportError:
                 _types.add(type(arg))
         return _types.pop()
 
+try:
+    from weakref import finalize
+except ImportError:
+    from backports.weakref import finalize
+
 if sys.version_info[:2] >= (3, 7):
     import modutil
 
@@ -33,11 +38,8 @@ if sys.version_info[:2] >= (3, 5):
         from pathlib import Path
     except ImportError:
         from pathlib2 import Path
-
-try:
-    from weakref import finalize
-except ImportError:
-    from backports.weakref import finalize
+else:
+    from pathlib2 import Path
 
 # Use these imports as compatibility imports
 if six.PY3:
@@ -45,14 +47,11 @@ if six.PY3:
         pass
 
 else:
-    from pathlib2 import Path
-
     class FileNotFoundError(IOError):
         pass
 
     class ResourceWarning(Warning):
         pass
-
 
 try:
     from urllib.parse import urlparse, unquote
