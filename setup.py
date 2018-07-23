@@ -39,7 +39,7 @@ install_requires = [
     "distlib",
     "first",
     "six",
-    'pathlib2; python_version<"3.4"',
+    'pathlib2; python_version<="3.4"',
     'backports.weakref; python_version<"3.4"',
     "requirements-parser",
     "toml",
