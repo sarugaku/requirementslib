@@ -31,7 +31,12 @@ except ImportError:
     from backports.weakref import finalize
 
 if sys.version_info[:2] >= (3, 7):
-    import modutil
+    try:
+        import modutil
+    except ImportError:
+        has_modutil = False
+    else:
+        has_modutil = True
 
 if sys.version_info[:2] >= (3, 5):
     try:
@@ -73,7 +78,7 @@ def do_import(module_path, subimport=None, old_path=None):
     internal = "pip._internal.{0}".format(module_path)
     pip9 = "pip.{0}".format(old_path)
     imported = None
-    if sys.version_info[:2] >= (3, 7):
+    if has_modutil:
         to_import, package = get_package(internal, subimport)
         mod, imp_getattr = modutil.lazy_import(__name__, {to_import,})
         old_import, package = get_package(pip9, subimport)
@@ -85,9 +90,7 @@ def do_import(module_path, subimport=None, old_path=None):
         except modutil.ModuleAttributeError:
             _, _, module_name = old_import.rpartition(".")
             imported = chained(module_name)
-        if subimport:
-            return getattr(imported, subimport)
-        return imported
+        return getattr(imported, package)
     to_import, package = get_package(internal, subimport)
     try:
         imported = importlib.import_module(to_import)
