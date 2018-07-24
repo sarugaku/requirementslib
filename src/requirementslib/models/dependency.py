@@ -11,7 +11,7 @@ DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, 'pkgs'))
 WHEEL_DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, 'wheels'))
 
 
-def get_dependencies(dep, sources=None):
+def get_resolver(sources=None):
     pip_command = get_pip_command()
     if not sources:
         sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
@@ -37,11 +37,8 @@ def get_dependencies(dep, sources=None):
         download_dir=download_dir,
         wheel_download_dir=WHEEL_DOWNLOAD_DIR,
         progress_bar='off',
-        build_isolation=True
+        build_isolation=False
     )
-    reqset = RequirementSet()
-    dep.is_direct = True
-    reqset.add_requirement(dep)
     resolver = Resolver(
         preparer=preparer,
         finder=finder,
@@ -51,10 +48,18 @@ def get_dependencies(dep, sources=None):
         ignore_dependencies=False,
         ignore_requires_python=True,
         ignore_installed=True,
-        isolated=True,
+        isolated=False,
         wheel_cache=wheel_cache,
         use_user_site=False,
     )
+    return finder, preparer, resolver
+
+
+def get_dependencies(dep, sources=None):
+    dep.is_direct = True
+    reqset = RequirementSet()
+    reqset.add_requirement(dep)
+    _, _, resolver = get_resolver(sources)
     resolver.resolve(reqset)
     requirements = reqset.requirements.values()
     reqset.cleanup_files()

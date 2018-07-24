@@ -30,6 +30,7 @@ try:
 except ImportError:
     from backports.weakref import finalize
 
+has_modutil = False
 if sys.version_info[:2] >= (3, 7):
     try:
         import modutil
