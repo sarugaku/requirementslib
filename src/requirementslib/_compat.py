@@ -123,6 +123,7 @@ PackageFinder = do_import("index", "PackageFinder")
 WheelCache = do_import("cache", "WheelCache")
 Command = do_import("basecommand", "Command")
 cmdoptions = do_import("cmdoptions")
+FormatControl = do_import("index", "FormatControl")
 
 
 class TemporaryDirectory(object):

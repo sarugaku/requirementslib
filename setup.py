@@ -35,6 +35,7 @@ long_description = read("README.rst")
 tests_require = ["pytest", "pytest-xdist"]
 install_requires = [
     "attrs",
+    "appdirs",
     "packaging",
     "distlib",
     "first",
@@ -42,6 +43,7 @@ install_requires = [
     'pathlib2; python_version<="3.4"',
     'backports.weakref; python_version<"3.4"',
     "requirements-parser",
+    "requests",
     "toml",
     "contoml",
     "prettytoml",

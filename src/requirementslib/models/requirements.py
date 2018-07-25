@@ -11,7 +11,7 @@ from first import first
 from six.moves.urllib import parse as urllib_parse
 
 from .baserequirement import BaseRequirement
-from .dependency import get_dependencies
+from .dependency import get_dependencies, get_resolver, find_all_matches
 from .markers import PipenvMarkers
 from .utils import (
     HASH_STRING,
@@ -679,7 +679,7 @@ class Requirement(object):
     @property
     def extras_as_pip(self):
         if self.extras:
-            return "[{0}]".format(",".join(self.extras))
+            return "[{0}]".format(",".join(sorted(self.extras)))
 
         return ""
 
@@ -875,4 +875,10 @@ class Requirement(object):
     def get_dependencies(self, sources=None):
         if not sources:
             sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
-        return get_dependencies(self.ireq, sources)
+        return get_dependencies(self.ireq, sources=sources)
+
+    def find_all_matches(self, sources=None):
+        if not sources:
+            sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
+        finder, _, _ = get_resolver(sources=sources)
+        return find_all_matches(finder, self.as_ireq())
