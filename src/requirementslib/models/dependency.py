@@ -1,17 +1,17 @@
 # -*- coding=utf-8 -*-
 import copy
+import requests
 from first import first
-from .utils import full_groupby, key_from_ireq
-from .._compat import RequirementPreparer, Resolver, WheelCache, RequirementSet, PackageFinder, TemporaryDirectory
+from .utils import full_groupby, key_from_ireq, is_pinned_requirement, name_from_req
+from .cache import CACHE_DIR, DependencyCache
+from .._compat import RequirementPreparer, Resolver, WheelCache, RequirementSet, PackageFinder, TemporaryDirectory, InstallRequirement, FormatControl
 from ..utils import fs_str, prepare_pip_source_args, get_pip_command, prepare_pip_source_args
 import os
-try:
-    from pipenv.environments import PIPENV_CACHE_DIR as CACHE_DIR
-except ImportError:
-    from .._compat import USER_CACHE_DIR as CACHE_DIR
 
 DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, 'pkgs'))
 WHEEL_DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, 'wheels'))
+DEPCACHE = DependencyCache()
+WHEEL_CACHE = WheelCache(CACHE_DIR, FormatControl(None, None))
 
 
 def get_resolver(sources=None):
@@ -65,10 +65,76 @@ def find_all_matches(finder, ireq):
 
 
 def get_match_dependencies(ireqs):
-    return [get_dependencies(ir) for ir in ireqs]
+    return [get_dependencies_from_index(ir) for ir in ireqs]
 
 
-def get_dependencies(dep, sources=None):
+def get_dependencies(ireq, sources=None):
+    if not isinstance(ireq, InstallRequirement):
+        name = getattr(ireq, 'project_name', getattr(ireq, 'project', getattr(ireq, 'name', None)))
+        version = getattr(ireq, 'version')
+        ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
+    cached_deps = get_dependencies_from_cache(ireq)
+    if not cached_deps:
+        cached_deps = get_dependencies_from_wheel_cache(ireq)
+    if not cached_deps:
+        cached_deps = get_dependencies_from_json(ireq)
+    if not cached_deps:
+        cached_deps = get_dependencies_from_index(ireq, sources)
+    return cached_deps
+
+
+def get_dependencies_from_wheel_cache(ireq):
+    return WHEEL_CACHE.get(ireq.link, name_from_req(ireq.req))
+
+
+def get_dependencies_from_json(ireq):
+    if not (is_pinned_requirement(ireq)):
+        raise TypeError('Expected pinned InstallRequirement, got {}'.format(ireq))
+
+    session = requests.session()
+    def gen(ireq):
+        url = 'https://pypi.org/pypi/{0}/json'.format(ireq.req.name)
+        releases = session.get(url).json()['releases']
+        matches = [
+            r for r in releases
+            if '=={0}'.format(r) == str(ireq.req.specifier)
+        ]
+        if not matches:
+            return
+
+        release_requires = session.get(
+            'https://pypi.org/pypi/{0}/{1}/json'.format(
+                ireq.req.name, matches[0],
+            ),
+        ).json()
+        try:
+            requires_dist = release_requires['info']['requires_dist']
+        except KeyError:
+            try:
+                requires_dist = release_requires['info']['requires']
+            except KeyError:
+                return
+        for requires in requires_dist:
+            i = InstallRequirement.from_line(requires)
+            if 'extra' not in repr(i.markers):
+                yield i
+    if ireq not in DEPCACHE:
+        DEPCACHE[ireq] = [str(g) for g in gen(ireq)]
+
+    try:
+        cache_val = DEPCACHE[ireq]
+    except KeyError:
+        cache_val = None
+    return cache_val
+
+
+def get_dependencies_from_cache(dep):
+    if dep in DEPCACHE:
+        return DEPCACHE[dep]
+    return
+
+
+def get_dependencies_from_index(dep, sources=None):
     dep.is_direct = True
     reqset = RequirementSet()
     reqset.add_requirement(dep)
