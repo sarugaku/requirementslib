@@ -64,7 +64,7 @@ class NamedRequirement(BaseRequirement):
     def get_requirement(self):
         from pkg_resources import RequirementParseError
         try:
-            req = first(requirements.parse("{0}{1}".format(self.name, self.version)))
+            req = first(requirements.parse("{0}{1}".format(pep423_name(self.name), self.version)))
         except RequirementParseError:
             raise RequirementError(
                 "Error parsing requirement: %s%s" % (self.name, self.version)
@@ -92,7 +92,7 @@ class NamedRequirement(BaseRequirement):
 
     @property
     def line_part(self):
-        return "{self.name}".format(self=self)
+        return "{0}".format(pep423_name(self.name))
 
     @property
     def pipfile_part(self):
@@ -244,12 +244,12 @@ class FileRequirement(BaseRequirement):
             and self.setup_path
             and self.setup_path.exists()
         ):
-            from distutils.core import run_setup
+            from setuptools.dist import distutils
 
             old_curdir = os.path.abspath(os.getcwd())
             try:
                 os.chdir(str(self.setup_path.parent))
-                dist = run_setup(self.setup_path.as_posix(), stop_after="init")
+                dist = distutils.core.run_setup(self.setup_path.as_posix())
                 name = dist.get_name()
             except (FileNotFoundError, IOError) as e:
                 dist = None

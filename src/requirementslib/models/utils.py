@@ -31,7 +31,7 @@ def extras_to_string(extras):
 
         else:
             extras = [extras]
-    return "[{0}]".format(",".join(extras))
+    return "[{0}]".format(",".join(sorted(extras)))
 
 
 def parse_extras(extras_str):
