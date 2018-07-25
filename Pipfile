@@ -24,6 +24,14 @@ black = 'black src/requirementslib/ --exclude "/(\.git|\.hg|\.mypy_cache|\.tox|\
 mknews = "inv news.generate"
 news = "inv news.add"
 tests = "pytest -v --ignore=src/requirementslib/_vendor/ tests"
+draft = "inv release.generate-changelog --draft"
+changelog = "inv release.generate-changelog --commit"
+bump = "inv release.bump-version"
+build = "inv release.build-dists"
+upload = "inv release.upload-dists"
+tag = "inv release.tag-version"
+docs = "inv release.build-docs"
+mdchangelog = "pandoc CHANGELOG.rst -f rst -t markdown -o CHANGELOG.md"
 
 [requires]
 python_version = "3.7"
