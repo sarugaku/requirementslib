@@ -119,7 +119,7 @@ def test_convert_from_pipfile(requirement, expected):
     pkg_name = first(requirement.keys())
     pkg_pipfile = requirement[pkg_name]
     req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
-    assert req.as_line() == expected
+    assert req.as_line() == expected.lower() if '://' not in expected else expected
 
 
 @pytest.mark.utils
