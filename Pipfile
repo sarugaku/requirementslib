@@ -26,7 +26,7 @@ news = "inv news.add"
 tests = "pytest -v --ignore=src/requirementslib/_vendor/ tests"
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"
 
 [pipenv]
 allow_prereleases = true
