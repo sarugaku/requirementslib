@@ -284,3 +284,15 @@ def get_pip_command():
     pip_command.parser.add_option(optparse.Option('--pre', action='store_true', default=False))
 
     return pip_command
+
+
+@contextmanager
+def temp_cd(path):
+    if not isinstance(path, Path):
+        path = Path(path)
+    orig_path = Path(os.curdir).absolute().as_posix()
+    os.chdir(path.as_posix)
+    try:
+        yield
+    finally:
+        os.chdir(orig_path)
