@@ -9,9 +9,11 @@ import requirements
 
 from first import first
 from six.moves.urllib import parse as urllib_parse
+from packaging.specifiers import Specifier
+from packaging.version import parse as parse_version
 
 from .baserequirement import BaseRequirement
-from .dependency import get_dependencies, get_resolver, find_all_matches
+from .dependency import get_dependencies, get_resolver, find_all_matches, get_abstract_dependencies, AbstractDependency
 from .markers import PipenvMarkers
 from .utils import (
     HASH_STRING,
@@ -29,6 +31,7 @@ from .utils import (
     optional_instance_of,
     split_markers_from_line,
     parse_extras,
+    is_pinned_requirement,
 )
 from .._compat import (
     Link,
@@ -651,6 +654,7 @@ class Requirement(object):
     editable = attr.ib(default=None)
     hashes = attr.ib(default=attr.Factory(list), converter=list)
     extras = attr.ib(default=attr.Factory(list))
+    abstract_dep = attr.ib(default=None)
     _ireq = None
     _INCLUDE_FIELDS = ("name", "markers", "index", "editable", "hashes", "extras")
 
@@ -823,6 +827,12 @@ class Requirement(object):
             line = "{0} {1}".format(line, index_string)
         return line
 
+    def get_specifier(self):
+        return Specifier(self.specifiers)
+
+    def get_version(self):
+        return parse_version(self.get_specifier().version)
+
     @property
     def constraint_line(self):
         return self.as_line(force_extras=True)
@@ -878,6 +888,18 @@ class Requirement(object):
         if not sources:
             sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
         return get_dependencies(self.ireq, sources=sources)
+
+    def get_abstract_dependencies(self, sources=None):
+        if not self.abstract_dep:
+            self.abstract_dep = AbstractDependency.from_requirement(self, parent=None)
+        if not sources:
+            sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
+        if is_pinned_requirement(self.ireq):
+            deps = self.get_dependencies()
+        else:
+            ireq = sorted(self.find_all_matches(), key=lambda k: k.version)
+            deps = get_dependencies(ireq.pop(), sources=sources)
+        return get_abstract_dependencies(deps, sources=sources, parent=self.abstract_dep)
 
     def find_all_matches(self, sources=None):
         if not sources:
