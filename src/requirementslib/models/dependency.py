@@ -241,12 +241,11 @@ class DependencyResolver(object):
         self.dep_dict = defaultdict(list)
         self.pin_root_deps()
         self.get_root_dependencies()
-        i = 0
-        while i < max_rounds:
+        for _ in range(max_rounds):
             self.pin_deps()
             if len(self.pinned_deps.keys()) == len(self.dep_dict.keys()):
-                break
-        return self.pinned_deps
+                return self.pinned_deps
+        # TODO: Raise error if resolution cannot complete after maximum rounds?
 
 
 def merge_abstract_dependencies(deps):
