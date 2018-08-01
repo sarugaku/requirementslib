@@ -237,11 +237,15 @@ class DependencyResolver(object):
                     self.pinned_deps[dep] = pin
                     break
 
-    def resolve(self):
+    def resolve(self, max_rounds=20):
         self.dep_dict = defaultdict(list)
         self.pin_root_deps()
         self.get_root_dependencies()
-        self.pin_deps()
+        i = 0
+        while i < max_rounds:
+            self.pin_deps()
+            if len(self.pinned_deps.keys()) == len(self.dep_dict.keys()):
+                break
         return self.pinned_deps
 
 
