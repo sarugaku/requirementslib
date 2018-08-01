@@ -202,7 +202,8 @@ class DependencyResolver(object):
         for name in list(self.dep_dict.keys()):
             candidates = self.dep_dict[name].candidates[:]
             abs_dep = self.dep_dict[name]
-            while True:
+            while candidates:
+                # TODO: Give up when candidates are exhausted?
                 pin = candidates.pop()
                 pin.parent = abs_dep.parent
                 pin_deps = self.dep_dict[name].get_deps(pin)
@@ -229,7 +230,8 @@ class DependencyResolver(object):
             self.pin_deps()
             if len(self.pinned_deps.keys()) == len(self.dep_dict.keys()):
                 return self.pinned_deps
-        # TODO: Raise error if resolution cannot complete after maximum rounds?
+        # TODO: Raise a better error.
+        raise RuntimeError('cannot resolve after {} rounds'.format(max_rounds))
 
 
 def merge_abstract_dependencies(deps):
