@@ -182,6 +182,14 @@ class DependencyResolver(object):
     #: A dictionary of sets of version numbers that are valid for a candidate currently
     candidate_dict = attr.ib(default=attr.Factory(dict))
 
+    @property
+    def dependencies(self):
+        return list(self.dep_dict.values())
+
+    @property
+    def resolution(self):
+        return list(self.pinned_deps.values())
+
     def get_candidates(self, dep):
         """get_candidates Takes an abstract dependency, finds the valid candidates
 
@@ -235,7 +243,7 @@ class DependencyResolver(object):
         for _ in range(max_rounds):
             self.pin_deps()
             if len(self.pinned_deps.keys()) == len(self.dep_dict.keys()):
-                return self.pinned_deps
+                return
         # TODO: Raise a better error.
         raise RuntimeError('cannot resolve after {} rounds'.format(max_rounds))
 
