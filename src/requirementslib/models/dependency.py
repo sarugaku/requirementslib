@@ -198,26 +198,23 @@ class DependencyResolver(object):
             self.candidate_dict[dep.name] = dep.version_set
             self.dep_dict[dep.name] = dep
 
-    def add_abstract_deps(self, deps):
-        for dep in deps:
-            self.add_abstract_dep(dep)
-
     def pin_deps(self):
-        for dep in list(self.dep_dict.keys()):
-            candidates = self.dep_dict[dep].candidates[:]
-            abs_dep = self.dep_dict[dep]
+        for name in list(self.dep_dict.keys()):
+            candidates = self.dep_dict[name].candidates[:]
+            abs_dep = self.dep_dict[name]
             while True:
                 pin = candidates.pop()
                 pin.parent = abs_dep.parent
-                pin_deps = self.dep_dict[dep].get_deps(pin)
+                pin_deps = self.dep_dict[name].get_deps(pin)
                 backup = self.dep_dict.copy(), self.candidate_dict.copy()
                 try:
-                    self.add_abstract_deps(pin_deps)
+                    for pin_dep in pin_deps:
+                        self.add_abstract_dep(pin_dep)
                 except ResolutionError:
                     self.dep_dict, self.candidate_dict = backup
                     continue
                 else:
-                    self.pinned_deps[dep] = pin
+                    self.pinned_deps[name] = pin
                     break
 
     def resolve(self, root_nodes, max_rounds=20):
