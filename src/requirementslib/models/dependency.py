@@ -2,16 +2,13 @@
 import attr
 import copy
 import requests
-from collections import defaultdict
 from first import first
-from itertools import chain
 from packaging.version import parse as parse_version
 from .utils import (
     full_groupby,
     key_from_ireq,
     is_pinned_requirement,
     name_from_req,
-    _requirement_to_str_lowercase_name,
     make_install_requirement,
     format_requirement,
 )
@@ -30,7 +27,6 @@ from ..utils import (
     fs_str,
     prepare_pip_source_args,
     get_pip_command,
-    prepare_pip_source_args,
     temp_cd,
 )
 import os
@@ -43,13 +39,13 @@ WHEEL_CACHE = WheelCache(CACHE_DIR, FormatControl(None, None))
 
 @attr.s
 class AbstractDependency(object):
-    name = attr.ib(default=None)
-    specifiers = attr.ib(default=None)
-    markers = attr.ib(default=None)
-    candidates = attr.ib(default=None)
-    requirement = attr.ib(default=None)
-    parent = attr.ib(default=None)
-    dep_dict = attr.ib(default=attr.Factory(defaultdict))
+    name = attr.ib()
+    specifiers = attr.ib()
+    markers = attr.ib()
+    candidates = attr.ib()
+    requirement = attr.ib()
+    parent = attr.ib()
+    dep_dict = attr.ib(default=attr.Factory(dict))
 
     @property
     def sort_order(self):
@@ -76,7 +72,7 @@ class AbstractDependency(object):
         new_requirement = Requirement.from_line(format_requirement(new_ireq))
         compatible_versions = self.compatible_versions(other)
         candidates = [c for c in self.candidates if first(c.specifier._specs).version in compatible_versions]
-        dep_dict = defaultdict(list)
+        dep_dict = {}
         candidate_strings = [format_requirement(c) for c in candidates]
         for c in candidate_strings:
             if c in self.dep_dict:
@@ -172,13 +168,13 @@ class ResolutionError(Exception):
 @attr.s
 class DependencyResolver(object):
     root_nodes = attr.ib(default=attr.Factory(list))
-    pinned_deps = attr.ib(default=attr.Factory(defaultdict))
+    pinned_deps = attr.ib(default=attr.Factory(dict))
     #: A list of current abstract dependencies
     abstract_deps = attr.ib(default=attr.Factory(list))
     #: A dictionary of abstract dependencies by name
-    dep_dict = attr.ib(default=attr.Factory(defaultdict))
+    dep_dict = attr.ib(default=attr.Factory(dict))
     #: A dictionary of sets of version numbers that are valid for a candidate currently
-    candidate_dict = attr.ib(default=attr.Factory(defaultdict))
+    candidate_dict = attr.ib(default=attr.Factory(dict))
 
     def get_candidates(self, dep):
         """get_candidates Takes an abstract dependency, finds the valid candidates
@@ -238,7 +234,7 @@ class DependencyResolver(object):
                     break
 
     def resolve(self, max_rounds=20):
-        self.dep_dict = defaultdict(list)
+        self.dep_dict = {}
         self.pin_root_deps()
         self.get_root_dependencies()
         for _ in range(max_rounds):
@@ -253,7 +249,7 @@ def merge_abstract_dependencies(deps):
     deps = deps + list(parents)
     base_deps = [dep for dep in deps if dep.parent is None]
     base_deps.extend([dep for dep in deps if dep.parent and dep.parent.is_root()])
-    candidates = defaultdict(list)
+    candidates = {}
     for dep in base_deps:
         if dep.name in candidates:
             candidates[dep.name] = set(candidates[dep.name]) & set(dep.candidates)
