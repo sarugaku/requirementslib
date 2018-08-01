@@ -210,9 +210,11 @@ class DependencyResolver(object):
                 pin = candidates.pop()
                 pin.parent = abs_dep.parent
                 pin_deps = self.dep_dict[dep].get_deps(pin)
+                backup = self.dep_dict.copy(), self.candidate_dict.copy()
                 try:
                     self.add_abstract_deps(pin_deps)
                 except ResolutionError:
+                    self.dep_dict, self.candidate_dict = backup
                     continue
                 else:
                     self.pinned_deps[dep] = pin
