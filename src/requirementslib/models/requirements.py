@@ -889,7 +889,8 @@ class Requirement(object):
 
     def get_abstract_dependencies(self, sources=None):
         if not self.abstract_dep:
-            self.abstract_dep = AbstractDependency.from_requirement(self, parent=None)
+            parent = getattr(self, 'parent', None)
+            self.abstract_dep = AbstractDependency.from_requirement(self, parent=parent)
         if not sources:
             sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
         if is_pinned_requirement(self.ireq):

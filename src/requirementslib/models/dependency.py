@@ -5,14 +5,38 @@ import requests
 from collections import defaultdict
 from first import first
 from itertools import chain
-from .utils import full_groupby, key_from_ireq, is_pinned_requirement, name_from_req, _requirement_to_str_lowercase_name
+from packaging.version import parse as parse_version
+from .utils import (
+    full_groupby,
+    key_from_ireq,
+    is_pinned_requirement,
+    name_from_req,
+    _requirement_to_str_lowercase_name,
+    make_install_requirement,
+    format_requirement,
+)
 from .cache import CACHE_DIR, DependencyCache
-from .._compat import RequirementPreparer, Resolver, WheelCache, RequirementSet, PackageFinder, TemporaryDirectory, InstallRequirement, FormatControl
-from ..utils import fs_str, prepare_pip_source_args, get_pip_command, prepare_pip_source_args, temp_cd
+from .._compat import (
+    RequirementPreparer,
+    Resolver,
+    WheelCache,
+    RequirementSet,
+    PackageFinder,
+    TemporaryDirectory,
+    InstallRequirement,
+    FormatControl,
+)
+from ..utils import (
+    fs_str,
+    prepare_pip_source_args,
+    get_pip_command,
+    prepare_pip_source_args,
+    temp_cd,
+)
 import os
 
-DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, 'pkgs'))
-WHEEL_DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, 'wheels'))
+DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, "pkgs"))
+WHEEL_DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, "wheels"))
 DEPCACHE = DependencyCache()
 WHEEL_CACHE = WheelCache(CACHE_DIR, FormatControl(None, None))
 
@@ -39,10 +63,33 @@ class AbstractDependency(object):
 
     @property
     def version_set(self):
-        return set([c.get_version() for c in self.candidates])
+        return set([first(c.specifier._specs).version for c in self.candidates])
 
     def compatible_versions(self, other):
         return self.version_set & other.version_set
+
+    def compatible_abstract_dep(self, other):
+        from .requirements import Requirement
+        new_specifiers = self.specifiers & other.specifiers
+        new_ireq = copy.deepcopy(self.requirement.ireq)
+        new_ireq.req.specifier = new_specifiers
+        new_requirement = Requirement.from_line(format_requirement(new_ireq))
+        compatible_versions = self.compatible_versions(other)
+        candidates = [c for c in self.candidates if first(c.specifier._specs).version in compatible_versions]
+        dep_dict = defaultdict(list)
+        candidate_strings = [format_requirement(c) for c in candidates]
+        for c in candidate_strings:
+            if c in self.dep_dict:
+                dep_dict[c] = self.dep_dict.get(c)
+        return AbstractDependency(
+            name=self.name,
+            specifiers=new_specifiers,
+            markers=self.markers,
+            candidates=candidates,
+            requirement=new_requirement,
+            parent=self.parent,
+            dep_dict=dep_dict,
+        )
 
     def is_root(self):
         return self.parent is None
@@ -53,14 +100,22 @@ class AbstractDependency(object):
             yield candidate
 
     def get_deps(self, candidate):
-        key = candidate.as_line()
+        key = format_requirement(candidate)
         if key not in self.dep_dict:
-            self.dep_dict[key] = candidate.get_abstract_dependencies()
+            from .requirements import Requirement
+
+            req = Requirement.from_line(key)
+            self.dep_dict[key] = req.get_abstract_dependencies()
         return self.dep_dict[key]
 
     @property
     def parent_is_pinned(self):
-        return is_pinned_requirement(self.parent.ireq)
+        from .requirements import Requirement
+
+        if isinstance(self.parent, Requirement):
+            return is_pinned_requirement(self.parent.ireq)
+        # Handle InstallRequirements natively as well
+        return is_pinned_requirement(self.parent)
 
     @classmethod
     def from_requirement(cls, requirement, parent=None):
@@ -76,24 +131,32 @@ class AbstractDependency(object):
         name = requirement.normalized_name
         specifiers = requirement.ireq.specifier
         markers = requirement.ireq.markers
+        extras = requirement.ireq.extras
         is_pinned = is_pinned_requirement(requirement.ireq)
         candidates = []
         if not is_pinned:
-            from .requirements import Requirement
             for r in requirement.find_all_matches():
-                req = Requirement.from_line("{0}=={1}".format(name, r.version))
+                req = make_install_requirement(name, r.version, extras=extras, markers=markers)
                 req.req.link = r.location
                 req.parent = parent
                 candidates.append(req)
         else:
-            candidates = [requirement]
-        candidates = sorted(candidates, key=lambda k: k.get_version())
-        return cls(name=name, specifiers=specifiers, markers=markers, candidates=candidates, requirement=requirement, parent=parent)
+            candidates = [requirement.ireq]
+        candidates = sorted(set(candidates), key=lambda k: parse_version(first(k.specifier._specs).version))
+        return cls(
+            name=name,
+            specifiers=specifiers,
+            markers=markers,
+            candidates=candidates,
+            requirement=requirement,
+            parent=parent,
+        )
 
     @classmethod
     def from_string(cls, line, parent=None):
         from .requirements import Requirement
-        abstract_deps = []
+
+        # abstract_deps = []
         req = Requirement.from_line(line)
         abstract_dep = cls.from_requirement(req, parent=parent)
         # req.abstract_dep = abstract_dep
@@ -102,23 +165,84 @@ class AbstractDependency(object):
         return abstract_dep
 
 
+class ResolutionError(Exception):
+    pass
+
+
 @attr.s
 class DependencyResolver(object):
     root_nodes = attr.ib(default=attr.Factory(list))
+    pinned_deps = attr.ib(default=attr.Factory(defaultdict))
+    #: A list of current abstract dependencies
     abstract_deps = attr.ib(default=attr.Factory(list))
+    #: A dictionary of abstract dependencies by name
     dep_dict = attr.ib(default=attr.Factory(defaultdict))
+    #: A dictionary of sets of version numbers that are valid for a candidate currently
+    candidate_dict = attr.ib(default=attr.Factory(defaultdict))
 
-    def resolve(self):
-        dep_dict = defaultdict(list)
+    def get_candidates(self, dep):
+        """get_candidates Takes an abstract dependency, finds the valid candidates
+
+        :param dep: Abstract Dependency
+        :returns: Valid candidates
+        """
+        if dep.name not in self.dep_dict:
+            self.add_abstract_dep(dep)
+        return self.dep_dict[dep.name].candidates
+
+    def add_abstract_dep(self, dep):
+        if dep.name in self.dep_dict:
+            compatible_versions = self.dep_dict[dep.name].compatible_versions(dep)
+            if compatible_versions:
+                self.candidate_dict[dep.name] = compatible_versions
+                self.dep_dict[dep.name] = self.dep_dict[dep.name].compatible_abstract_dep(dep)
+            else:
+                raise ResolutionError
+        else:
+            self.candidate_dict[dep.name] = dep.version_set
+            self.dep_dict[dep.name] = dep
+
+    def get_root_dependencies(self):
         for node in self.root_nodes:
             abs_deps = node.get_abstract_dependencies()
             for dep in abs_deps:
-                candidate = first(dep.iter_candidates())
-                abs_deps.extend(dep.get_deps(candidate))
-        for dep in abs_deps:
-            dep_dict[dep.name].append(dep)
-        self.abstract_deps = abs_deps
-        self.dep_dict = dep_dict
+                self.add_abstract_dep(dep)
+
+    def add_abstract_deps(self, deps):
+        for dep in deps:
+            self.add_abstract_dep(dep)
+
+    def pin_root_deps(self):
+        from .requirements import Requirement
+        for dep in self.root_nodes:
+            if isinstance(dep, Requirement):
+                self.add_abstract_dep(AbstractDependency.from_requirement(dep))
+            else:
+                self.add_abstract_dep(dep)
+            self.pin_deps()
+
+    def pin_deps(self):
+        for dep in list(self.dep_dict.keys()):
+            candidates = self.dep_dict[dep].candidates[:]
+            abs_dep = self.dep_dict[dep]
+            while True:
+                pin = candidates.pop()
+                pin.parent = abs_dep.parent
+                pin_deps = self.dep_dict[dep].get_deps(pin)
+                try:
+                    self.add_abstract_deps(pin_deps)
+                except ResolutionError:
+                    continue
+                else:
+                    self.pinned_deps[dep] = pin
+                    break
+
+    def resolve(self):
+        self.dep_dict = defaultdict(list)
+        self.pin_root_deps()
+        self.get_root_dependencies()
+        self.pin_deps()
+        return self.pinned_deps
 
 
 def merge_abstract_dependencies(deps):
@@ -143,7 +267,9 @@ def merge_abstract_dependencies(deps):
 def get_resolver(sources=None):
     pip_command = get_pip_command()
     if not sources:
-        sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
+        sources = [
+            {"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}
+        ]
     pip_args = []
     pip_args = prepare_pip_source_args(sources, pip_args)
     pip_options, _ = pip_command.parser.parse_args(pip_args)
@@ -152,21 +278,21 @@ def get_resolver(sources=None):
     wheel_cache = WheelCache(CACHE_DIR, pip_options.format_control)
     finder = PackageFinder(
         find_links=[],
-        index_urls=[s.get('url') for s in sources],
+        index_urls=[s.get("url") for s in sources],
         trusted_hosts=[],
         allow_all_prereleases=True,
         session=session,
     )
     download_dir = DOWNLOAD_DIR
-    _build_dir = TemporaryDirectory(fs_str('build'))
-    _source_dir = TemporaryDirectory(fs_str('source'))
+    _build_dir = TemporaryDirectory(fs_str("build"))
+    _source_dir = TemporaryDirectory(fs_str("source"))
     preparer = RequirementPreparer(
         build_dir=_build_dir.name,
         src_dir=_source_dir.name,
         download_dir=download_dir,
         wheel_download_dir=WHEEL_DOWNLOAD_DIR,
-        progress_bar='off',
-        build_isolation=True
+        progress_bar="off",
+        build_isolation=True,
     )
     resolver = Resolver(
         preparer=preparer,
@@ -197,9 +323,12 @@ def get_match_dependencies(ireqs):
 def get_abstract_dependencies(reqs, sources=None, parent=None):
     deps = []
     from .requirements import Requirement
+
     for req in reqs:
         if isinstance(req, InstallRequirement):
-            requirement = Requirement.from_line("{0}{1}".format(req.name, req.specifier))
+            requirement = Requirement.from_line(
+                "{0}{1}".format(req.name, req.specifier)
+            )
             if req.link:
                 requirement.req.link = req.link
                 requirement.markers = req.markers
@@ -217,8 +346,10 @@ def get_abstract_dependencies(reqs, sources=None, parent=None):
 
 def get_dependencies(ireq, sources=None, parent=None):
     if not isinstance(ireq, InstallRequirement):
-        name = getattr(ireq, 'project_name', getattr(ireq, 'project', getattr(ireq, 'name', None)))
-        version = getattr(ireq, 'version')
+        name = getattr(
+            ireq, "project_name", getattr(ireq, "project", getattr(ireq, "name", None))
+        )
+        version = getattr(ireq, "version")
         ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
     cached_deps = get_dependencies_from_cache(ireq)
     if not cached_deps:
@@ -239,37 +370,33 @@ def get_dependencies_from_wheel_cache(ireq):
 
 def get_dependencies_from_json(ireq):
     if not (is_pinned_requirement(ireq)):
-        raise TypeError('Expected pinned InstallRequirement, got {}'.format(ireq))
+        raise TypeError("Expected pinned InstallRequirement, got {}".format(ireq))
 
     session = requests.session()
 
     def gen(ireq):
-        url = 'https://pypi.org/pypi/{0}/json'.format(ireq.req.name)
-        releases = session.get(url).json()['releases']
-        matches = [
-            r for r in releases
-            if '=={0}'.format(r) == str(ireq.req.specifier)
-        ]
+        url = "https://pypi.org/pypi/{0}/json".format(ireq.req.name)
+        releases = session.get(url).json()["releases"]
+        matches = [r for r in releases if "=={0}".format(r) == str(ireq.req.specifier)]
         if not matches:
             return
 
         release_requires = session.get(
-            'https://pypi.org/pypi/{0}/{1}/json'.format(
-                ireq.req.name, matches[0],
-            ),
+            "https://pypi.org/pypi/{0}/{1}/json".format(ireq.req.name, matches[0])
         ).json()
         try:
-            requires_dist = release_requires['info']['requires_dist']
+            requires_dist = release_requires["info"]["requires_dist"]
         except KeyError:
             try:
-                requires_dist = release_requires['info']['requires']
+                requires_dist = release_requires["info"]["requires"]
             except KeyError:
                 return
         if requires_dist:
             for requires in requires_dist:
                 i = InstallRequirement.from_line(requires)
-                if 'extra' not in repr(i.markers):
+                if "extra" not in repr(i.markers):
                     yield i
+
     if ireq not in DEPCACHE:
         DEPCACHE[ireq] = [str(g) for g in gen(ireq)]
 
@@ -292,6 +419,7 @@ def get_dependencies_from_index(dep, sources=None):
     reqset.add_requirement(dep)
     _, _, resolver = get_resolver(sources)
     from setuptools.dist import distutils
+
     if not dep.prepared and dep.link is not None:
         with temp_cd(dep.setup_py_dir):
             try:
@@ -336,7 +464,13 @@ def get_grouped_dependencies(constraints):
             else:
                 _markers = combined_ireq.markers._markers
                 if not isinstance(_markers[0], (tuple, list)):
-                    combined_ireq.markers._markers = [_markers, 'and', ireq.markers._markers]
+                    combined_ireq.markers._markers = [
+                        _markers,
+                        "and",
+                        ireq.markers._markers,
+                    ]
             # Return a sorted, de-duped tuple of extras
-            combined_ireq.extras = tuple(sorted(set(tuple(combined_ireq.extras) + tuple(ireq.extras))))
+            combined_ireq.extras = tuple(
+                sorted(set(tuple(combined_ireq.extras) + tuple(ireq.extras)))
+            )
         yield combined_ireq
