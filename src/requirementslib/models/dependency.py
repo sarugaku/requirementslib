@@ -2,6 +2,7 @@
 import attr
 import copy
 import requests
+import six
 from first import first
 from packaging.version import parse as parse_version
 from .utils import (
@@ -167,7 +168,6 @@ class ResolutionError(Exception):
 
 @attr.s
 class DependencyResolver(object):
-    root_nodes = attr.ib(default=attr.Factory(list))
     pinned_deps = attr.ib(default=attr.Factory(dict))
     #: A list of current abstract dependencies
     abstract_deps = attr.ib(default=attr.Factory(list))
@@ -198,24 +198,9 @@ class DependencyResolver(object):
             self.candidate_dict[dep.name] = dep.version_set
             self.dep_dict[dep.name] = dep
 
-    def get_root_dependencies(self):
-        for node in self.root_nodes:
-            abs_deps = node.get_abstract_dependencies()
-            for dep in abs_deps:
-                self.add_abstract_dep(dep)
-
     def add_abstract_deps(self, deps):
         for dep in deps:
             self.add_abstract_dep(dep)
-
-    def pin_root_deps(self):
-        from .requirements import Requirement
-        for dep in self.root_nodes:
-            if isinstance(dep, Requirement):
-                self.add_abstract_dep(AbstractDependency.from_requirement(dep))
-            else:
-                self.add_abstract_dep(dep)
-            self.pin_deps()
 
     def pin_deps(self):
         for dep in list(self.dep_dict.keys()):
@@ -233,10 +218,14 @@ class DependencyResolver(object):
                     self.pinned_deps[dep] = pin
                     break
 
-    def resolve(self, max_rounds=20):
+    def resolve(self, root_nodes, max_rounds=20):
         self.dep_dict = {}
-        self.pin_root_deps()
-        self.get_root_dependencies()
+        for dep in root_nodes:
+            if isinstance(dep, six.string_types):
+                dep = AbstractDependency.from_string(dep)
+            elif not isinstance(dep, AbstractDependency):
+                dep = AbstractDependency.from_requirement(dep)
+            self.add_abstract_dep(dep)
         for _ in range(max_rounds):
             self.pin_deps()
             if len(self.pinned_deps.keys()) == len(self.dep_dict.keys()):
