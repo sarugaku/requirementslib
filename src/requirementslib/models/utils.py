@@ -6,7 +6,7 @@ from attr import validators
 from collections import OrderedDict
 from itertools import chain, groupby
 from first import first
-from .._compat import Link
+from .._compat import Link, InstallRequirement
 from ..utils import SCHEME_LIST, VCS_LIST, is_star
 
 
@@ -359,3 +359,20 @@ def name_from_req(req):
     else:
         # from packaging, such as install requirements from requirements.txt
         return req.name
+
+
+def make_install_requirement(name, version, extras, markers, constraint=False):
+    # If no extras are specified, the extras string is blank
+    extras_string = ""
+    if extras:
+        # Sort extras for stability
+        extras_string = "[{}]".format(",".join(sorted(extras)))
+
+    if not markers:
+        return InstallRequirement.from_line(
+            str('{}{}=={}'.format(name, extras_string, version)),
+            constraint=constraint)
+    else:
+        return InstallRequirement.from_line(
+            str('{}{}=={}; {}'.format(name, extras_string, version, str(markers))),
+            constraint=constraint)
