@@ -145,7 +145,7 @@ class AbstractDependency(object):
                 candidates.append(req)
         else:
             candidates = [requirement.ireq]
-        candidates = sorted(set(candidates), key=lambda k: parse_version(first(k.specifier._specs).version))
+        candidates = sorted(candidates, key=lambda k: parse_version(first(k.specifier._specs).version))
         return cls(
             name=name,
             specifiers=specifiers,
@@ -466,6 +466,6 @@ def get_grouped_dependencies(constraints):
                     ]
             # Return a sorted, de-duped tuple of extras
             combined_ireq.extras = tuple(
-                sorted(set(tuple(combined_ireq.extras) + tuple(ireq.extras)))
+                sorted(tuple(combined_ireq.extras) + tuple(ireq.extras))
             )
         yield combined_ireq
