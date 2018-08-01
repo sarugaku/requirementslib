@@ -60,7 +60,10 @@ class AbstractDependency(object):
 
     @property
     def version_set(self):
-        return set([first(c.specifier._specs).version for c in self.candidates])
+        return set(
+            parse_version(first(c.specifier._specs).version)
+            for c in self.candidates
+        )
 
     def compatible_versions(self, other):
         return self.version_set & other.version_set
@@ -72,7 +75,10 @@ class AbstractDependency(object):
         new_ireq.req.specifier = new_specifiers
         new_requirement = Requirement.from_line(format_requirement(new_ireq))
         compatible_versions = self.compatible_versions(other)
-        candidates = [c for c in self.candidates if first(c.specifier._specs).version in compatible_versions]
+        candidates = [
+            c for c in self.candidates
+            if parse_version(first(c.specifier._specs).version) in compatible_versions
+        ]
         dep_dict = {}
         candidate_strings = [format_requirement(c) for c in candidates]
         for c in candidate_strings:
