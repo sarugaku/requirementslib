@@ -67,16 +67,37 @@ class AbstractDependency(object):
 
     @property
     def version_set(self):
-        return set(
-            parse_version(first(c.specifier._specs).version)
-            for c in self.candidates
-        )
+        """Return the set of versions for the candidates in this abstract dependency.
+
+        :return: A set of matching versions
+        :rtype: set(str)
+        """
 
     def compatible_versions(self, other):
+        """Find compatible version numbers between this abstract
+        dependency and another one.
+
+        :param other: An abstract dependency to compare with.
+        :type other: :class:`~requirementslib.models.dependency.AbstractDependency`
+        :return: A set of compatible version strings
+        :rtype: set(str)
+        """
+
         return self.version_set & other.version_set
 
     def compatible_abstract_dep(self, other):
+        """Merge this abstract dependency with another one.
+
+        Return the result of the merge as a new abstract dependency.
+
+        :param other: An abstract dependency to merge with
+        :type other: :class:`~requirementslib.models.dependency.AbstractDependency`
+        :return: A new, combined abstract dependency
+        :rtype: :class:`~requirementslib.models.dependency.AbstractDependency`
+        """
+
         from .requirements import Requirement
+
         new_specifiers = self.specifiers & other.specifiers
         new_ireq = copy.deepcopy(self.requirement.ireq)
         new_ireq.req.specifier = new_specifiers
@@ -110,6 +131,14 @@ class AbstractDependency(object):
             yield candidate
 
     def get_deps(self, candidate):
+        """Get the dependencies of the supplied candidate.
+
+        :param candidate: An installrequirement
+        :type candidate: :class:`~pip._internal.req.req_install.InstallRequirement`
+        :return: A list of abstract dependencies
+        :rtype: list[:class:`~requirementslib.models.dependency.AbstractDependency`]
+        """
+
         key = format_requirement(candidate)
         if key not in self.dep_dict:
             from .requirements import Requirement
@@ -129,7 +158,7 @@ class AbstractDependency(object):
 
     @classmethod
     def from_requirement(cls, requirement, parent=None):
-        """from_requirement Creates a new :class:`~requirementslib.models.dependency.AbstractDependency`
+        """Creates a new :class:`~requirementslib.models.dependency.AbstractDependency`
         from a :class:`~requirementslib.models.requirements.Requirement` object.
 
         This class is used to find all candidates matching a given set of specifiers
@@ -198,7 +227,7 @@ class DependencyResolver(object):
         return list(self.pinned_deps.values())
 
     def get_candidates(self, dep):
-        """get_candidates Takes an abstract dependency, finds the valid candidates
+        """Takes an abstract dependency, finds the valid candidates
 
         :param dep: Abstract Dependency
         :returns: Valid candidates
@@ -208,6 +237,15 @@ class DependencyResolver(object):
         return self.dep_dict[dep.name].candidates
 
     def add_abstract_dep(self, dep):
+        """Add an abstract dependency by either creating a new entry or
+        merging with an old one.
+
+        :param dep: An abstract dependency to add
+        :type dep: :class:`~requirementslib.models.dependency.AbstractDependency`
+        :raises ResolutionError: Raised when the given dependency is not compatible with
+                                 an existing abstract dependency.
+        """
+
         if dep.name in self.dep_dict:
             compatible_versions = self.dep_dict[dep.name].compatible_versions(dep)
             if compatible_versions:
@@ -220,6 +258,12 @@ class DependencyResolver(object):
             self.dep_dict[dep.name] = dep
 
     def pin_deps(self):
+        """Pins the current abstract dependencies and adds them to the history dict.
+
+        Adds any new dependencies to the abstract dependencies already present by
+        merging them together to form new, compatible abstract dependencies.
+        """
+
         for name in list(self.dep_dict.keys()):
             candidates = self.dep_dict[name].candidates[:]
             abs_dep = self.dep_dict[name]
@@ -240,6 +284,18 @@ class DependencyResolver(object):
                     break
 
     def resolve(self, root_nodes, max_rounds=20):
+        """Resolves dependencies using a backtracking resolver and multiple endpoints.
+
+        Note: this resolver caches aggressively.
+        Runs for *max_rounds* or until any two pinning rounds yield the same outcome.
+
+        :param root_nodes: A list of the root requirements.
+        :type root_nodes: list[:class:`~requirementslib.models.requirements.Requirement`]
+        :param max_rounds: The max number of resolution rounds, defaults to 20
+        :param max_rounds: int, optional
+        :raises RuntimeError: Raised when max rounds is exceeded without a resolution.
+        """
+
         self.dep_dict = {}
         for dep in root_nodes:
             if isinstance(dep, six.string_types):
@@ -320,14 +376,35 @@ def get_resolver(sources=None):
 
 
 def find_all_matches(finder, ireq):
-    candidates = finder.find_all_candidates(ireq.name)
+    """Find all matching dependencies using the supplied finder and the
+    given ireq.
+
+    :param finder: A package finder for discovering matching candidates.
+    :type finder: :class:`~pip._internal.index.PackageFinder`
+    :param ireq: An install requirement.
+    :type ireq: :class:`~pip._internal.req.req_install.InstallRequirement`
+    :return: A list of matching candidates.
+    :rtype: list[:class:`~pip._internal.index.InstallationCandidate`]
+    """
+
     matches = [m for m in candidates if m.version in ireq.specifier]
     return matches
 
 
-def get_match_dependencies(ireqs):
-    return [get_dependencies_from_index(ir) for ir in ireqs]
+def get_abstract_dependencies(reqs, sources=None, parent=None):
+    """Get all abstract dependencies for a given list of requirements.
 
+    Given a set of requirements, convert each requirement to an Abstract Dependency.
+
+    :param reqs: A list of Requirements
+    :type reqs: list[:class:`~requirementslib.models.requirements.Requirement`]
+    :param sources: Pipfile-formatted sources, defaults to None
+    :param sources: list[dict], optional
+    :param parent: The parent of this list of dependencies, defaults to None
+    :param parent: :class:`~requirementslib.models.requirements.Requirement`, optional
+    :return: A list of Abstract Dependencies
+    :rtype: list[:class:`~requirementslib.models.dependency.AbstractDependency`]
+    """
 
 def get_abstract_dependencies(reqs, sources=None, parent=None):
     deps = []
@@ -371,6 +448,14 @@ def get_dependencies(ireq, sources=None, parent=None):
 
 
 def get_dependencies_from_wheel_cache(ireq):
+    """Retrieves dependencies for the given install requirement from the wheel cache.
+
+    :param ireq: A single InstallRequirement
+    :type ireq: :class:`~pip._internal.req.req_install.InstallRequirement`
+    :return: A set of dependency lines for generating new InstallRequirements.
+    :rtype: set(str) or None
+    """
+
     matches = WHEEL_CACHE.get(ireq.link, name_from_req(ireq.req))
     if matches:
         return set(matches)
@@ -378,6 +463,14 @@ def get_dependencies_from_wheel_cache(ireq):
 
 
 def get_dependencies_from_json(ireq):
+    """Retrieves dependencies for the given install requirement from the json api.
+
+    :param ireq: A single InstallRequirement
+    :type ireq: :class:`~pip._internal.req.req_install.InstallRequirement`
+    :return: A set of dependency lines for generating new InstallRequirements.
+    :rtype: set(str) or None
+    """
+
     if not (is_pinned_requirement(ireq)):
         raise TypeError("Expected pinned InstallRequirement, got {}".format(ireq))
 
@@ -417,12 +510,30 @@ def get_dependencies_from_json(ireq):
 
 
 def get_dependencies_from_cache(dep):
+    """Retrieves dependencies for the given install requirement from the dependency cache.
+
+    :param ireq: A single InstallRequirement
+    :type ireq: :class:`~pip._internal.req.req_install.InstallRequirement`
+    :return: A set of dependency lines for generating new InstallRequirements.
+    :rtype: set(str) or None
+    """
+
     if dep in DEPCACHE:
         return set(DEPCACHE[dep])
     return
 
 
 def get_dependencies_from_index(dep, sources=None):
+    """Retrieves dependencies for the given install requirement from the pip resolver.
+
+    :param ireq: A single InstallRequirement
+    :type ireq: :class:`~pip._internal.req.req_install.InstallRequirement`
+    :param sources: Pipfile-formatted sources, defaults to None
+    :type sources: list[dict], optional
+    :return: A set of dependency lines for generating new InstallRequirements.
+    :rtype: set(str) or None
+    """
+
     dep.is_direct = True
     reqset = RequirementSet()
     reqset.add_requirement(dep)
