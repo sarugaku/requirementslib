@@ -130,11 +130,6 @@ class AbstractDependency(object):
     def is_root(self):
         return self.parent is None
 
-    def iter_candidates(self):
-        for candidate in self.candidates:
-            candidate.parent = self.parent
-            yield candidate
-
     def get_deps(self, candidate):
         """Get the dependencies of the supplied candidate.
 
@@ -151,15 +146,6 @@ class AbstractDependency(object):
             req = Requirement.from_line(key)
             self.dep_dict[key] = req.get_abstract_dependencies()
         return self.dep_dict[key]
-
-    @property
-    def parent_is_pinned(self):
-        from .requirements import Requirement
-
-        if isinstance(self.parent, Requirement):
-            return is_pinned_requirement(self.parent.ireq)
-        # Handle InstallRequirements natively as well
-        return is_pinned_requirement(self.parent)
 
     @classmethod
     def from_requirement(cls, requirement, parent=None):
