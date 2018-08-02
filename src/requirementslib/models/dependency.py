@@ -217,6 +217,8 @@ class DependencyResolver(object):
     dep_dict = attr.ib(default=attr.Factory(dict))
     #: A dictionary of sets of version numbers that are valid for a candidate currently
     candidate_dict = attr.ib(default=attr.Factory(dict))
+    #: A historical record of pins
+    pin_history = attr.ib(default=attr.Factory(dict))
 
     @property
     def dependencies(self):
@@ -270,11 +272,20 @@ class DependencyResolver(object):
             while candidates:
                 # TODO: Give up when candidates are exhausted?
                 pin = candidates.pop()
+                new_version = version_from_ireq(pin)
+                # Move on from existing pins if the new pin isn't compatible
+                if name in self.pinned_deps:
+                    old_version = version_from_ireq(self.pinned_deps[name])
+                    if (
+                        new_version != old_version
+                        and new_version not in self.candidate_dict[name]
+                    ):
+                        continue
                 pin.parent = abs_dep.parent
-                pin_deps = self.dep_dict[name].get_deps(pin)
+                pin_subdeps = self.dep_dict[name].get_deps(pin)
                 backup = self.dep_dict.copy(), self.candidate_dict.copy()
                 try:
-                    for pin_dep in pin_deps:
+                    for pin_dep in pin_subdeps:
                         self.add_abstract_dep(pin_dep)
                 except ResolutionError:
                     self.dep_dict, self.candidate_dict = backup
