@@ -76,8 +76,8 @@ def get_package(module, subimport=None):
 
 def do_import(module_path, subimport=None, old_path=None):
     old_path = old_path or module_path
-    internal = "pip._internal.{0}".format(module_path)
-    pip9 = "pip.{0}".format(old_path)
+    internal = "pip._internal.{0}".format(module_path) if module_path else "pip._internal"
+    pip9 = "pip.{0}".format(old_path) if old_path else "pip"
     imported = None
     if has_modutil:
         to_import, package = get_package(internal, subimport)
@@ -91,13 +91,20 @@ def do_import(module_path, subimport=None, old_path=None):
         except modutil.ModuleAttributeError:
             _, _, module_name = old_import.rpartition(".")
             imported = chained(module_name)
+        except ModuleNotFoundError:
+            imported = None
+        if not imported:
+            return
         return getattr(imported, package)
     to_import, package = get_package(internal, subimport)
     try:
         imported = importlib.import_module(to_import)
     except ImportError:
         to_import, package = get_package(pip9, subimport)
-        imported = importlib.import_module(to_import)
+        try:
+            imported = importlib.import_module(to_import)
+        except ImportError:
+            return None
     return getattr(imported, package)
 
 
@@ -124,6 +131,8 @@ WheelCache = do_import("cache", "WheelCache")
 Command = do_import("basecommand", "Command")
 cmdoptions = do_import("cmdoptions")
 FormatControl = do_import("index", "FormatControl")
+RequirementTracker = do_import("req.req_tracker", "RequirementTracker")
+pip_version = do_import(None, "__version__")
 
 
 class TemporaryDirectory(object):

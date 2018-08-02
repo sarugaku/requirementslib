@@ -6,6 +6,7 @@ from attr import validators
 from collections import OrderedDict
 from itertools import chain, groupby
 from first import first
+from functools import partialmethod
 from .._compat import Link, InstallRequirement
 from ..utils import SCHEME_LIST, VCS_LIST, is_star
 
@@ -362,6 +363,24 @@ def name_from_req(req):
 
 
 def make_install_requirement(name, version, extras, markers, constraint=False):
+    """make_install_requirement Generates an :class:`~pip._internal.req.req_install.InstallRequirement`.
+
+    Create an InstallRequirement from the supplied metadata.
+
+    :param name: The requirement's name.
+    :type name: str
+    :param version: The requirement version (must be pinned).
+    :type version: str.
+    :param extras: The desired extras.
+    :type extras: list[str]
+    :param markers: The desired markers, without a preceding semicolon.
+    :type markers: str
+    :param constraint: Whether to flag the requirement as a constraint, defaults to False.
+    :param constraint: bool, optional
+    :return: A generated InstallRequirement
+    :rtype: :class:`~pip._internal.req.req_install.InstallRequirement`
+    """
+
     # If no extras are specified, the extras string is blank
     extras_string = ""
     if extras:
@@ -376,3 +395,28 @@ def make_install_requirement(name, version, extras, markers, constraint=False):
         return InstallRequirement.from_line(
             str('{}{}=={}; {}'.format(name, extras_string, version, str(markers))),
             constraint=constraint)
+
+
+def version_from_ireq(ireq):
+    """version_from_ireq Extract the version from a supplied :class:`~pip._internal.req.req_install.InstallRequirement`
+
+    :param ireq: An InstallRequirement
+    :type ireq: :class:`~pip._internal.req.req_install.InstallRequirement`
+    :return: The version of the InstallRequirement.
+    :rtype: str
+    """
+
+    return first(ireq.specifier._specs).version
+
+
+def partialclass(cls, *args, **kwds):
+    """Returns a partially instantiated class
+
+    :return: A partial class instance
+    :rtype: 
+    """
+
+    class NewCls(cls):
+        __init__ = partialmethod(cls.__init__, *args, **kwds)
+
+    return NewCls

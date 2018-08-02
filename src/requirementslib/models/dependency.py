@@ -12,6 +12,8 @@ from .utils import (
     name_from_req,
     make_install_requirement,
     format_requirement,
+    version_from_ireq,
+    partialclass,
 )
 from .cache import CACHE_DIR, DependencyCache
 from .._compat import (
@@ -23,13 +25,18 @@ from .._compat import (
     TemporaryDirectory,
     InstallRequirement,
     FormatControl,
+    RequirementTracker,
+    pip_version,
 )
 from ..utils import (
     fs_str,
     prepare_pip_source_args,
     get_pip_command,
     temp_cd,
+    log,
+    mkdir_p,
 )
+
 import os
 
 DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, "pkgs"))
@@ -248,26 +255,15 @@ class DependencyResolver(object):
         raise RuntimeError('cannot resolve after {} rounds'.format(max_rounds))
 
 
-def merge_abstract_dependencies(deps):
-    parents = [dep.parent for dep in deps]
-    deps = deps + list(parents)
-    base_deps = [dep for dep in deps if dep.parent is None]
-    base_deps.extend([dep for dep in deps if dep.parent and dep.parent.is_root()])
-    candidates = {}
-    for dep in base_deps:
-        if dep.name in candidates:
-            candidates[dep.name] = set(candidates[dep.name]) & set(dep.candidates)
-        else:
-            candidates[dep.name] = set(dep.candidates)
-    for dep in deps:
-        if dep.name in candidates:
-            candidates[dep.name] = set(candidates[dep.name]) & set(dep.candidates)
-        else:
-            candidates[dep.name] = set(dep.candidates)
-    return candidates
-
-
 def get_resolver(sources=None):
+    """Given a list of sources, return a finder, preparer, and resolver.
+
+    :param sources: A list of pipfile-formatted sources, defaults to None
+    :param sources: list[dict], optional
+    :return: A 3-tuple of finder, preparer, resolver
+    :rtype: (:class:`~pip._internal.index.PackageFinder`, :class:`~pip._internal.operations.prepare.RequirementPreparer`, :class:`~pip._internal.resolve.Resolver`)
+    """
+
     pip_command = get_pip_command()
     if not sources:
         sources = [
@@ -277,39 +273,49 @@ def get_resolver(sources=None):
     pip_args = prepare_pip_source_args(sources, pip_args)
     pip_options, _ = pip_command.parser.parse_args(pip_args)
     pip_options.cache_dir = CACHE_DIR
+    mkdir_p(CACHE_DIR)
     session = pip_command._build_session(pip_options)
     wheel_cache = WheelCache(CACHE_DIR, pip_options.format_control)
     finder = PackageFinder(
         find_links=[],
         index_urls=[s.get("url") for s in sources],
         trusted_hosts=[],
-        allow_all_prereleases=True,
+        allow_all_prereleases=pip_options.pre,
         session=session,
     )
     download_dir = DOWNLOAD_DIR
+    mkdir_p(download_dir)
     _build_dir = TemporaryDirectory(fs_str("build"))
     _source_dir = TemporaryDirectory(fs_str("source"))
-    preparer = RequirementPreparer(
+    preparer = partialclass(
+        RequirementPreparer,
         build_dir=_build_dir.name,
         src_dir=_source_dir.name,
         download_dir=download_dir,
         wheel_download_dir=WHEEL_DOWNLOAD_DIR,
         progress_bar="off",
-        build_isolation=True,
+        build_isolation=False,
     )
-    resolver = Resolver(
-        preparer=preparer,
+    resolver = partialclass(
+        Resolver,
         finder=finder,
         session=session,
         upgrade_strategy="to-satisfy-only",
-        force_reinstall=False,
+        force_reinstall=True,
         ignore_dependencies=False,
-        ignore_requires_python=False,
+        ignore_requires_python=True,
         ignore_installed=True,
-        isolated=True,
+        isolated=False,
         wheel_cache=wheel_cache,
         use_user_site=False,
     )
+    if parse_version(pip_version) >= parse_version('18.0.0'):
+        with RequirementTracker() as req_tracker:
+            preparer = preparer(req_tracker=req_tracker)
+            resolver = resolver(preparer=preparer)
+    else:
+        preparer = preparer()
+        resolver = resolver(preparer=preparer)
     return finder, preparer, resolver
 
 
