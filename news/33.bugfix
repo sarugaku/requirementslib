@@ -1,0 +1,1 @@
+Fixed a bug which prevented dependency resolution using pip >= 18.0.
