@@ -325,15 +325,20 @@ class DependencyResolver(object):
             self.pin_deps()
             self.pin_history[round_] = self.pinned_deps.copy()
             if round_ > 0:
-                previous_round = self.pin_history[round_ - 1]
-                difference = set(self.pin_history[round_]) - set(previous_round)
+                previous_round = set(self.pin_history[round_ - 1].values())
+                current_values = set(self.pin_history[round_].values())
+                difference = current_values - previous_round
+                log.debug("\n\n")
+                log.debug("{:=^30}".format(" Round {0} ".format(round_)))
+                log.debug("\n")
                 if difference:
-                    log("Difference: ")
+                    log.debug("New Packages: ")
                     for d in difference:
-                        log(format_requirement(d))
-            if round >= 3 and not difference:
-                return
-            if len(self.pinned_deps.keys()) == len(self.dep_dict.keys()):
+                        log.debug("{:>30}".format(format_requirement(d)))
+            if round_ >= 3 and not difference:
+                log.debug("Stable Pins: ")
+                for d in current_values:
+                    log.debug("{:>30}".format(format_requirement(d)))
                 return
         # TODO: Raise a better error.
         raise RuntimeError("cannot resolve after {} rounds".format(max_rounds))
