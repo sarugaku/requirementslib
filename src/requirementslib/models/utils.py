@@ -6,8 +6,7 @@ from attr import validators
 from collections import OrderedDict
 from itertools import chain, groupby
 from first import first
-from functools import partialmethod
-from .._compat import Link, InstallRequirement
+from .._compat import Link, InstallRequirement, partialmethod
 from ..utils import SCHEME_LIST, VCS_LIST, is_star
 
 
