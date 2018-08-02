@@ -885,11 +885,32 @@ class Requirement(object):
         return self.as_ireq()
 
     def get_dependencies(self, sources=None):
+        """Retrieve the dependencies of the current requirement.
+
+        Retrieves dependencies of the current requirement.  This only works on pinned
+        requirements.
+
+        :param sources: Pipfile-formatted sources, defaults to None
+        :param sources: list[dict], optional
+        :return: A set of requirement strings of the dependencies of this requirement.
+        :rtype: set(str)
+        """
+
         if not sources:
             sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
         return get_dependencies(self.ireq, sources=sources)
 
     def get_abstract_dependencies(self, sources=None):
+        """Retrieve the abstract dependencies of this requirement.
+
+        Returns the abstract dependencies of the current requirement in order to resolve.
+
+        :param sources: A list of sources (pipfile format), defaults to None
+        :param sources: list, optional
+        :return: A list of abstract (unpinned) dependencies
+        :rtype: list[ :class:`~requirementslib.models.dependency.AbstractDependency` ]
+        """
+
         if not self.abstract_dep:
             parent = getattr(self, 'parent', None)
             self.abstract_dep = AbstractDependency.from_requirement(self, parent=parent)
@@ -903,6 +924,16 @@ class Requirement(object):
         return get_abstract_dependencies(deps, sources=sources, parent=self.abstract_dep)
 
     def find_all_matches(self, sources=None):
+        """Find all matching candidates for the current requirement.
+
+        Consults a finder to find all matching candidates.
+
+        :param sources: Pipfile-formatted sources, defaults to None
+        :param sources: list[dict], optional
+        :return: A list of Installation Candidates
+        :rtype: list[ :class:`~pip._internal.index.InstallationCandidate` ]
+        """
+
         if not sources:
             sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
         finder, _, _ = get_resolver(sources=sources)
