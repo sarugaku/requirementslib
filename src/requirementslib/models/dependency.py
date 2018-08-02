@@ -57,10 +57,10 @@ class AbstractDependency(object):
 
     @property
     def sort_order(self):
-        if self.is_root:
+        if self.is_root():
             return 1
         # Direct dependency of root dependency
-        elif self.parent.is_root:
+        elif self.parent.is_root():
             return 2
         # This is a pinned abstract dependency
         elif len(self.candidates) == 1:
