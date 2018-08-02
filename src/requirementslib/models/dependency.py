@@ -436,7 +436,6 @@ def get_abstract_dependencies(reqs, sources=None, parent=None):
     :rtype: list[:class:`~requirementslib.models.dependency.AbstractDependency`]
     """
 
-def get_abstract_dependencies(reqs, sources=None, parent=None):
     deps = []
     from .requirements import Requirement
 
@@ -500,7 +499,10 @@ def get_dependencies_from_wheel_cache(ireq):
 
     matches = WHEEL_CACHE.get(ireq.link, name_from_req(ireq.req))
     if matches:
-        return set(matches)
+        matches = set(matches)
+        if not DEPCACHE.get(ireq):
+            DEPCACHE[ireq] = [format_requirement(m) for m in matches]
+        return matches
     return
 
 
@@ -541,8 +543,8 @@ def get_dependencies_from_json(ireq):
                 if "extra" not in repr(i.markers):
                     yield i
 
-    if ireq not in DEPCACHE:
-        DEPCACHE[ireq] = [str(g) for g in gen(ireq)]
+    if not DEPCACHE.get(ireq):
+        DEPCACHE[ireq] = [format_requirement(g) for g in gen(ireq)]
 
     try:
         cache_val = DEPCACHE[ireq]
@@ -595,7 +597,9 @@ def get_dependencies_from_index(dep, sources=None):
         return set()
     requirements = reqset.requirements.values()
     reqset.cleanup_files()
-    return set(requirements)
+    reqs = set(requirements)
+    DEPCACHE[dep] = [format_requirement(r) for r in reqs]
+    return reqs
 
 
 def get_grouped_dependencies(constraints):
@@ -633,6 +637,6 @@ def get_grouped_dependencies(constraints):
                     ]
             # Return a sorted, de-duped tuple of extras
             combined_ireq.extras = tuple(
-                sorted(tuple(combined_ireq.extras) + tuple(ireq.extras))
+                sorted(set(tuple(combined_ireq.extras) + tuple(ireq.extras)))
             )
         yield combined_ireq
