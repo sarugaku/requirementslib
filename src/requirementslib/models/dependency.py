@@ -216,8 +216,6 @@ class ResolutionError(Exception):
 @attr.s
 class DependencyResolver(object):
     pinned_deps = attr.ib(default=attr.Factory(dict))
-    #: A list of current abstract dependencies
-    abstract_deps = attr.ib(default=attr.Factory(list))
     #: A dictionary of abstract dependencies by name
     dep_dict = attr.ib(default=attr.Factory(dict))
     #: A dictionary of sets of version numbers that are valid for a candidate currently
@@ -232,16 +230,6 @@ class DependencyResolver(object):
     @property
     def resolution(self):
         return list(self.pinned_deps.values())
-
-    def get_candidates(self, dep):
-        """Takes an abstract dependency, finds the valid candidates
-
-        :param dep: Abstract Dependency
-        :returns: Valid candidates
-        """
-        if dep.name not in self.dep_dict:
-            self.add_abstract_dep(dep)
-        return self.dep_dict[dep.name].candidates
 
     def add_abstract_dep(self, dep):
         """Add an abstract dependency by either creating a new entry or
