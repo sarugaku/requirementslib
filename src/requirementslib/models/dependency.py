@@ -324,13 +324,14 @@ class DependencyResolver(object):
         for round_ in range(max_rounds):
             self.pin_deps()
             self.pin_history[round_] = self.pinned_deps.copy()
-            previous_round = self.pin_history[round_ - 1]
-            difference = set(self.pin_history[round_]) - set(previous_round)
-            if difference:
-                log("Difference: ")
-                for d in difference:
-                    log(format_requirement(d))
-            if not difference and round >= 3:
+            if round_ > 0:
+                previous_round = self.pin_history[round_ - 1]
+                difference = set(self.pin_history[round_]) - set(previous_round)
+                if difference:
+                    log("Difference: ")
+                    for d in difference:
+                        log(format_requirement(d))
+            if round >= 3 and not difference:
                 return
             if len(self.pinned_deps.keys()) == len(self.dep_dict.keys()):
                 return
