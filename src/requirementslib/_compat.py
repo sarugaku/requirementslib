@@ -396,7 +396,11 @@ else:
             def _method(*args, **keywords):
                 call_keywords = self.keywords.copy()
                 call_keywords.update(keywords)
-                cls_or_self, *rest = args
+                if len(args) > 1:
+                    cls_or_self, rest = args[0], tuple(args[1:],)
+                else:
+                    cls_or_self = args[0]
+                    rest = tuple()
                 call_args = (cls_or_self,) + self.args + tuple(rest)
                 return self.func(*call_args, **call_keywords)
             _method.__isabstractmethod__ = self.__isabstractmethod__
