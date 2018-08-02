@@ -59,8 +59,10 @@ class AbstractDependency(object):
     def sort_order(self):
         if self.is_root:
             return 1
+        # Direct dependency of root dependency
         elif self.parent.is_root:
             return 2
+        # This is a pinned abstract dependency
         elif len(self.candidates) == 1:
             return 3
         return 4
@@ -72,6 +74,8 @@ class AbstractDependency(object):
         :return: A set of matching versions
         :rtype: set(str)
         """
+
+        return set(parse_version(version_from_ireq(c)) for c in self.candidates)
 
     def compatible_versions(self, other):
         """Find compatible version numbers between this abstract
@@ -104,8 +108,9 @@ class AbstractDependency(object):
         new_requirement = Requirement.from_line(format_requirement(new_ireq))
         compatible_versions = self.compatible_versions(other)
         candidates = [
-            c for c in self.candidates
-            if parse_version(first(c.specifier._specs).version) in compatible_versions
+            c
+            for c in self.candidates
+            if parse_version(version_from_ireq(c)) in compatible_versions
         ]
         dep_dict = {}
         candidate_strings = [format_requirement(c) for c in candidates]
@@ -175,13 +180,17 @@ class AbstractDependency(object):
         candidates = []
         if not is_pinned:
             for r in requirement.find_all_matches():
-                req = make_install_requirement(name, r.version, extras=extras, markers=markers)
+                req = make_install_requirement(
+                    name, r.version, extras=extras, markers=markers
+                )
                 req.req.link = r.location
                 req.parent = parent
                 candidates.append(req)
         else:
             candidates = [requirement.ireq]
-        candidates = sorted(candidates, key=lambda k: parse_version(first(k.specifier._specs).version))
+        candidates = sorted(
+            set(candidates), key=lambda k: parse_version(version_from_ireq(k)),
+        )
         return cls(
             name=name,
             specifiers=specifiers,
@@ -195,12 +204,8 @@ class AbstractDependency(object):
     def from_string(cls, line, parent=None):
         from .requirements import Requirement
 
-        # abstract_deps = []
         req = Requirement.from_line(line)
         abstract_dep = cls.from_requirement(req, parent=parent)
-        # req.abstract_dep = abstract_dep
-        # abstract_deps.append(abstract_dep)
-        # abstract_deps.extend(req.get_abstract_dependencies())
         return abstract_dep
 
 
@@ -252,7 +257,9 @@ class DependencyResolver(object):
             compatible_versions = self.dep_dict[dep.name].compatible_versions(dep)
             if compatible_versions:
                 self.candidate_dict[dep.name] = compatible_versions
-                self.dep_dict[dep.name] = self.dep_dict[dep.name].compatible_abstract_dep(dep)
+                self.dep_dict[dep.name] = self.dep_dict[
+                    dep.name
+                ].compatible_abstract_dep(dep)
             else:
                 raise ResolutionError
         else:
@@ -407,6 +414,9 @@ def find_all_matches(finder, ireq):
     :rtype: list[:class:`~pip._internal.index.InstallationCandidate`]
     """
 
+    candidates = set(finder.find_all_candidates(ireq.name))
+    if not ireq.specifier:
+        return list(candidates)
     matches = [m for m in candidates if m.version in ireq.specifier]
     return matches
 
@@ -451,6 +461,18 @@ def get_abstract_dependencies(reqs, sources=None, parent=None):
 
 
 def get_dependencies(ireq, sources=None, parent=None):
+    """Get all dependencies for a given install requirement.
+
+    :param ireq: A single InstallRequirement
+    :type ireq: :class:`~pip._internal.req.req_install.InstallRequirement`
+    :param sources: Pipfile-formatted sources, defaults to None
+    :type sources: list[dict], optional
+    :param parent: The parent of this list of dependencies, defaults to None
+    :type parent: :class:`~pip._internal.req.req_install.InstallRequirement`
+    :return: A set of dependency lines for generating new InstallRequirements.
+    :rtype: set(str)
+    """
+
     if not isinstance(ireq, InstallRequirement):
         name = getattr(
             ireq, "project_name", getattr(ireq, "project", getattr(ireq, "name", None))
@@ -464,7 +486,7 @@ def get_dependencies(ireq, sources=None, parent=None):
         cached_deps = get_dependencies_from_json(ireq)
     if not cached_deps:
         cached_deps = get_dependencies_from_index(ireq, sources)
-    return set(cached_deps)
+    return cached_deps
 
 
 def get_dependencies_from_wheel_cache(ireq):
