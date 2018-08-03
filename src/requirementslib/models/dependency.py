@@ -236,16 +236,13 @@ class DependencyResolver(object):
             candidates = self.dep_dict[name].candidates[:]
             abs_dep = self.dep_dict[name]
             while candidates:
-                # TODO: Give up when candidates are exhausted?
                 pin = candidates.pop()
                 new_version = version_from_ireq(pin)
                 # Move on from existing pins if the new pin isn't compatible
                 if name in self.pinned_deps:
                     old_version = version_from_ireq(self.pinned_deps[name])
-                    if (
-                        new_version != old_version
-                        and new_version not in self.candidate_dict[name]
-                    ):
+                    if (new_version != old_version and
+                            new_version not in self.candidate_dict[name]):
                         continue
                 pin.parent = abs_dep.parent
                 pin_subdeps = self.dep_dict[name].get_deps(pin)
@@ -272,33 +269,43 @@ class DependencyResolver(object):
         :param max_rounds: int, optional
         :raises RuntimeError: Raised when max rounds is exceeded without a resolution.
         """
+        if self.dep_dict:
+            raise RuntimeError("Do not use the same resolver more than once")
 
-        self.dep_dict = {}
+        # Coerce input into AbstractDependency instances.
+        # We accept str, Requirement, and AbstractDependency as input.
         for dep in root_nodes:
             if isinstance(dep, six.string_types):
                 dep = AbstractDependency.from_string(dep)
             elif not isinstance(dep, AbstractDependency):
                 dep = AbstractDependency.from_requirement(dep)
             self.add_abstract_dep(dep)
+
         for round_ in range(max_rounds):
             self.pin_deps()
             self.pin_history[round_] = self.pinned_deps.copy()
+
             if round_ > 0:
                 previous_round = set(self.pin_history[round_ - 1].values())
                 current_values = set(self.pin_history[round_].values())
                 difference = current_values - previous_round
-                log.debug("\n\n")
-                log.debug("{:=^30}".format(" Round {0} ".format(round_)))
-                log.debug("\n")
-                if difference:
-                    log.debug("New Packages: ")
-                    for d in difference:
-                        log.debug("{:>30}".format(format_requirement(d)))
-            if round_ >= 3 and not difference:
+            else:
+                difference = set(self.pin_history[round_].values())
+
+            log.debug("\n")
+            log.debug("{:=^30}".format(" Round {0} ".format(round_)))
+            log.debug("\n")
+            if difference:
+                log.debug("New Packages: ")
+                for d in difference:
+                    log.debug("{:>30}".format(format_requirement(d)))
+            elif round_ >= 3:
                 log.debug("Stable Pins: ")
                 for d in current_values:
                     log.debug("{:>30}".format(format_requirement(d)))
                 return
+            else:
+                log.debug("No New Packages.")
         # TODO: Raise a better error.
         raise RuntimeError("cannot resolve after {} rounds".format(max_rounds))
 
