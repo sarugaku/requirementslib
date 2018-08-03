@@ -1,7 +1,7 @@
-requirementslib.models.dependency module
+requirementslib.models.resolvers module
 ========================================
 
-.. automodule:: requirementslib.models.dependency
+.. automodule:: requirementslib.models.resolvers
     :members:
     :undoc-members:
     :show-inheritance:

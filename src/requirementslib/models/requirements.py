@@ -13,11 +13,13 @@ from packaging.specifiers import Specifier
 from packaging.version import parse as parse_version
 
 from .baserequirement import BaseRequirement
-from .dependency import get_dependencies, get_resolver, find_all_matches, get_abstract_dependencies, AbstractDependency
+from .dependencies import (
+    get_dependencies, get_resolver, find_all_matches,
+    get_abstract_dependencies, AbstractDependency,
+)
 from .markers import PipenvMarkers
 from .utils import (
     HASH_STRING,
-    extras_to_string,
     get_version,
     specs_to_string,
     validate_specifiers,
@@ -40,7 +42,6 @@ from .._compat import (
     _strip_extras,
     InstallRequirement,
     Path,
-    urlparse,
     unquote,
     Wheel,
     FileNotFoundError,
