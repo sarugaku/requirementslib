@@ -1,6 +1,7 @@
 # -*- coding=utf-8 -*-
 import attr
 import copy
+import functools
 import requests
 import six
 from first import first
@@ -450,14 +451,17 @@ def get_dependencies(ireq, sources=None, parent=None):
         )
         version = getattr(ireq, "version")
         ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
-    cached_deps = get_dependencies_from_cache(ireq)
-    if not cached_deps:
-        cached_deps = get_dependencies_from_wheel_cache(ireq)
-    if not cached_deps:
-        cached_deps = get_dependencies_from_json(ireq)
-    if not cached_deps:
-        cached_deps = get_dependencies_from_index(ireq, sources)
-    return cached_deps
+    getters = [
+        get_dependencies_from_cache,
+        get_dependencies_from_wheel_cache,
+        get_dependencies_from_json,
+        functools.partial(get_dependencies_from_index, sources=sources)
+    ]
+    for getter in getters:
+        deps = getter(ireq)
+        if deps is not None:
+            return deps
+    raise RuntimeError('failed to get dependencies for {}'.format(ireq))
 
 
 def get_dependencies_from_wheel_cache(ireq):
@@ -491,38 +495,27 @@ def get_dependencies_from_json(ireq):
         raise TypeError("Expected pinned InstallRequirement, got {}".format(ireq))
 
     session = requests.session()
+    version = str(ireq.req.specifier).lstrip("=")
 
     def gen(ireq):
-        url = "https://pypi.org/pypi/{0}/json".format(ireq.req.name)
-        releases = session.get(url).json()["releases"]
-        matches = [r for r in releases if "=={0}".format(r) == str(ireq.req.specifier)]
-        if not matches:
+        info = session.get(
+            "https://pypi.org/pypi/{0}/{1}/json".format(ireq.req.name, version)
+        ).json()["info"]
+        requires_dist = info.get("requires_dist", info.get("requires"))
+        if not requires_dist:   # The API can return None for this.
             return
+        for requires in requires_dist:
+            i = InstallRequirement.from_line(requires)
+            if "extra" not in repr(i.markers):
+                # TODO: Get dependencies for matching extra.
+                yield format_requirement(i)
 
-        release_requires = session.get(
-            "https://pypi.org/pypi/{0}/{1}/json".format(ireq.req.name, matches[0])
-        ).json()
-        try:
-            requires_dist = release_requires["info"]["requires_dist"]
-        except KeyError:
-            try:
-                requires_dist = release_requires["info"]["requires"]
-            except KeyError:
-                return
-        if requires_dist:
-            for requires in requires_dist:
-                i = InstallRequirement.from_line(requires)
-                if "extra" not in repr(i.markers):
-                    yield i
-
-    if not DEPCACHE.get(ireq):
-        DEPCACHE[ireq] = [format_requirement(g) for g in gen(ireq)]
-
-    try:
-        cache_val = DEPCACHE[ireq]
-    except KeyError:
-        cache_val = None
-    return set(cache_val)
+    if ireq not in DEPCACHE:
+        reqs = DEPCACHE[ireq] = list(gen(ireq))
+        req_iter = iter(reqs)
+    else:
+        req_iter = gen(ireq)
+    return set(req_iter)
 
 
 def get_dependencies_from_cache(dep):
