@@ -204,7 +204,7 @@ def _requirement_to_str_lowercase_name(requirement):
     return "".join(parts)
 
 
-def format_requirement(ireq, marker=None):
+def format_requirement(ireq):
     """
     Generic formatter for pretty printing InstallRequirements to the terminal
     in a less verbose way than using its `__str__` method.
@@ -214,8 +214,8 @@ def format_requirement(ireq, marker=None):
     else:
         line = _requirement_to_str_lowercase_name(ireq.req)
 
-    if marker and ';' not in line:
-        line = '{}; {}'.format(line, marker)
+    if ireq.markers:
+        line = '{}; {}'.format(line, ireq.markers)
 
     return line
 
@@ -412,7 +412,7 @@ def partialclass(cls, *args, **kwds):
     """Returns a partially instantiated class
 
     :return: A partial class instance
-    :rtype: 
+    :rtype:
     """
 
     class NewCls(cls):
