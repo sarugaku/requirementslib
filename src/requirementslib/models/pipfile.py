@@ -142,6 +142,7 @@ class Pipfile(object):
         pipenv_dict = self.pipenv.get_dict()
         if pipenv_dict:
             return pipenv_dict
+        return {}
 
     def get_requires(self):
         req_dict = self.requires.get_dict()
