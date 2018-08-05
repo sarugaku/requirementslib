@@ -169,16 +169,6 @@ def is_valid_url(url):
     return all([pieces.scheme, any([pieces.netloc, pieces.path])])
 
 
-def pep423_name(name):
-    """Normalize package name to PEP 423 style standard."""
-    name = name.lower()
-    if any(i not in name for i in (VCS_LIST + SCHEME_LIST)):
-        return name.replace("_", "-")
-
-    else:
-        return name
-
-
 def prepare_pip_source_args(sources, pip_args=None):
     if pip_args is None:
         pip_args = []
