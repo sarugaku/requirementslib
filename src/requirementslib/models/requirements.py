@@ -10,6 +10,7 @@ import requirements
 from first import first
 from six.moves.urllib import parse as urllib_parse
 from packaging.specifiers import Specifier
+from packaging.utils import canonicalize_name
 from packaging.version import parse as parse_version
 
 from .baserequirement import BaseRequirement
@@ -52,7 +53,6 @@ from ..utils import (
     is_installable_file,
     is_vcs,
     is_valid_url,
-    pep423_name,
     get_converted_relative_path,
 )
 
@@ -68,7 +68,7 @@ class NamedRequirement(BaseRequirement):
     def get_requirement(self):
         from pkg_resources import RequirementParseError
         try:
-            req = first(requirements.parse("{0}{1}".format(pep423_name(self.name), self.version)))
+            req = first(requirements.parse("{0}{1}".format(canonicalize_name(self.name), self.version)))
         except RequirementParseError:
             raise RequirementError(
                 "Error parsing requirement: %s%s" % (self.name, self.version)
@@ -96,7 +96,7 @@ class NamedRequirement(BaseRequirement):
 
     @property
     def line_part(self):
-        return "{0}".format(pep423_name(self.name))
+        return "{0}".format(canonicalize_name(self.name))
 
     @property
     def pipfile_part(self):
@@ -708,7 +708,7 @@ class Requirement(object):
 
     @property
     def normalized_name(self):
-        return pep423_name(self.name)
+        return canonicalize_name(self.name)
 
     @classmethod
     def from_line(cls, line):
