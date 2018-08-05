@@ -391,14 +391,14 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
             wheel_cache.cleanup()
         except AttributeError:
             pass
-        
+
     # requirements = reqset.requirements.values()
     reqs = set(requirements)
     DEPENDENCY_CACHE[dep] = [format_requirement(r) for r in reqs]
     return reqs
 
 
-def get_pip_options(*args, sources=None, pip_command=None):
+def get_pip_options(sources=None, pip_command=None, *args):
     """Build a pip command from a list of sources
 
     :param *args: positional arguments passed through to the pip parser
