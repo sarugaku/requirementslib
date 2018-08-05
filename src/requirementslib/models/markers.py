@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import attr
-import six
 from packaging.markers import Marker, InvalidMarker
 from .baserequirement import BaseRequirement
 from .utils import validate_markers, filter_none
