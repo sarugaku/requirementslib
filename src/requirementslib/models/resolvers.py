@@ -1,12 +1,15 @@
 # -*- coding=utf-8 -*-
 import attr
-
+from contextlib import contextmanager
 import six
-from .dependencies import AbstractDependency
+from .cache import HashCache
+from .dependencies import AbstractDependency, find_all_matches, get_finder
 from .utils import (
     format_requirement,
     version_from_ireq,
+    is_pinned_requirement,
 )
+from .._compat import Wheel, VcsSupport
 from ..utils import log
 
 
@@ -23,6 +26,34 @@ class DependencyResolver(object):
     candidate_dict = attr.ib(default=attr.Factory(dict))
     #: A historical record of pins
     pin_history = attr.ib(default=attr.Factory(dict))
+    #: Whether to allow prerelease dependencies
+    allow_prereleases = attr.ib(default=False)
+    #: Stores hashes for each dependency
+    hashes = attr.ib(default=attr.Factory(dict))
+    #: A hash cache
+    hash_cache = attr.ib(default=attr.Factory(HashCache))
+    #: A finder for searching the index
+    finder = attr.ib(default=None)
+    #: Whether to include hashes even from incompatible wheels
+    include_incompatible_hashes = attr.ib(default=True)
+    #: A cache for storing available canddiates when using all wheels
+    _available_candidates_cache = attr.ib(default=attr.Factory(dict))
+
+    @classmethod
+    def create(cls, finder=None, allow_prereleases=False, get_all_hashes=True):
+        if not finder:
+            finder_args = []
+            if allow_prereleases:
+                finder_args.append('--pre')
+            finder = get_finder(*finder_args)
+        creation_kwargs = {
+            'allow_prereleases': allow_prereleases,
+            'include_incompatible_hashes': get_all_hashes,
+            'finder': finder,
+            'hash_cache': HashCache(),
+        }
+        resolver = cls(**creation_kwargs)
+        return resolver
 
     @property
     def dependencies(self):
@@ -102,6 +133,9 @@ class DependencyResolver(object):
         if self.dep_dict:
             raise RuntimeError("Do not use the same resolver more than once")
 
+        if not self.hash_cache:
+            self.hash_cache = HashCache()
+
         # Coerce input into AbstractDependency instances.
         # We accept str, Requirement, and AbstractDependency as input.
         for dep in root_nodes:
@@ -138,3 +172,66 @@ class DependencyResolver(object):
                 log.debug("No New Packages.")
         # TODO: Raise a better error.
         raise RuntimeError("cannot resolve after {} rounds".format(max_rounds))
+
+    def get_hashes(self):
+        for dep in self.pinned_deps.values():
+            if dep.name not in self.hashes:
+                self.hashes[dep.name] = self.get_hashes_for_one(dep)
+        return self.hashes.copy()
+
+    def get_hashes_for_one(self, ireq):
+        if not self.finder:
+            finder_args = []
+            if self.allow_prereleases:
+                finder_args.append('--pre')
+            self.finder = get_finder(*finder_args)
+
+        if ireq.editable:
+            return set()
+
+        vcs = VcsSupport()
+        if ireq.link and ireq.link.scheme in vcs.all_schemes and 'ssh' in ireq.link.scheme:
+            return set()
+
+        if not is_pinned_requirement(ireq):
+            raise TypeError(
+                "Expected pinned requirement, got {}".format(ireq))
+
+        matching_candidates = set()
+        with self.allow_all_wheels():
+            matching_candidates = (
+                find_all_matches(self.finder, ireq, pre=self.allow_prereleases)
+            )
+
+        return {
+            self.hash_cache.get_hash(candidate.location)
+            for candidate in matching_candidates
+        }
+
+    @contextmanager
+    def allow_all_wheels(self):
+        """
+        Monkey patches pip.Wheel to allow wheels from all platforms and Python versions.
+
+        This also saves the candidate cache and set a new one, or else the results from the
+        previous non-patched calls will interfere.
+        """
+        def _wheel_supported(self, tags=None):
+            # Ignore current platform. Support everything.
+            return True
+
+        def _wheel_support_index_min(self, tags=None):
+            # All wheels are equal priority for sorting.
+            return 0
+
+        original_wheel_supported = Wheel.supported
+        original_support_index_min = Wheel.support_index_min
+
+        Wheel.supported = _wheel_supported
+        Wheel.support_index_min = _wheel_support_index_min
+
+        try:
+            yield
+        finally:
+            Wheel.supported = original_wheel_supported
+            Wheel.support_index_min = original_support_index_min
