@@ -77,36 +77,38 @@ def get_package(module, subimport=None):
 
 def do_import(module_path, subimport=None, old_path=None):
     old_path = old_path or module_path
-    internal = "pip._internal.{0}".format(module_path) if module_path else "pip._internal"
-    pip9 = "pip.{0}".format(old_path) if old_path else "pip"
+    prefixes = ["pip._internal", "pip"]
+    paths = [module_path, old_path]
+    search_order = ["{0}.{1}".format(p, pth) for p in prefixes for pth in paths if pth is not None]
+    # internal = "pip._internal.{0}".format(module_path) if module_path else "pip._internal"
+    # pip9 = "pip.{0}".format(old_path) if old_path else "pip"
     imported = None
     if has_modutil:
-        to_import, package = get_package(internal, subimport)
-        mod, imp_getattr = modutil.lazy_import(__name__, {to_import,})
-        old_import, package = get_package(pip9, subimport)
-        mod, old_getattr = modutil.lazy_import(__name__, {old_import,})
-        chained = modutil.chained___getattr__(__name__, imp_getattr, old_getattr,)
-        _, _, module_name = to_import.rpartition(".")
-        try:
-            imported = chained(module_name)
-        except modutil.ModuleAttributeError:
-            _, _, module_name = old_import.rpartition(".")
-            imported = chained(module_name)
-        except ModuleNotFoundError:
-            imported = None
+        pkgs = [get_package(pkg, subimport) for pkg in search_order]
+        imports = [modutil.lazy_import(__name__, {to_import,}) for to_import, pkg in pkgs]
+        imp_getattrs = [imp_getattr for mod, imp_getattr in imports]
+        chained = modutil.chained___getattr__(__name__, *imp_getattrs)
+        imported = None
+        for to_import, pkg in pkgs:
+            _, _, module_name = to_import.rpartition(".")
+            try:
+                imported = chained(module_name)
+            except (modutil.ModuleAttributeError, ImportError):
+                continue
+            else:
+                return getattr(imported, pkg)
         if not imported:
             return
-        return getattr(imported, package)
-    to_import, package = get_package(internal, subimport)
-    try:
-        imported = importlib.import_module(to_import)
-    except ImportError:
-        to_import, package = get_package(pip9, subimport)
+        return imported
+    for to_import in search_order:
+        to_import, package = get_package(to_import, subimport)
         try:
             imported = importlib.import_module(to_import)
         except ImportError:
-            return None
-    return getattr(imported, package)
+            continue
+        else:
+            return getattr(imported, package)
+    return imported
 
 
 InstallRequirement = do_import("req.req_install", "InstallRequirement")
@@ -129,11 +131,12 @@ Resolver = do_import("resolve", "Resolver")
 RequirementSet = do_import("req.req_set", "RequirementSet")
 PackageFinder = do_import("index", "PackageFinder")
 WheelCache = do_import("cache", "WheelCache")
-Command = do_import("basecommand", "Command")
-cmdoptions = do_import("cmdoptions")
+Command = do_import("cli.base_command", "Command", old_path="basecommand")
+cmdoptions = do_import("cli.cmdoptions", old_path="cmdoptions")
 FormatControl = do_import("index", "FormatControl")
 RequirementTracker = do_import("req.req_tracker", "RequirementTracker")
-pip_version = do_import(None, "__version__")
+SafeFileCache = do_import("download", "SafeFileCache")
+pip_version = do_import("__version__")
 
 
 class TemporaryDirectory(object):

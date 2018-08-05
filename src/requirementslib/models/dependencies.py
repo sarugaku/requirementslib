@@ -48,7 +48,7 @@ DEPENDENCY_CACHE = DependencyCache()
 WHEEL_CACHE = WheelCache(CACHE_DIR, FormatControl(None, None))
 
 
-def find_all_matches(finder, ireq):
+def find_all_matches(finder, ireq, pre=False):
     """Find all matching dependencies using the supplied finder and the
     given ireq.
 
@@ -60,11 +60,15 @@ def find_all_matches(finder, ireq):
     :rtype: list[:class:`~pip._internal.index.InstallationCandidate`]
     """
 
-    candidates = set(finder.find_all_candidates(ireq.name))
-    if not ireq.specifier:
-        return list(candidates)
-    matches = [m for m in candidates if m.version in ireq.specifier]
-    return matches
+    all_candidates = finder.find_all_candidates(ireq.name)
+    filter_candidates = functools.partial(ireq.specifier.filter, (
+        candidate.version for candidate in all_candidates
+    ))
+    allowed_versions = list(filter_candidates(prereleases=pre))
+    if not pre and not allowed_versions:
+        allowed_versions = list(filter_candidates(prereleases=True))
+    candidates = {c for c in all_candidates if c.version in allowed_versions}
+    return candidates
 
 
 @attr.s
@@ -75,6 +79,7 @@ class AbstractDependency(object):
     candidates = attr.ib()
     requirement = attr.ib()
     parent = attr.ib()
+    finder = attr.ib()
     dep_dict = attr.ib(default=attr.Factory(dict))
 
     @property
@@ -135,6 +140,7 @@ class AbstractDependency(object):
             requirement=new_requirement,
             parent=self.parent,
             dep_dict=dep_dict,
+            finder=self.finder
         )
 
     def get_deps(self, candidate):
@@ -170,11 +176,13 @@ class AbstractDependency(object):
         markers = requirement.ireq.markers
         extras = requirement.ireq.extras
         is_pinned = is_pinned_requirement(requirement.ireq)
+        is_constraint = bool(parent)
+        finder = get_finder(sources=None)
         candidates = []
         if not is_pinned:
-            for r in requirement.find_all_matches():
+            for r in requirement.find_all_matches(finder=finder):
                 req = make_install_requirement(
-                    name, r.version, extras=extras, markers=markers
+                    name, r.version, extras=extras, markers=markers, constraint=is_constraint,
                 )
                 req.req.link = r.location
                 req.parent = parent
@@ -191,6 +199,7 @@ class AbstractDependency(object):
             candidates=candidates,
             requirement=requirement,
             parent=parent,
+            finder=finder,
         )
 
     @classmethod
@@ -340,7 +349,7 @@ def get_dependencies_from_cache(dep):
     return
 
 
-def get_dependencies_from_index(dep, sources=None):
+def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache=None):
     """Retrieves dependencies for the given install requirement from the pip resolver.
 
     :param ireq: A single InstallRequirement
@@ -351,10 +360,14 @@ def get_dependencies_from_index(dep, sources=None):
     :rtype: set(str) or None
     """
 
+    finder = get_finder(sources=sources, pip_options=pip_options)
+    if not wheel_cache:
+        wheel_cache = WheelCache(CACHE_DIR, pip_options.format_control)
     dep.is_direct = True
     reqset = RequirementSet()
     reqset.add_requirement(dep)
-    _, _, resolver = get_resolver(sources)
+    _, resolver = get_resolver(finder=finder, wheel_cache=wheel_cache)
+    resolver.require_hashes = False
     from setuptools.dist import distutils
 
     if not dep.prepared and dep.link is not None:
@@ -363,39 +376,76 @@ def get_dependencies_from_index(dep, sources=None):
                 distutils.core.run_setup(dep.setup_py)
             except Exception:
                 pass
+    requirements = None
+    prev_tracker = os.environ.get('PIP_REQ_TRACKER')
     try:
-        resolver.resolve(reqset)
+        requirements = resolver._resolve_one(reqset, dep)
     except Exception:
+        requirements = []
+    finally:
         reqset.cleanup_files()
-        return set()
-    requirements = reqset.requirements.values()
-    reqset.cleanup_files()
+        del os.environ['PIP_REQ_TRACKER']
+        if prev_tracker:
+            os.environ['PIP_REQ_TRACKER'] = prev_tracker
+        try:
+            wheel_cache.cleanup()
+        except AttributeError:
+            pass
+        
+    # requirements = reqset.requirements.values()
     reqs = set(requirements)
     DEPENDENCY_CACHE[dep] = [format_requirement(r) for r in reqs]
     return reqs
 
 
-def get_resolver(sources=None):
-    """Given a list of sources, return a finder, preparer, and resolver.
+def get_pip_options(*args, sources=None, pip_command=None):
+    """Build a pip command from a list of sources
 
+    :param *args: positional arguments passed through to the pip parser
     :param sources: A list of pipfile-formatted sources, defaults to None
     :param sources: list[dict], optional
-    :return: A 3-tuple of finder, preparer, resolver
-    :rtype: (:class:`~pip._internal.index.PackageFinder`, :class:`~pip._internal.operations.prepare.RequirementPreparer`, :class:`~pip._internal.resolve.Resolver`)
+    :param pip_command: A pre-built pip command instance
+    :type pip_command: :class:`~pip._internal.cli.base_command.Command`
+    :return: An instance of pip_options using the supplied arguments plus sane defaults
+    :rtype: :class:`~pip._internal.cli.cmdoptions`
     """
 
-    pip_command = get_pip_command()
+    if not pip_command:
+        pip_command = get_pip_command()
     if not sources:
         sources = [
             {"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}
         ]
-    pip_args = []
+    mkdir_p(CACHE_DIR)
+    pip_args = [pos_arg for pos_arg in args]
     pip_args = prepare_pip_source_args(sources, pip_args)
     pip_options, _ = pip_command.parser.parse_args(pip_args)
     pip_options.cache_dir = CACHE_DIR
-    mkdir_p(CACHE_DIR)
+    return pip_options
+
+
+def get_finder(sources=None, pip_command=None, pip_options=None):
+    """Get a package finder for looking up candidates to install
+
+    :param sources: A list of pipfile-formatted sources, defaults to None
+    :param sources: list[dict], optional
+    :param pip_command: A pip command instance, defaults to None
+    :type pip_command: :class:`~pip._internal.cli.base_command.Command`
+    :param pip_options: A pip options, defaults to None
+    :type pip_options: :class:`~pip._internal.cli.cmdoptions`
+    :return: A package finder
+    :rtype: :class:`~pip._internal.index.PackageFinder`
+    """
+
+    if not pip_command:
+        pip_command = get_pip_command()
+    if not sources:
+        sources = [
+            {"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}
+        ]
+    if not pip_options:
+        pip_options = get_pip_options(sources=sources, pip_command=pip_command)
     session = pip_command._build_session(pip_options)
-    wheel_cache = WheelCache(CACHE_DIR, pip_options.format_control)
     finder = PackageFinder(
         find_links=[],
         index_urls=[s.get("url") for s in sources],
@@ -403,6 +453,24 @@ def get_resolver(sources=None):
         allow_all_prereleases=pip_options.pre,
         session=session,
     )
+    return finder
+
+
+def get_resolver(finder=None, wheel_cache=None):
+    """Given a package finder, return a preparer, and resolver.
+
+    :param finder: A package finder to use for searching the index
+    :type finder: :class:`~pip._internal.index.PackageFinder`
+    :return: A 3-tuple of finder, preparer, resolver
+    :rtype: (:class:`~pip._internal.operations.prepare.RequirementPreparer`, :class:`~pip._internal.resolve.Resolver`)
+    """
+
+    pip_command = get_pip_command()
+    pip_options = get_pip_options(pip_command=pip_command)
+    if not finder:
+        finder = get_finder(pip_command=pip_command, pip_options=pip_options)
+    if not wheel_cache:
+        wheel_cache = WheelCache(CACHE_DIR, pip_options.format_control)
     download_dir = PKGS_DOWNLOAD_DIR
     mkdir_p(download_dir)
     _build_dir = TemporaryDirectory(fs_str("build"))
@@ -419,7 +487,7 @@ def get_resolver(sources=None):
     resolver = partialclass(
         Resolver,
         finder=finder,
-        session=session,
+        session=finder.session,
         upgrade_strategy="to-satisfy-only",
         force_reinstall=True,
         ignore_dependencies=False,
@@ -436,7 +504,7 @@ def get_resolver(sources=None):
     else:
         preparer = preparer()
         resolver = resolver(preparer=preparer)
-    return finder, preparer, resolver
+    return preparer, resolver
 
 
 def get_grouped_dependencies(constraints):
