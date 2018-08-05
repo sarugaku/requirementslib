@@ -14,7 +14,7 @@ from packaging.version import parse as parse_version
 
 from .baserequirement import BaseRequirement
 from .dependencies import (
-    get_dependencies, get_resolver, find_all_matches,
+    get_dependencies, get_finder, find_all_matches,
     get_abstract_dependencies, AbstractDependency,
 )
 from .markers import PipenvMarkers
@@ -924,7 +924,7 @@ class Requirement(object):
             deps = get_dependencies(ireq.pop(), sources=sources)
         return get_abstract_dependencies(deps, sources=sources, parent=self.abstract_dep)
 
-    def find_all_matches(self, sources=None):
+    def find_all_matches(self, sources=None, finder=None):
         """Find all matching candidates for the current requirement.
 
         Consults a finder to find all matching candidates.
@@ -935,7 +935,6 @@ class Requirement(object):
         :rtype: list[ :class:`~pip._internal.index.InstallationCandidate` ]
         """
 
-        if not sources:
-            sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
-        finder, _, _ = get_resolver(sources=sources)
+        if not finder:
+            finder = get_finder(sources=sources)
         return find_all_matches(finder, self.as_ireq())
