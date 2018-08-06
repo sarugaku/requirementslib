@@ -895,7 +895,7 @@ class Requirement(object):
             ireq = InstallRequirement.from_editable(ireq_line)
         else:
             ireq = InstallRequirement.from_line(ireq_line)
-        if not ireq.req:
+        if not ireq.req and not ireq.editable:
             ireq.req = self.get_requirement()
         return ireq
 
