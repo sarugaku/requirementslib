@@ -57,7 +57,7 @@ class Lockfile(object):
     sources = attr.ib(default=attr.Factory(list))
     path = attr.ib(default=None, validator=optional_instance_of(Path))
     pipfile_hash = attr.ib(default=None, validator=optional_instance_of(Hash))
-    encoder = attr.ib(default=None, validator=optional_instance_of(_LockFileEncoder))
+    encoder = attr.ib(default=attr.Factory(_LockFileEncoder), validator=optional_instance_of(_LockFileEncoder))
     pipfile_spec = attr.ib(default=6, converter=int)
     requires = attr.ib(default=None, validator=optional_instance_of(RequiresSection))
 
