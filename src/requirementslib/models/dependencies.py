@@ -49,6 +49,10 @@ DEPENDENCY_CACHE = DependencyCache()
 WHEEL_CACHE = WheelCache(CACHE_DIR, FormatControl(None, None))
 
 
+def _get_filtered_versions(ireq, versions, prereleases):
+    return set(ireq.specifier.filter(versions, prereleases=prereleases))
+
+
 def find_all_matches(finder, ireq, pre=False):
     """Find all matching dependencies using the supplied finder and the
     given ireq.
@@ -60,15 +64,12 @@ def find_all_matches(finder, ireq, pre=False):
     :return: A list of matching candidates.
     :rtype: list[:class:`~pip._internal.index.InstallationCandidate`]
     """
-
-    all_candidates = finder.find_all_candidates(ireq.name)
-    filter_candidates = functools.partial(ireq.specifier.filter, (
-        candidate.version for candidate in all_candidates
-    ))
-    allowed_versions = list(filter_candidates(prereleases=pre))
+    candidates = finder.find_all_candidates(ireq.name)
+    versions = {candidate.version for candidate in candidates}
+    allowed_versions = _get_filtered_versions(ireq, versions, pre)
     if not pre and not allowed_versions:
-        allowed_versions = list(filter_candidates(prereleases=True))
-    candidates = {c for c in all_candidates if c.version in allowed_versions}
+        allowed_versions = _get_filtered_versions(ireq, versions, pre)
+    candidates = {c for c in candidates if c.version in allowed_versions}
     return candidates
 
 
