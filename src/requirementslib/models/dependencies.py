@@ -287,7 +287,6 @@ def get_dependencies(ireq, named, sources=None, parent=None):
                 return deps
     deps = get_dependencies_from_index(
         ireq, pip_options=get_pip_options(sources=sources),
-        update_cache=named,
     )
     if deps is None:
         raise RuntimeError('failed to get dependencies for {}'.format(ireq))
@@ -371,8 +370,7 @@ def get_dependencies_from_cache(dep):
 
 
 def get_dependencies_from_index(
-        dep, sources=None, pip_options=None, wheel_cache=None,
-        update_cache=True):
+        dep, sources=None, pip_options=None, wheel_cache=None):
     """Retrieves dependencies for the given install requirement from the pip resolver.
 
     :param ireq: A single InstallRequirement
@@ -405,7 +403,7 @@ def get_dependencies_from_index(
     # requirements = reqset.requirements.values()
     if requirements is not None:
         reqs = set(requirements)
-        if update_cache:
+        if not dep.editable:
             DEPENDENCY_CACHE[dep] = [format_requirement(r) for r in reqs]
     else:
         reqs = set()
