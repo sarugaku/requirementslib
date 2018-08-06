@@ -279,22 +279,18 @@ def get_dependencies(ireq, editable=False, named=True, sources=None, parent=None
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str)
     """
-
     if not isinstance(ireq, InstallRequirement):
         name = getattr(
-            ireq, "project_name", getattr(ireq, "project", getattr(ireq, "name", None))
+           ireq, "project_name", getattr(ireq, "project", getattr(ireq, "name", None))
         )
         version = getattr(ireq, "version")
         ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
-    pip_options = get_pip_options(sources=sources)
-    getters = [
-        get_dependencies_from_cache,
-        get_dependencies_from_wheel_cache,
-        get_dependencies_from_json,
-        functools.partial(get_dependencies_from_index, pip_options=pip_options)
-    ]
-    for getter in getters:
-        deps = getter(ireq)
+    for f in [get_dependencies_from_cache, get_dependencies_from_wheel_cache]:
+        deps = f(ireq)
+        if deps is not None:
+            return deps
+    if named:
+        deps = get_dependencies_from_json(ireq)
         if deps is not None:
             return deps
     raise RuntimeError('failed to get dependencies for {}'.format(ireq))
