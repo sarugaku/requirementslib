@@ -929,10 +929,7 @@ class Requirement(object):
                 'url': 'https://pypi.org/simple',
                 'verify_ssl': True,
             }]
-        return get_dependencies(
-            self.as_ireq(), editable=(self.is_file_or_url and self.req.editable),
-            named=self.is_named, sources=sources,
-        )
+        return get_dependencies(self.as_ireq(), sources=sources)
 
     def get_abstract_dependencies(self, sources=None):
         """Retrieve the abstract dependencies of this requirement.
@@ -954,7 +951,7 @@ class Requirement(object):
             deps = self.get_dependencies()
         else:
             ireq = sorted(self.find_all_matches(), key=lambda k: k.version)
-            deps = get_dependencies(ireq.pop(),  editable=(self.is_file_or_url and self.req.editable), 
+            deps = get_dependencies(ireq.pop(),  editable=(self.is_file_or_url and self.req.editable),
                                     named=self.is_named, sources=sources)
         return get_abstract_dependencies(deps, sources=sources, parent=self.abstract_dep)
 
