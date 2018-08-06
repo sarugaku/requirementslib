@@ -281,7 +281,7 @@ def temp_cd(path):
     if not isinstance(path, Path):
         path = Path(path)
     orig_path = Path(os.curdir).absolute().as_posix()
-    os.chdir(path.as_posix)
+    os.chdir(path.as_posix())
     try:
         yield
     finally:
