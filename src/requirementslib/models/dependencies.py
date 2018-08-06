@@ -5,7 +5,8 @@ import functools
 import os
 
 import attr
-import first
+from first import first
+from json.decoder import JSONDecodeError
 import packaging.version
 import requests
 
@@ -90,6 +91,8 @@ class AbstractDependency(object):
         :rtype: set(str)
         """
 
+        if len(self.candidates) == 1:
+            return set()
         return set(packaging.version.parse(version_from_ireq(c)) for c in self.candidates)
 
     def compatible_versions(self, other):
@@ -102,6 +105,8 @@ class AbstractDependency(object):
         :rtype: set(str)
         """
 
+        if len(self.candidates) == 1 and first(self.candidates).editable:
+            return self
         return self.version_set & other.version_set
 
     def compatible_abstract_dep(self, other):
@@ -117,11 +122,15 @@ class AbstractDependency(object):
 
         from .requirements import Requirement
 
+        if len(self.candidates) == 1 and first(self.candidates).editable:
+            return self
         new_specifiers = self.specifiers & other.specifiers
         new_ireq = copy.deepcopy(self.requirement.ireq)
         new_ireq.req.specifier = new_specifiers
         new_requirement = Requirement.from_line(format_requirement(new_ireq))
         compatible_versions = self.compatible_versions(other)
+        if isinstance(compatible_versions, AbstractDependency):
+            return compatible_versions
         candidates = [
             c
             for c in self.candidates
@@ -172,14 +181,14 @@ class AbstractDependency(object):
         :type requirement: :class:`~requirementslib.models.requirements.Requirement` object.
         """
         name = requirement.normalized_name
-        specifiers = requirement.ireq.specifier
+        specifiers = requirement.ireq.specifier if not requirement.editable else ""
         markers = requirement.ireq.markers
         extras = requirement.ireq.extras
         is_pinned = is_pinned_requirement(requirement.ireq)
         is_constraint = bool(parent)
         finder = get_finder(sources=None)
         candidates = []
-        if not is_pinned:
+        if not is_pinned and not requirement.editable:
             for r in requirement.find_all_matches(finder=finder):
                 req = make_install_requirement(
                     name, r.version, extras=extras, markers=markers, constraint=is_constraint,
@@ -187,11 +196,11 @@ class AbstractDependency(object):
                 req.req.link = r.location
                 req.parent = parent
                 candidates.append(req)
+                candidates = sorted(
+                    set(candidates), key=lambda k: packaging.version.parse(version_from_ireq(k)),
+                )
         else:
             candidates = [requirement.ireq]
-        candidates = sorted(
-            set(candidates), key=lambda k: packaging.version.parse(version_from_ireq(k)),
-        )
         return cls(
             name=name,
             specifiers=specifiers,
@@ -268,11 +277,12 @@ def get_dependencies(ireq, sources=None, parent=None):
         )
         version = getattr(ireq, "version")
         ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
+    pip_options = get_pip_options(sources=sources)
     getters = [
         get_dependencies_from_cache,
         get_dependencies_from_wheel_cache,
         get_dependencies_from_json,
-        functools.partial(get_dependencies_from_index, sources=sources)
+        functools.partial(get_dependencies_from_index, pip_options=pip_options)
     ]
     for getter in getters:
         deps = getter(ireq)
@@ -315,6 +325,7 @@ def get_dependencies_from_json(ireq):
     version = str(ireq.req.specifier).lstrip("=")
 
     def gen(ireq):
+        info = None
         info = session.get(
             "https://pypi.org/pypi/{0}/{1}/json".format(ireq.req.name, version)
         ).json()["info"]
@@ -328,7 +339,10 @@ def get_dependencies_from_json(ireq):
                 yield format_requirement(i)
 
     if ireq not in DEPENDENCY_CACHE:
-        reqs = DEPENDENCY_CACHE[ireq] = list(gen(ireq))
+        try:
+            reqs = DEPENDENCY_CACHE[ireq] = list(gen(ireq))
+        except JSONDecodeError:
+            return
         req_iter = iter(reqs)
     else:
         req_iter = gen(ireq)
@@ -362,7 +376,7 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
 
     finder = get_finder(sources=sources, pip_options=pip_options)
     if not wheel_cache:
-        wheel_cache = WheelCache(CACHE_DIR, pip_options.format_control)
+        wheel_cache = WheelCache(CACHE_DIR, FormatControl(None, None))
     dep.is_direct = True
     reqset = RequirementSet()
     reqset.add_requirement(dep)
@@ -384,7 +398,8 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
         requirements = []
     finally:
         reqset.cleanup_files()
-        del os.environ['PIP_REQ_TRACKER']
+        if 'PIP_REQ_TRACKER' in os.environ:
+            del os.environ['PIP_REQ_TRACKER']
         if prev_tracker:
             os.environ['PIP_REQ_TRACKER'] = prev_tracker
         try:
@@ -398,10 +413,10 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     return reqs
 
 
-def get_pip_options(sources=None, pip_command=None, *args):
+def get_pip_options(args=[], sources=None, pip_command=None):
     """Build a pip command from a list of sources
 
-    :param *args: positional arguments passed through to the pip parser
+    :param args: positional arguments passed through to the pip parser
     :param sources: A list of pipfile-formatted sources, defaults to None
     :param sources: list[dict], optional
     :param pip_command: A pre-built pip command instance
@@ -417,7 +432,7 @@ def get_pip_options(sources=None, pip_command=None, *args):
             {"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}
         ]
     mkdir_p(CACHE_DIR)
-    pip_args = [pos_arg for pos_arg in args]
+    pip_args = args
     pip_args = prepare_pip_source_args(sources, pip_args)
     pip_options, _ = pip_command.parser.parse_args(pip_args)
     pip_options.cache_dir = CACHE_DIR
@@ -470,7 +485,7 @@ def get_resolver(finder=None, wheel_cache=None):
     if not finder:
         finder = get_finder(pip_command=pip_command, pip_options=pip_options)
     if not wheel_cache:
-        wheel_cache = WheelCache(CACHE_DIR, pip_options.format_control)
+        wheel_cache = WheelCache(CACHE_DIR, FormatControl(None, None))
     download_dir = PKGS_DOWNLOAD_DIR
     mkdir_p(download_dir)
     _build_dir = TemporaryDirectory(fs_str("build"))
@@ -515,7 +530,7 @@ def get_grouped_dependencies(constraints):
     # versions by popping them off of a stack and checking for the conflicting package
     for _, ireqs in full_groupby(constraints, key=key_from_ireq):
         ireqs = list(ireqs)
-        editable_ireq = first.first(ireqs, key=lambda ireq: ireq.editable)
+        editable_ireq = first(ireqs, key=lambda ireq: ireq.editable)
         if editable_ireq:
             yield editable_ireq  # ignore all the other specs: the editable one is the one that counts
             continue
