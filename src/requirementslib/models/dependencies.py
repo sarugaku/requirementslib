@@ -71,7 +71,7 @@ def find_all_matches(finder, ireq, pre=False):
     versions = {candidate.version for candidate in candidates}
     allowed_versions = _get_filtered_versions(ireq, versions, pre)
     if not pre and not allowed_versions:
-        allowed_versions = _get_filtered_versions(ireq, versions, pre)
+        allowed_versions = _get_filtered_versions(ireq, versions, True)
     candidates = {c for c in candidates if c.version in allowed_versions}
     return candidates
 
