@@ -275,16 +275,14 @@ def get_dependencies(ireq, named, sources=None, parent=None):
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str)
     """
+    for f in [get_dependencies_from_cache, get_dependencies_from_wheel_cache]:
+        deps = f(ireq)
+        if deps is not None:
+            return deps
     if named:
-        getters = [
-            get_dependencies_from_cache,
-            get_dependencies_from_wheel_cache,
-            get_dependencies_from_json,
-        ]
-        for getter in getters:
-            deps = getter(ireq)
-            if deps is not None:
-                return deps
+        deps = get_dependencies_from_json(ireq)
+        if deps is not None:
+            return deps
     deps = get_dependencies_from_index(
         ireq, pip_options=get_pip_options(sources=sources),
     )
