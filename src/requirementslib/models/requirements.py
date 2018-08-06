@@ -9,7 +9,7 @@ import requirements
 
 from first import first
 from six.moves.urllib import parse as urllib_parse
-from packaging.specifiers import Specifier
+from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import parse as parse_version
 
@@ -752,8 +752,7 @@ class Requirement(object):
             if version:
                 name = "{0}{1}".format(name, version)
             r = NamedRequirement.from_line(line)
-        if markers:
-            r.req.markers = markers
+        r.req.markers = markers
         args = {
             "name": r.name,
             "vcs": vcs,
@@ -826,11 +825,31 @@ class Requirement(object):
             line = "{0} {1}".format(line, index_string)
         return line
 
+    def get_markers(self):
+        markers = self.markers
+        if markers:
+            fake_pkg = requirements.parse('fakepkg; {0}'.format(markers))
+            markers = fake_pkg.markers
+        return markers
+
     def get_specifier(self):
         return Specifier(self.specifiers)
 
     def get_version(self):
         return parse_version(self.get_specifier().version)
+
+    def get_requirement(self):
+        req_line = self.req.req.line
+        if req_line.startswith('-e '):
+            _, req_line = req_line.split(" ", 1)
+        import packaging.requirements
+        req = packaging.requirements.Requirement(self.name)
+        req.specifier = SpecifierSet(self.specifiers if self.specifiers else '')
+        if self.is_vcs or self.is_file_or_url:
+            req.url = self.req.link.url_without_fragment
+        req.marker = self.get_markers()
+        req.extras = set(self.extras) if self.extras else set()
+        return req
 
     @property
     def constraint_line(self):
@@ -869,11 +888,16 @@ class Requirement(object):
         return {name: base_dict}
 
     def as_ireq(self):
-        ireq_line = self.as_line()
+        ireq_line = self.req.req.line
+        ireq = None
         if ireq_line.startswith("-e "):
             ireq_line = ireq_line[len("-e ") :]
-            return InstallRequirement.from_editable(ireq_line)
-        return InstallRequirement.from_line(ireq_line)
+            ireq = InstallRequirement.from_editable(ireq_line)
+        else:
+            ireq = InstallRequirement.from_line(ireq_line)
+        if not ireq.req:
+            ireq.req = self.get_requirement()
+        return ireq
 
     @property
     def pipfile_entry(self):

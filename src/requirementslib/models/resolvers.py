@@ -98,13 +98,16 @@ class DependencyResolver(object):
             abs_dep = self.dep_dict[name]
             while candidates:
                 pin = candidates.pop()
-                new_version = version_from_ireq(pin)
                 # Move on from existing pins if the new pin isn't compatible
                 if name in self.pinned_deps:
-                    old_version = version_from_ireq(self.pinned_deps[name])
-                    if (new_version != old_version and
-                            new_version not in self.candidate_dict[name]):
+                    if self.pinned_deps[name].editable:
                         continue
+                    old_version = version_from_ireq(self.pinned_deps[name])
+                    if not pin.editable:
+                        new_version = version_from_ireq(pin)
+                        if (new_version != old_version and
+                                new_version not in self.candidate_dict[name]):
+                            continue
                 pin.parent = abs_dep.parent
                 pin_subdeps = self.dep_dict[name].get_deps(pin)
                 backup = self.dep_dict.copy(), self.candidate_dict.copy()
