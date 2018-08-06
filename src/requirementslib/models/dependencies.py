@@ -263,7 +263,7 @@ def get_abstract_dependencies(reqs, sources=None, parent=None):
     return deps
 
 
-def get_dependencies(ireq, sources=None, parent=None):
+def get_dependencies(ireq, named, sources=None, parent=None):
     """Get all dependencies for a given install requirement.
 
     :param ireq: A single InstallRequirement
@@ -275,25 +275,23 @@ def get_dependencies(ireq, sources=None, parent=None):
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str)
     """
-
-    if not isinstance(ireq, InstallRequirement):
-        name = getattr(
-            ireq, "project_name", getattr(ireq, "project", getattr(ireq, "name", None))
-        )
-        version = getattr(ireq, "version")
-        ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
-    pip_options = get_pip_options(sources=sources)
-    getters = [
-        get_dependencies_from_cache,
-        get_dependencies_from_wheel_cache,
-        get_dependencies_from_json,
-        functools.partial(get_dependencies_from_index, pip_options=pip_options)
-    ]
-    for getter in getters:
-        deps = getter(ireq)
-        if deps is not None:
-            return deps
-    raise RuntimeError('failed to get dependencies for {}'.format(ireq))
+    if named:
+        getters = [
+            get_dependencies_from_cache,
+            get_dependencies_from_wheel_cache,
+            get_dependencies_from_json,
+        ]
+        for getter in getters:
+            deps = getter(ireq)
+            if deps is not None:
+                return deps
+    deps = get_dependencies_from_index(
+        ireq, pip_options=get_pip_options(sources=sources),
+        update_cache=named,
+    )
+    if deps is None:
+        raise RuntimeError('failed to get dependencies for {}'.format(ireq))
+    return deps
 
 
 def get_dependencies_from_wheel_cache(ireq):
@@ -372,7 +370,9 @@ def get_dependencies_from_cache(dep):
     return
 
 
-def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache=None):
+def get_dependencies_from_index(
+        dep, sources=None, pip_options=None, wheel_cache=None,
+        update_cache=True):
     """Retrieves dependencies for the given install requirement from the pip resolver.
 
     :param ireq: A single InstallRequirement
@@ -396,8 +396,6 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
         os.environ['PIP_EXISTS_ACTION'] = 'i'
         try:
             requirements = resolver._resolve_one(reqset, dep)
-        except Exception:
-            pass    # FIXME: Needs to bubble this somehow to the user.
         finally:
             try:
                 wheel_cache.cleanup()
@@ -407,7 +405,7 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     # requirements = reqset.requirements.values()
     if requirements is not None:
         reqs = set(requirements)
-        if not dep.editable:
+        if update_cache:
             DEPENDENCY_CACHE[dep] = [format_requirement(r) for r in reqs]
     else:
         reqs = set()
