@@ -275,6 +275,12 @@ def get_dependencies(ireq, named, sources=None, parent=None):
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str)
     """
+    if not isinstance(ireq, InstallRequirement):
+        name = getattr(
+           ireq, "project_name", getattr(ireq, "project", getattr(ireq, "name", None))
+        )
+        version = getattr(ireq, "version")
+        ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
     for f in [get_dependencies_from_cache, get_dependencies_from_wheel_cache]:
         deps = f(ireq)
         if deps is not None:
