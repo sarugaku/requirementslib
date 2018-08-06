@@ -393,13 +393,13 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
             try:
                 distutils.core.run_setup(dep.setup_py)
             except Exception:
-                pass
+                pass    # FIXME: Needs to bubble this somehow to the user.
     requirements = None
     prev_tracker = os.environ.get('PIP_REQ_TRACKER')
     try:
         requirements = resolver._resolve_one(reqset, dep)
     except Exception:
-        requirements = []
+        pass    # FIXME: Needs to bubble this somehow to the user.
     finally:
         reqset.cleanup_files()
         if 'PIP_REQ_TRACKER' in os.environ:
@@ -412,8 +412,11 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
             pass
 
     # requirements = reqset.requirements.values()
-    reqs = set(requirements)
-    DEPENDENCY_CACHE[dep] = [format_requirement(r) for r in reqs]
+    if requirements is not None:
+        reqs = set(requirements)
+        DEPENDENCY_CACHE[dep] = [format_requirement(r) for r in reqs]
+    else:
+        reqs = set()
     return reqs
 
 
