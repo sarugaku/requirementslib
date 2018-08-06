@@ -6,7 +6,10 @@ import os
 
 import attr
 from first import first
-from json.decoder import JSONDecodeError
+try:
+    from json import JSONDecodeError
+except ImportError:     # Old Pythons.
+    JSONDecodeError = ValueError
 import packaging.version
 import requests
 
