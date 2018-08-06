@@ -920,18 +920,13 @@ class Requirement(object):
         :return: A set of requirement strings of the dependencies of this requirement.
         :rtype: set(str)
         """
-        if self.is_named:
-            if not sources:
-                sources = [{
-                    'name': 'pypi',
-                    'url': 'https://pypi.org/simple',
-                    'verify_ssl': True,
-                }]
-            return get_dependencies(self.ireq, sources=sources)
-        else:
-            # FIXME: how should this work? Run setup.py egg_info and dig things
-            # from dist-info?
-            return []
+        if not sources:
+            sources = [{
+                'name': 'pypi',
+                'url': 'https://pypi.org/simple',
+                'verify_ssl': True,
+            }]
+        return get_dependencies(self.ireq, sources=sources)
 
     def get_abstract_dependencies(self, sources=None):
         """Retrieve the abstract dependencies of this requirement.

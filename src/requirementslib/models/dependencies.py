@@ -31,6 +31,7 @@ from ..utils import (
     mkdir_p,
     prepare_pip_source_args,
     temp_cd,
+    temp_environ,
 )
 from .cache import CACHE_DIR, DependencyCache
 from .utils import (
@@ -304,6 +305,8 @@ def get_dependencies_from_wheel_cache(ireq):
     :rtype: set(str) or None
     """
 
+    if ireq.editable:
+        return
     matches = WHEEL_CACHE.get(ireq.link, name_from_req(ireq.req))
     if matches:
         matches = set(matches)
@@ -322,6 +325,8 @@ def get_dependencies_from_json(ireq):
     :rtype: set(str) or None
     """
 
+    if ireq.editable:
+        return
     if not (is_pinned_requirement(ireq)):
         raise TypeError("Expected pinned InstallRequirement, got {}".format(ireq))
 
@@ -362,7 +367,7 @@ def get_dependencies_from_cache(dep):
     :rtype: set(str) or None
     """
 
-    if dep in DEPENDENCY_CACHE:
+    if not dep.editable and dep in DEPENDENCY_CACHE:
         return set(DEPENDENCY_CACHE[dep])
     return
 
@@ -386,35 +391,24 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     reqset.add_requirement(dep)
     _, resolver = get_resolver(finder=finder, wheel_cache=wheel_cache)
     resolver.require_hashes = False
-    from setuptools.dist import distutils
-
-    if not dep.prepared and dep.link is not None:
-        with temp_cd(dep.setup_py_dir):
-            try:
-                distutils.core.run_setup(dep.setup_py)
-            except Exception:
-                pass    # FIXME: Needs to bubble this somehow to the user.
     requirements = None
-    prev_tracker = os.environ.get('PIP_REQ_TRACKER')
-    try:
-        requirements = resolver._resolve_one(reqset, dep)
-    except Exception:
-        pass    # FIXME: Needs to bubble this somehow to the user.
-    finally:
-        reqset.cleanup_files()
-        if 'PIP_REQ_TRACKER' in os.environ:
-            del os.environ['PIP_REQ_TRACKER']
-        if prev_tracker:
-            os.environ['PIP_REQ_TRACKER'] = prev_tracker
+    with temp_environ():
+        os.environ['PIP_EXISTS_ACTION'] = 'i'
         try:
-            wheel_cache.cleanup()
-        except AttributeError:
-            pass
+            requirements = resolver._resolve_one(reqset, dep)
+        except Exception:
+            pass    # FIXME: Needs to bubble this somehow to the user.
+        finally:
+            try:
+                wheel_cache.cleanup()
+            except AttributeError:
+                pass
 
     # requirements = reqset.requirements.values()
     if requirements is not None:
         reqs = set(requirements)
-        DEPENDENCY_CACHE[dep] = [format_requirement(r) for r in reqs]
+        if not dep.editable:
+            DEPENDENCY_CACHE[dep] = [format_requirement(r) for r in reqs]
     else:
         reqs = set()
     return reqs

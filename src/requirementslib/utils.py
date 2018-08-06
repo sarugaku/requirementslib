@@ -288,6 +288,20 @@ def temp_cd(path):
         os.chdir(orig_path)
 
 
+# Borrowed from Pew.
+# See https://github.com/berdario/pew/blob/master/pew/_utils.py#L82
+@contextmanager
+def temp_environ():
+    """Allow the ability to set os.environ temporarily"""
+    environ = dict(os.environ)
+    try:
+        yield
+
+    finally:
+        os.environ.clear()
+        os.environ.update(environ)
+
+
 def mkdir_p(newdir):
     """works the way a good mkdir should :)
         - already exists, silently complete
