@@ -926,7 +926,9 @@ class Requirement(object):
                 'url': 'https://pypi.org/simple',
                 'verify_ssl': True,
             }]
-        return get_dependencies(self.ireq, sources=sources)
+        return get_dependencies(
+            self.as_ireq(), named=self.is_named, sources=sources,
+        )
 
     def get_abstract_dependencies(self, sources=None):
         """Retrieve the abstract dependencies of this requirement.
