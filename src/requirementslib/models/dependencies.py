@@ -277,7 +277,8 @@ def get_dependencies(ireq, named, sources=None, parent=None):
     """
     if not isinstance(ireq, InstallRequirement):
         name = getattr(
-           ireq, "project_name", getattr(ireq, "project", getattr(ireq, "name", None))
+            ireq, "project_name",
+            getattr(ireq, "project", getattr(ireq, "name", None)),
         )
         version = getattr(ireq, "version")
         ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
