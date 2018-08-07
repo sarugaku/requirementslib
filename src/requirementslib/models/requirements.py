@@ -892,15 +892,14 @@ class Requirement(object):
             base_dict = base_dict.get("version")
         return {name: base_dict}
 
-    def as_ireq(self):
+    def as_ireq(self, prepared=True):
         ireq_line = self.req.req.line
-        ireq = None
         if ireq_line.startswith("-e "):
-            ireq_line = ireq_line[len("-e ") :]
+            ireq_line = ireq_line[len("-e "):]
             ireq = InstallRequirement.from_editable(ireq_line)
         else:
             ireq = InstallRequirement.from_line(ireq_line)
-        if not ireq.req and not ireq.editable:
+        if prepared and not ireq.req:
             ireq.req = self.get_requirement()
         return ireq
 
@@ -929,7 +928,7 @@ class Requirement(object):
                 'url': 'https://pypi.org/simple',
                 'verify_ssl': True,
             }]
-        return get_dependencies(self.as_ireq(), sources=sources)
+        return get_dependencies(self.as_ireq(prepared=False), sources=sources)
 
     def get_abstract_dependencies(self, sources=None):
         """Retrieve the abstract dependencies of this requirement.
