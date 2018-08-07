@@ -112,6 +112,8 @@ class AbstractDependency(object):
 
         if len(self.candidates) == 1 and first(self.candidates).editable:
             return self
+        elif len(other.candidates) == 1 and first(other.candidates).editable:
+            return other
         return self.version_set & other.version_set
 
     def compatible_abstract_dep(self, other):
@@ -129,6 +131,8 @@ class AbstractDependency(object):
 
         if len(self.candidates) == 1 and first(self.candidates).editable:
             return self
+        elif len(other.candidates) == 1 and first(other.candidates).editable:
+            return other
         new_specifiers = self.specifiers & other.specifiers
         new_ireq = copy.deepcopy(self.requirement.ireq)
         new_ireq.req.specifier = new_specifiers
@@ -263,7 +267,7 @@ def get_abstract_dependencies(reqs, sources=None, parent=None):
     return deps
 
 
-def get_dependencies(ireq, named, sources=None, parent=None):
+def get_dependencies(ireq, editable=False, named=True, sources=None, parent=None):
     """Get all dependencies for a given install requirement.
 
     :param ireq: A single InstallRequirement
@@ -275,20 +279,25 @@ def get_dependencies(ireq, named, sources=None, parent=None):
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str)
     """
-    for f in [get_dependencies_from_cache, get_dependencies_from_wheel_cache]:
-        deps = f(ireq)
+
+    if not isinstance(ireq, InstallRequirement):
+        name = getattr(
+            ireq, "project_name", getattr(ireq, "project", getattr(ireq, "name", None))
+        )
+        version = getattr(ireq, "version")
+        ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
+    pip_options = get_pip_options(sources=sources)
+    getters = [
+        get_dependencies_from_cache,
+        get_dependencies_from_wheel_cache,
+        get_dependencies_from_json,
+        functools.partial(get_dependencies_from_index, pip_options=pip_options)
+    ]
+    for getter in getters:
+        deps = getter(ireq)
         if deps is not None:
             return deps
-    if named:
-        deps = get_dependencies_from_json(ireq)
-        if deps is not None:
-            return deps
-    deps = get_dependencies_from_index(
-        ireq, pip_options=get_pip_options(sources=sources),
-    )
-    if deps is None:
-        raise RuntimeError('failed to get dependencies for {}'.format(ireq))
-    return deps
+    raise RuntimeError('failed to get dependencies for {}'.format(ireq))
 
 
 def get_dependencies_from_wheel_cache(ireq):
@@ -385,10 +394,10 @@ def get_dependencies_from_index(
     dep.is_direct = True
     reqset = RequirementSet()
     reqset.add_requirement(dep)
-    _, resolver = get_resolver(finder=finder, wheel_cache=wheel_cache)
-    resolver.require_hashes = False
-    requirements = None
-    with temp_environ():
+    with temp_environ(), RequirementTracker() as req_tracker:
+        _, resolver = get_resolver(finder=finder, wheel_cache=wheel_cache, req_tracker=req_tracker)
+        resolver.require_hashes = False
+        requirements = None
         os.environ['PIP_EXISTS_ACTION'] = 'i'
         try:
             requirements = resolver._resolve_one(reqset, dep)
@@ -398,7 +407,6 @@ def get_dependencies_from_index(
             except AttributeError:
                 pass
 
-    # requirements = reqset.requirements.values()
     if requirements is not None:
         reqs = set(requirements)
         if not dep.editable:
@@ -466,7 +474,7 @@ def get_finder(sources=None, pip_command=None, pip_options=None):
     return finder
 
 
-def get_resolver(finder=None, wheel_cache=None):
+def get_resolver(finder=None, wheel_cache=None, req_tracker=None):
     """Given a package finder, return a preparer, and resolver.
 
     :param finder: A package finder to use for searching the index
@@ -485,35 +493,37 @@ def get_resolver(finder=None, wheel_cache=None):
     mkdir_p(download_dir)
     _build_dir = TemporaryDirectory(fs_str("build"))
     _source_dir = TemporaryDirectory(fs_str("source"))
-    preparer = partialclass(
-        RequirementPreparer,
-        build_dir=_build_dir.name,
-        src_dir=_source_dir.name,
-        download_dir=download_dir,
-        wheel_download_dir=WHEEL_DOWNLOAD_DIR,
-        progress_bar="off",
-        build_isolation=False,
-    )
-    resolver = partialclass(
-        Resolver,
-        finder=finder,
-        session=finder.session,
-        upgrade_strategy="to-satisfy-only",
-        force_reinstall=True,
-        ignore_dependencies=False,
-        ignore_requires_python=True,
-        ignore_installed=True,
-        isolated=False,
-        wheel_cache=wheel_cache,
-        use_user_site=False,
-    )
-    if packaging.version.parse(pip_version) >= packaging.version.parse('18'):
-        with RequirementTracker() as req_tracker:
-            preparer = preparer(req_tracker=req_tracker)
-            resolver = resolver(preparer=preparer)
+    preparer_kwargs = {
+        "build_dir": _build_dir.name,
+        "src_dir": _source_dir.name,
+        "download_dir": download_dir,
+        "wheel_download_dir": WHEEL_DOWNLOAD_DIR,
+        "progress_bar": "off",
+        "build_isolation": False,
+    }
+    resolver_kwargs = {
+        "finder": finder,
+        "session": finder.session,
+        "upgrade_strategy": "to-satisfy-only",
+        "force_reinstall": True,
+        "ignore_dependencies": False,
+        "ignore_requires_python": True,
+        "ignore_installed": True,
+        "isolated": False,
+        "wheel_cache": wheel_cache,
+        "use_user_site": False,
+    }
+    resolver, preparer = None, None
+    if req_tracker:
+        preparer_kwargs['req_tracker'] = req_tracker
+        preparer = RequirementPreparer(**preparer_kwargs)
     else:
-        preparer = preparer()
-        resolver = resolver(preparer=preparer)
+        with RequirementTracker() as req_tracker:
+            if req_tracker:
+                preparer_kwargs['req_tracker'] = req_tracker
+            preparer = RequirementPreparer(**preparer_kwargs)
+    resolver_kwargs['preparer'] = preparer
+    resolver = Resolver(**resolver_kwargs)
     return preparer, resolver
 
 

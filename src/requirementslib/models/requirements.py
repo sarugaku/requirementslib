@@ -35,6 +35,7 @@ from .utils import (
     split_markers_from_line,
     parse_extras,
     is_pinned_requirement,
+    format_requirement,
 )
 from .._compat import (
     Link,
@@ -712,6 +713,8 @@ class Requirement(object):
 
     @classmethod
     def from_line(cls, line):
+        if isinstance(line, InstallRequirement):
+            line = format_requirement(line)
         hashes = None
         if "--hash=" in line:
             hashes = line.split(" --hash=")
@@ -927,7 +930,8 @@ class Requirement(object):
                 'verify_ssl': True,
             }]
         return get_dependencies(
-            self.as_ireq(), named=self.is_named, sources=sources,
+            self.as_ireq(), editable=(self.is_file_or_url and self.req.editable),
+            named=self.is_named, sources=sources,
         )
 
     def get_abstract_dependencies(self, sources=None):
@@ -950,7 +954,8 @@ class Requirement(object):
             deps = self.get_dependencies()
         else:
             ireq = sorted(self.find_all_matches(), key=lambda k: k.version)
-            deps = get_dependencies(ireq.pop(), sources=sources)
+            deps = get_dependencies(ireq.pop(),  editable=(self.is_file_or_url and self.req.editable), 
+                                    named=self.is_named, sources=sources)
         return get_abstract_dependencies(deps, sources=sources, parent=self.abstract_dep)
 
     def find_all_matches(self, sources=None, finder=None):
