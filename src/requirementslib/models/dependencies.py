@@ -1,5 +1,6 @@
 # -*- coding=utf-8 -*-
 
+import contextlib
 import copy
 import functools
 import os
@@ -389,11 +390,10 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     dep.is_direct = True
     reqset = RequirementSet()
     reqset.add_requirement(dep)
-    _, resolver = get_resolver(finder=finder, wheel_cache=wheel_cache)
-    resolver.require_hashes = False
     requirements = None
-    with temp_environ():
+    with temp_environ(), start_resolver(finder=finder, wheel_cache=wheel_cache) as resolver:
         os.environ['PIP_EXISTS_ACTION'] = 'i'
+        resolver.require_hashes = False
         try:
             requirements = set(resolver._resolve_one(reqset, dep))
         except Exception:
@@ -466,8 +466,9 @@ def get_finder(sources=None, pip_command=None, pip_options=None):
     return finder
 
 
-def get_resolver(finder=None, wheel_cache=None):
-    """Given a package finder, return a preparer, and resolver.
+@contextlib.contextmanager
+def start_resolver(finder=None, wheel_cache=None):
+    """Context manager to produce a resolver.
 
     :param finder: A package finder to use for searching the index
     :type finder: :class:`~pip._internal.index.PackageFinder`
@@ -510,11 +511,10 @@ def get_resolver(finder=None, wheel_cache=None):
     if packaging.version.parse(pip_version) >= packaging.version.parse('18'):
         with RequirementTracker() as req_tracker:
             preparer = preparer(req_tracker=req_tracker)
-            resolver = resolver(preparer=preparer)
+            yield resolver(preparer=preparer)
     else:
         preparer = preparer()
-        resolver = resolver(preparer=preparer)
-    return preparer, resolver
+        yield resolver(preparer=preparer)
 
 
 def get_grouped_dependencies(constraints):
