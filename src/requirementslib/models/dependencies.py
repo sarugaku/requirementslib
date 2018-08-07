@@ -1,5 +1,6 @@
 # -*- coding=utf-8 -*-
 
+import contextlib
 import copy
 import functools
 import os
@@ -393,11 +394,10 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     dep.is_direct = True
     reqset = RequirementSet()
     reqset.add_requirement(dep)
-    with temp_environ(), RequirementTracker() as req_tracker:
-        _, resolver = get_resolver(finder=finder, wheel_cache=wheel_cache, req_tracker=req_tracker)
-        resolver.require_hashes = False
-        requirements = None
+    requirements = None
+    with temp_environ(), start_resolver(finder=finder, wheel_cache=wheel_cache) as resolver:
         os.environ['PIP_EXISTS_ACTION'] = 'i'
+        resolver.require_hashes = False
         try:
             requirements = set(resolver._resolve_one(reqset, dep))
         except Exception:
@@ -470,8 +470,9 @@ def get_finder(sources=None, pip_command=None, pip_options=None):
     return finder
 
 
-def get_resolver(finder=None, wheel_cache=None, req_tracker=None):
-    """Given a package finder, return a preparer, and resolver.
+@contextlib.contextmanager
+def start_resolver(finder=None, wheel_cache=None):
+    """Context manager to produce a resolver.
 
     :param finder: A package finder to use for searching the index
     :type finder: :class:`~pip._internal.index.PackageFinder`
@@ -489,38 +490,35 @@ def get_resolver(finder=None, wheel_cache=None, req_tracker=None):
     mkdir_p(download_dir)
     _build_dir = TemporaryDirectory(fs_str("build"))
     _source_dir = TemporaryDirectory(fs_str("source"))
-    preparer_kwargs = {
-        "build_dir": _build_dir.name,
-        "src_dir": _source_dir.name,
-        "download_dir": download_dir,
-        "wheel_download_dir": WHEEL_DOWNLOAD_DIR,
-        "progress_bar": "off",
-        "build_isolation": False,
-    }
-    resolver_kwargs = {
-        "finder": finder,
-        "session": finder.session,
-        "upgrade_strategy": "to-satisfy-only",
-        "force_reinstall": True,
-        "ignore_dependencies": False,
-        "ignore_requires_python": True,
-        "ignore_installed": True,
-        "isolated": False,
-        "wheel_cache": wheel_cache,
-        "use_user_site": False,
-    }
-    resolver, preparer = None, None
-    if req_tracker:
-        preparer_kwargs['req_tracker'] = req_tracker
-        preparer = RequirementPreparer(**preparer_kwargs)
-    else:
+    preparer = partialclass(
+        RequirementPreparer,
+        build_dir=_build_dir.name,
+        src_dir=_source_dir.name,
+        download_dir=download_dir,
+        wheel_download_dir=WHEEL_DOWNLOAD_DIR,
+        progress_bar="off",
+        build_isolation=False,
+    )
+    resolver = partialclass(
+        Resolver,
+        finder=finder,
+        session=finder.session,
+        upgrade_strategy="to-satisfy-only",
+        force_reinstall=True,
+        ignore_dependencies=False,
+        ignore_requires_python=True,
+        ignore_installed=True,
+        isolated=False,
+        wheel_cache=wheel_cache,
+        use_user_site=False,
+    )
+    if packaging.version.parse(pip_version) >= packaging.version.parse('18'):
         with RequirementTracker() as req_tracker:
-            if req_tracker:
-                preparer_kwargs['req_tracker'] = req_tracker
-            preparer = RequirementPreparer(**preparer_kwargs)
-    resolver_kwargs['preparer'] = preparer
-    resolver = Resolver(**resolver_kwargs)
-    return preparer, resolver
+            preparer = preparer(req_tracker=req_tracker)
+            yield resolver(preparer=preparer)
+    else:
+        preparer = preparer()
+        yield resolver(preparer=preparer)
 
 
 def get_grouped_dependencies(constraints):
