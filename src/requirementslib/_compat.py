@@ -6,6 +6,7 @@ import os
 import six
 import sys
 import warnings
+from contextlib import contextmanager
 from first import first
 from functools import partial
 from shutil import rmtree
@@ -137,6 +138,12 @@ FormatControl = do_import("index", "FormatControl")
 RequirementTracker = do_import("req.req_tracker", "RequirementTracker")
 SafeFileCache = do_import("download", "SafeFileCache")
 pip_version = do_import("__version__")
+
+
+if not RequirementTracker:
+    @contextmanager
+    def RequirementTracker():
+        yield
 
 
 class TemporaryDirectory(object):
