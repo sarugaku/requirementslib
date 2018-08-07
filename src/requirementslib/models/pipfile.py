@@ -41,7 +41,7 @@ class Hash(object):
         return {self.hash_type: self.value}
 
     def as_line(self):
-        return "{0}:{1}".format(hash_type, value)
+        return "{0}:{1}".format(self.hash_type, self.value)
 
     @classmethod
     def create(cls, *args, **kwargs):
