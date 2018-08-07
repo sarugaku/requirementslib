@@ -182,7 +182,7 @@ class Pipfile(object):
                 break
             requirement = None
             requirement = Requirement.from_line(format_requirement(pin))
-            requirement.hashes = [Hash(value=v) for v in hashes[req]]
+            requirement.hashes = [Hash(value=v) for v in hashes.get(req, [])]
             if req in req_names:
                 reqs.append(req)
             elif req in dev_names:
