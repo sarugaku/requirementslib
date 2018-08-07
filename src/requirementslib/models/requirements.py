@@ -803,7 +803,7 @@ class Requirement(object):
             args["hashes"] = _pipfile.get("hashes", [pipfile.get("hash")])
         return cls(**args)
 
-    def as_line(self, sources=None, include_extras=True):
+    def as_line(self, hashes=True, sources=None, include_extras=True):
         """Format this requirement as a line in requirements.txt.
 
         If `sources` provided, it should be an sequence of mappings, containing
@@ -818,9 +818,10 @@ class Requirement(object):
             self.req.line_part,
             self.extras_as_pip if include_extras else "",
             self.specifiers if self.specifiers else "",
-            self.markers_as_pip,
-            self.hashes_as_pip,
+            self.markers_as_pip
         )
+        if hashes:
+            line = "{0}{1}".format(line, self.hashes_as_pip)
         if sources and not (self.requirement.local_file or self.vcs):
             from ..utils import prepare_pip_source_args
 

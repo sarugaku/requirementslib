@@ -44,6 +44,13 @@ class Hash(object):
         return "{0}:{1}".format(self.hash_type, self.value)
 
     @classmethod
+    def parse(cls, value):
+        hash_type = 'sha256'
+        if ':' in value:
+            hash_type, value = value.split(':', 1)
+        return cls.create(**{hash_type: value})
+
+    @classmethod
     def create(cls, *args, **kwargs):
         hash_type = next((k for k in kwargs.keys()), None)
         value = kwargs.get(hash_type)
