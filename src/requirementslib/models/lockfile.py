@@ -151,10 +151,10 @@ class Lockfile(object):
             "develop": {
                 pkg: entry
                 for req in self.dev_requirements_list
-                for pkg, entry in req.items
+                for pkg, entry in req.items()
             },
             "default": {
-                pkg: entry for req in self.requirements_list for pkg, entry in req.items
+                pkg: entry for req in self.requirements_list for pkg, entry in req.items()
             },
         }
         return return_dict

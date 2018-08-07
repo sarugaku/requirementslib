@@ -884,8 +884,18 @@ class Requirement(object):
             conflicts = [k for k in (conflicting_keys[1:],) if k in base_dict]
             for k in conflicts:
                 base_dict.pop(k)
-        if "hashes" in base_dict and len(base_dict["hashes"]) == 1:
-            base_dict["hash"] = base_dict.pop("hashes")[0]
+        if "hashes" in base_dict:
+            _hashes = base_dict.pop("hashes")
+            hashes = []
+            for _hash in _hashes:
+                try:
+                    hashes.append(_hash.as_line())
+                except AttributeError:
+                    hashes.append(_hash)
+            if len(hashes) == 1:
+                base_dict["hash"] = hashes
+            else:
+                base_dict["hashes"] = hashes
         if len(base_dict.keys()) == 1 and "version" in base_dict:
             base_dict = base_dict.get("version")
         return {name: base_dict}
