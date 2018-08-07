@@ -395,7 +395,10 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
         os.environ['PIP_EXISTS_ACTION'] = 'i'
         resolver.require_hashes = False
         try:
-            requirements = set(resolver._resolve_one(reqset, dep))
+            requirements = set(
+                format_requirement(r)
+                for r in resolver._resolve_one(reqset, dep)
+            )
         except Exception:
             pass    # FIXME: Needs to bubble the exception somehow to the user.
         finally:
@@ -404,7 +407,7 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
             except AttributeError:
                 pass
     if not dep.editable and requirements is not None:
-        DEPENDENCY_CACHE[dep] = [format_requirement(r) for r in requirements]
+        DEPENDENCY_CACHE[dep] = list(requirements)
     return requirements
 
 
