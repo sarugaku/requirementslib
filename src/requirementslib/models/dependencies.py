@@ -11,6 +11,7 @@ try:
     from json import JSONDecodeError
 except ImportError:     # Old Pythons.
     JSONDecodeError = ValueError
+import packaging.markers
 import packaging.version
 import requests
 
@@ -31,7 +32,6 @@ from ..utils import (
     get_pip_command,
     mkdir_p,
     prepare_pip_source_args,
-    temp_cd,
     temp_environ,
 )
 from .cache import CACHE_DIR, DependencyCache
@@ -135,8 +135,13 @@ class AbstractDependency(object):
         elif len(other.candidates) == 1 and first(other.candidates).editable:
             return other
         new_specifiers = self.specifiers & other.specifiers
+        markers = set(self.markers,) if self.markers else set()
+        if other.markers:
+            markers.add(other.markers)
+        new_markers = packaging.markers.Marker(" or ".join([str(m) for m in sorted(markers)))
         new_ireq = copy.deepcopy(self.requirement.ireq)
         new_ireq.req.specifier = new_specifiers
+        new_ireq.req.marker = new_markers
         new_requirement = Requirement.from_line(format_requirement(new_ireq))
         compatible_versions = self.compatible_versions(other)
         if isinstance(compatible_versions, AbstractDependency):
@@ -154,7 +159,7 @@ class AbstractDependency(object):
         return AbstractDependency(
             name=self.name,
             specifiers=new_specifiers,
-            markers=self.markers,
+            markers=new_markers,
             candidates=candidates,
             requirement=new_requirement,
             parent=self.parent,
@@ -176,6 +181,7 @@ class AbstractDependency(object):
             from .requirements import Requirement
 
             req = Requirement.from_line(key)
+            req.merge_markers(self.markers)
             self.dep_dict[key] = req.get_abstract_dependencies()
         return self.dep_dict[key]
 

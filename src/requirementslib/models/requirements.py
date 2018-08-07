@@ -9,6 +9,7 @@ import requirements
 
 from first import first
 from six.moves.urllib import parse as urllib_parse
+from packaging.markers import Marker
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import parse as parse_version
@@ -82,6 +83,7 @@ class NamedRequirement(BaseRequirement):
         specifiers = None
         if req.specifier:
             specifiers = specs_to_string(req.specs)
+        req.line = line
         return cls(name=req.name, version=specifiers, req=req)
 
     @classmethod
@@ -790,6 +792,10 @@ class Requirement(object):
         markers = PipenvMarkers.from_pipfile(name, _pipfile)
         if markers:
             markers = str(markers)
+        r.req.markers = markers
+        extras = _pipfile.get("extras")
+        if extras:
+            r.req.extras = extras
         args = {
             "name": r.name,
             "vcs": vcs,
@@ -801,7 +807,10 @@ class Requirement(object):
         }
         if any(key in _pipfile for key in ["hash", "hashes"]):
             args["hashes"] = _pipfile.get("hashes", [pipfile.get("hash")])
-        return cls(**args)
+        cls_inst = cls(**args)
+        if cls_inst.is_named:
+            cls_inst.req.req.line = cls_inst.as_line()
+        return cls_inst
 
     def as_line(self, sources=None, include_hashes=True):
         """Format this requirement as a line in requirements.txt.
@@ -875,6 +884,8 @@ class Requirement(object):
             if k in good_keys
         }
         name = self.name
+        if 'markers' in req_dict and req_dict['markers']:
+            req_dict['markers'] = req_dict['markers'].replace('"', "'")
         base_dict = {
             k: v
             for k, v in self.req.pipfile_part[name].items()
@@ -960,8 +971,7 @@ class Requirement(object):
             deps = self.get_dependencies()
         else:
             ireq = sorted(self.find_all_matches(), key=lambda k: k.version)
-            deps = get_dependencies(ireq.pop(),  editable=(self.is_file_or_url and self.req.editable), 
-                                    named=self.is_named, sources=sources)
+            deps = get_dependencies(ireq.pop(), sources=sources)
         return get_abstract_dependencies(deps, sources=sources, parent=self.abstract_dep)
 
     def find_all_matches(self, sources=None, finder=None):
@@ -978,3 +988,12 @@ class Requirement(object):
         if not finder:
             finder = get_finder(sources=sources)
         return find_all_matches(finder, self.as_ireq())
+
+    def merge_markers(self, markers):
+        if not isinstance(markers, Marker):
+            markers = Marker(markers)
+        _markers = set(Marker(self.ireq.markers)) if self.ireq.markers else set(markers)
+        _markers.add(markers)
+        new_markers = Marker(" or ".join([str(m) for m in sorted(_markers)]))
+        self.markers = str(new_markers)
+        self.req.req.markers = new_markers
