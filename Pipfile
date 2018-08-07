@@ -12,6 +12,7 @@ pytest = "*"
 sphinx = "*"
 twine = "*"
 invoke = "*"
+colorama = {version = "*", markers = "os_name == 'nt'"}
 requirementslib = {path = ".", editable = true}
 sphinx_rtd_theme = "*"
 rope = "*"
