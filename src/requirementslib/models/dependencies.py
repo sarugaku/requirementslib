@@ -32,6 +32,7 @@ from ..utils import (
     get_pip_command,
     mkdir_p,
     prepare_pip_source_args,
+    temp_cd,
     temp_environ,
 )
 from .cache import CACHE_DIR, DependencyCache
@@ -385,6 +386,10 @@ def get_dependencies_from_cache(dep):
     return
 
 
+def is_python(section):
+    return section.startswith('[') and ':' in section
+
+
 def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache=None):
     """Retrieves dependencies for the given install requirement from the pip resolver.
 
@@ -403,8 +408,26 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     reqset = RequirementSet()
     reqset.add_requirement(dep)
     requirements = None
+    setup_requires = {}
     with temp_environ(), start_resolver(finder=finder, wheel_cache=wheel_cache) as resolver:
         os.environ['PIP_EXISTS_ACTION'] = 'i'
+        dist = None
+        if dep.editable and not dep.prepared and not dep.req:
+            with temp_cd(dep.setup_py_dir):
+                from setuptools.dist import distutils
+                try:
+                    dist = distutils.core.run_setup(dep.setup_py)
+                except (ImportError, TypeError, AttributeError):
+                    dist = None
+                else:
+                    setup_requires[dist.get_name()] = dist.setup_requires
+                if not dist:
+                    try:
+                        dist = dep.get_dist()
+                    except (TypeError, ValueError, AttributeError):
+                        pass
+                    else:
+                        setup_requires[dist.get_name()] = dist.setup_requires
         resolver.require_hashes = False
         try:
             results = resolver._resolve_one(reqset, dep)
@@ -433,6 +456,29 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
                 else:
                     r.req.marker = add_marker
             requirements.add(format_requirement(r))
+        for section in setup_requires:
+            python_version = section
+            not_python = not is_python(section)
+
+            # This is for cleaning up :extras: formatted markers
+            # by adding them to the results of the resolver
+            # since any such extra would have been returned as a result anyway
+            for value in setup_requires[section]:
+
+                # This is a marker.
+                if is_python(section):
+                    python_version = value[1:-1]
+                else:
+                    not_python = True
+
+                if ':' not in value and not_python:
+                    try:
+                        requirement_str = "{0}{1}".format(value, python_version).replace(":", ";")
+                        requirements.add(format_requirement(make_install_requirement(requirement_str).ireq))
+                    # Anything could go wrong here -- can't be too careful.
+                    except Exception:
+                        pass
+
     if not dep.editable and requirements is not None:
         DEPENDENCY_CACHE[dep] = list(requirements)
     return requirements
