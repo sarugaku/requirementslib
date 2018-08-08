@@ -341,8 +341,8 @@ def get_dependencies_from_json(ireq):
 
     if ireq.editable:
         return
-    if not (is_pinned_requirement(ireq)):
-        raise TypeError("Expected pinned InstallRequirement, got {}".format(ireq))
+    if not is_pinned_requirement(ireq):
+        return
 
     session = requests.session()
     version = str(ireq.req.specifier).lstrip("=")
