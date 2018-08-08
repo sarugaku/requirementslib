@@ -17,7 +17,6 @@ from packaging.version import parse as parse_version
 from .baserequirement import BaseRequirement
 from .dependencies import (
     get_dependencies, get_finder, find_all_matches,
-    get_abstract_dependencies, AbstractDependency,
 )
 from .markers import PipenvMarkers
 from .utils import (
@@ -35,7 +34,6 @@ from .utils import (
     optional_instance_of,
     split_markers_from_line,
     parse_extras,
-    is_pinned_requirement,
     format_requirement,
     make_install_requirement,
 )
@@ -659,7 +657,6 @@ class Requirement(object):
     editable = attr.ib(default=None)
     hashes = attr.ib(default=attr.Factory(list), converter=list)
     extras = attr.ib(default=attr.Factory(list))
-    abstract_dep = attr.ib(default=None)
     _ireq = None
     _INCLUDE_FIELDS = ("name", "markers", "index", "editable", "hashes", "extras")
 
@@ -954,29 +951,6 @@ class Requirement(object):
                 'verify_ssl': True,
             }]
         return get_dependencies(self.as_ireq(prepared=False), sources=sources)
-
-    def get_abstract_dependencies(self, sources=None):
-        """Retrieve the abstract dependencies of this requirement.
-
-        Returns the abstract dependencies of the current requirement in order to resolve.
-
-        :param sources: A list of sources (pipfile format), defaults to None
-        :param sources: list, optional
-        :return: A list of abstract (unpinned) dependencies
-        :rtype: list[ :class:`~requirementslib.models.dependency.AbstractDependency` ]
-        """
-
-        if not self.abstract_dep:
-            parent = getattr(self, 'parent', None)
-            self.abstract_dep = AbstractDependency.from_requirement(self, parent=parent)
-        if not sources:
-            sources = [{'url': 'https://pypi.org/simple', 'name': 'pypi', 'verify_ssl': True},]
-        if is_pinned_requirement(self.ireq):
-            deps = self.get_dependencies()
-        else:
-            ireq = sorted(self.find_all_matches(), key=lambda k: k.version)
-            deps = get_dependencies(ireq.pop(), sources=sources)
-        return get_abstract_dependencies(deps, sources=sources, parent=self.abstract_dep)
 
     def find_all_matches(self, sources=None, finder=None):
         """Find all matching candidates for the current requirement.
