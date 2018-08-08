@@ -138,7 +138,7 @@ class AbstractDependency(object):
         markers = set(self.markers,) if self.markers else set()
         if other.markers:
             markers.add(other.markers)
-        new_markers = packaging.markers.Marker(" or ".join([str(m) for m in sorted(markers)))
+        new_markers = packaging.markers.Marker(" or ".join(str(m) for m in sorted(markers)))
         new_ireq = copy.deepcopy(self.requirement.ireq)
         new_ireq.req.specifier = new_specifiers
         new_ireq.req.marker = new_markers
