@@ -773,10 +773,14 @@ class Requirement(object):
         return cls(**args)
 
     @classmethod
+    def from_ireq(cls, ireq):
+        return cls.from_line(format_requirement(ireq))
+
+    @classmethod
     def from_metadata(cls, name, version, extras, markers):
-        return cls.from_line(format_requirement(make_install_requirement(
+        return cls.from_ireq(make_install_requirement(
             name, version, extras=extras, markers=markers,
-        )))
+        ))
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
