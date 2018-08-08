@@ -6,7 +6,6 @@ import toml
 from .._vendor import pipfile
 from .dependencies import get_finder, get_pip_options
 from .requirements import Requirement
-from .resolvers import DependencyResolver
 from .utils import optional_instance_of, filter_none, format_requirement
 from .._compat import Path, FileNotFoundError
 from ..exceptions import RequirementError
@@ -172,49 +171,6 @@ class Pipfile(object):
                 _dict.pop(k)
         return _dict
 
-    def build_lockfile(self):
-        from .lockfile import Lockfile
-        resolved = self.resolve()
-        hashes = resolved.get_hashes()
-        dev_names = [req.name for req in self.dev_packages.requirements]
-        req_names = [req.name for req in self.packages.requirements]
-        dev_reqs, reqs = [], []
-        for req, pin in resolved.pinned_deps.items():
-            parent = None
-            _current_dep = resolved.dep_dict[req]
-            while True:
-                if _current_dep.parent:
-                    parent = _current_dep.parent.name
-                    _current_dep = _current_dep.parent
-                break
-            requirement = None
-            requirement = Requirement.from_line(format_requirement(pin))
-            requirement.hashes = [Hash(value=v) for v in hashes.get(req, [])]
-            if req in req_names:
-                reqs.append(req)
-            elif req in dev_names:
-                dev_reqs.append(req)
-            # If the requirement in question inherits from a dev requirement we still
-            # need to add it to the dev dependencies
-            if parent and parent in dev_names and req not in dev_names:
-                dev_reqs.append(req)
-            # If the requirement in question inherits from a non-dev requirement we
-            # will still need to make sure it gets added to the non-dev section
-            if parent and parent in req_names and req not in req_names:
-                reqs.append(req)
-
-        creation_dict = {
-            "path": self.path.parent / 'Pipfile.lock',
-            "pipfile_hash": Hash(value=self.get_hash()),
-            "sources": [s for s in self.sources],
-            "dev_requirements": dev_reqs,
-            "requirements": reqs,
-        }
-        if self.requires.has_value():
-            creation_dict['requires'] = self.requires
-        lockfile = Lockfile(**creation_dict)
-        return lockfile
-
     def dump(self, to_dict=False):
         """Dumps the pipfile to a toml string
         """
@@ -252,20 +208,6 @@ class Pipfile(object):
         if pipenv:
             creation_dict["pipenv"] = PipenvSection(**pipenv)
         return cls(**creation_dict)
-
-    def resolve(self):
-        option_sources = [s.expanded for s in self.sources]
-        pip_args = []
-        if self.pipenv.allow_prereleases:
-            pip_args.append('--pre')
-        pip_options = get_pip_options(pip_args, sources=option_sources)
-        finder = get_finder(sources=option_sources, pip_options=pip_options)
-        resolver = DependencyResolver.create(finder=finder, allow_prereleases=self.pipenv.allow_prereleases)
-        pkg_dict = {}
-        for pkg in self.dev_packages.requirements + self.packages.requirements:
-            pkg_dict[pkg.name] = pkg
-        resolver.resolve(list(pkg_dict.values()))
-        return resolver
 
     @property
     def dev_packages(self):
