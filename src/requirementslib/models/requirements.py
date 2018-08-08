@@ -37,6 +37,7 @@ from .utils import (
     parse_extras,
     is_pinned_requirement,
     format_requirement,
+    make_install_requirement,
 )
 from .._compat import (
     Link,
@@ -774,6 +775,12 @@ class Requirement(object):
         if hashes:
             args["hashes"] = hashes
         return cls(**args)
+
+    @classmethod
+    def from_metadata(cls, name, version, extras, markers):
+        return cls.from_line(format_requirement(make_install_requirement(
+            name, version, extras=extras, markers=markers,
+        )))
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
