@@ -319,7 +319,7 @@ def get_dependencies_from_wheel_cache(ireq):
     :rtype: set(str) or None
     """
 
-    if ireq.editable:
+    if ireq.editable or not is_pinned_requirement(ireq):
         return
     matches = WHEEL_CACHE.get(ireq.link, name_from_req(ireq.req))
     if matches:
@@ -339,9 +339,7 @@ def get_dependencies_from_json(ireq):
     :rtype: set(str) or None
     """
 
-    if ireq.editable:
-        return
-    if not is_pinned_requirement(ireq):
+    if ireq.editable or not is_pinned_requirement(ireq):
         return
 
     session = requests.session()
@@ -372,7 +370,7 @@ def get_dependencies_from_json(ireq):
     return set(req_iter)
 
 
-def get_dependencies_from_cache(dep):
+def get_dependencies_from_cache(ireq):
     """Retrieves dependencies for the given install requirement from the dependency cache.
 
     :param ireq: A single InstallRequirement
@@ -380,9 +378,10 @@ def get_dependencies_from_cache(dep):
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str) or None
     """
-
-    if not dep.editable and dep in DEPENDENCY_CACHE:
-        return set(DEPENDENCY_CACHE[dep])
+    if ireq.editable or not is_pinned_requirement(ireq):
+        return
+    if ireq in DEPENDENCY_CACHE:
+        return set(DEPENDENCY_CACHE[ireq])
     return
 
 
@@ -479,7 +478,7 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
                     except Exception:
                         pass
 
-    if not dep.editable and requirements is not None:
+    if not dep.editable and is_pinned_requirement(dep) and requirements is not None:
         DEPENDENCY_CACHE[dep] = list(requirements)
     return requirements
 
