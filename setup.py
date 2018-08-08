@@ -44,8 +44,6 @@ install_requires = [
     "requirements-parser",
     "requests",
     "toml",
-    "contoml",
-    "prettytoml",
     'modutil; python_version>="3.7"',
 ]
 
