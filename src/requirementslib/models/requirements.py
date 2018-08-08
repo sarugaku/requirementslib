@@ -9,7 +9,6 @@ import requirements
 
 from first import first
 from six.moves.urllib import parse as urllib_parse
-from packaging.markers import Marker
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import parse as parse_version

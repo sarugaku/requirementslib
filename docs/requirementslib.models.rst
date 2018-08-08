@@ -12,9 +12,7 @@ Submodules
 .. toctree::
 
    requirementslib.models.baserequirement
-   requirementslib.models.lockfile
    requirementslib.models.markers
-   requirementslib.models.pipfile
    requirementslib.models.requirements
    requirementslib.models.utils
 
