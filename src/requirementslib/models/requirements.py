@@ -9,12 +9,17 @@ import requirements
 
 from first import first
 from six.moves.urllib import parse as urllib_parse
+from packaging.specifiers import Specifier, SpecifierSet
+from packaging.utils import canonicalize_name
+from packaging.version import parse as parse_version
 
 from .baserequirement import BaseRequirement
+from .dependencies import (
+    get_dependencies, get_finder, find_all_matches,
+)
 from .markers import PipenvMarkers
 from .utils import (
     HASH_STRING,
-    extras_to_string,
     get_version,
     specs_to_string,
     validate_specifiers,
@@ -28,6 +33,8 @@ from .utils import (
     optional_instance_of,
     split_markers_from_line,
     parse_extras,
+    format_requirement,
+    make_install_requirement,
 )
 from .._compat import (
     Link,
@@ -36,7 +43,6 @@ from .._compat import (
     _strip_extras,
     InstallRequirement,
     Path,
-    urlparse,
     unquote,
     Wheel,
     FileNotFoundError,
@@ -47,7 +53,6 @@ from ..utils import (
     is_installable_file,
     is_vcs,
     is_valid_url,
-    pep423_name,
     get_converted_relative_path,
 )
 
@@ -63,7 +68,7 @@ class NamedRequirement(BaseRequirement):
     def get_requirement(self):
         from pkg_resources import RequirementParseError
         try:
-            req = first(requirements.parse("{0}{1}".format(pep423_name(self.name), self.version)))
+            req = first(requirements.parse("{0}{1}".format(canonicalize_name(self.name), self.version)))
         except RequirementParseError:
             raise RequirementError(
                 "Error parsing requirement: %s%s" % (self.name, self.version)
@@ -76,6 +81,7 @@ class NamedRequirement(BaseRequirement):
         specifiers = None
         if req.specifier:
             specifiers = specs_to_string(req.specs)
+        req.line = line
         return cls(name=req.name, version=specifiers, req=req)
 
     @classmethod
@@ -91,7 +97,7 @@ class NamedRequirement(BaseRequirement):
 
     @property
     def line_part(self):
-        return "{0}".format(pep423_name(self.name))
+        return "{0}".format(canonicalize_name(self.name))
 
     @property
     def pipfile_part(self):
@@ -678,7 +684,7 @@ class Requirement(object):
     @property
     def extras_as_pip(self):
         if self.extras:
-            return "[{0}]".format(",".join(self.extras))
+            return "[{0}]".format(",".join(sorted(self.extras)))
 
         return ""
 
@@ -702,10 +708,12 @@ class Requirement(object):
 
     @property
     def normalized_name(self):
-        return pep423_name(self.name)
+        return canonicalize_name(self.name)
 
     @classmethod
     def from_line(cls, line):
+        if isinstance(line, InstallRequirement):
+            line = format_requirement(line)
         hashes = None
         if "--hash=" in line:
             hashes = line.split(" --hash=")
@@ -746,8 +754,7 @@ class Requirement(object):
             if version:
                 name = "{0}{1}".format(name, version)
             r = NamedRequirement.from_line(line)
-        if markers:
-            r.req.markers = markers
+        r.req.markers = markers
         args = {
             "name": r.name,
             "vcs": vcs,
@@ -766,6 +773,16 @@ class Requirement(object):
         return cls(**args)
 
     @classmethod
+    def from_ireq(cls, ireq):
+        return cls.from_line(format_requirement(ireq))
+
+    @classmethod
+    def from_metadata(cls, name, version, extras, markers):
+        return cls.from_ireq(make_install_requirement(
+            name, version, extras=extras, markers=markers,
+        ))
+
+    @classmethod
     def from_pipfile(cls, name, pipfile):
         _pipfile = {}
         if hasattr(pipfile, "keys"):
@@ -782,6 +799,10 @@ class Requirement(object):
         markers = PipenvMarkers.from_pipfile(name, _pipfile)
         if markers:
             markers = str(markers)
+        r.req.markers = markers
+        extras = _pipfile.get("extras")
+        if extras:
+            r.req.extras = extras
         args = {
             "name": r.name,
             "vcs": vcs,
@@ -793,9 +814,12 @@ class Requirement(object):
         }
         if any(key in _pipfile for key in ["hash", "hashes"]):
             args["hashes"] = _pipfile.get("hashes", [pipfile.get("hash")])
-        return cls(**args)
+        cls_inst = cls(**args)
+        if cls_inst.is_named:
+            cls_inst.req.req.line = cls_inst.as_line()
+        return cls_inst
 
-    def as_line(self, sources=None):
+    def as_line(self, sources=None, include_hashes=True):
         """Format this requirement as a line in requirements.txt.
 
         If `sources` provided, it should be an sequence of mappings, containing
@@ -804,21 +828,49 @@ class Requirement(object):
         If `sources` is omitted or falsy, no index information will be included
         in the requirement line.
         """
-        line = "{0}{1}{2}{3}{4}".format(
+        parts = [
             self.req.line_part,
             self.extras_as_pip if not self.is_vcs else "",
             self.specifiers if self.specifiers else "",
             self.markers_as_pip,
-            self.hashes_as_pip,
-        )
+        ]
+        if include_hashes:
+            parts.append(self.hashes_as_pip)
         if sources and not (self.requirement.local_file or self.vcs):
             from ..utils import prepare_pip_source_args
 
             if self.index:
                 sources = [s for s in sources if s.get("name") == self.index]
             index_string = " ".join(prepare_pip_source_args(sources))
-            line = "{0} {1}".format(line, index_string)
+            parts.extend([" ", index_string])
+        line = "".join(parts)
         return line
+
+    def get_markers(self):
+        markers = self.markers
+        if markers:
+            fake_pkg = requirements.parse('fakepkg; {0}'.format(markers))
+            markers = fake_pkg.markers
+        return markers
+
+    def get_specifier(self):
+        return Specifier(self.specifiers)
+
+    def get_version(self):
+        return parse_version(self.get_specifier().version)
+
+    def get_requirement(self):
+        req_line = self.req.req.line
+        if req_line.startswith('-e '):
+            _, req_line = req_line.split(" ", 1)
+        import packaging.requirements
+        req = packaging.requirements.Requirement(self.name)
+        req.specifier = SpecifierSet(self.specifiers if self.specifiers else '')
+        if self.is_vcs or self.is_file_or_url:
+            req.url = self.req.link.url_without_fragment
+        req.marker = self.get_markers()
+        req.extras = set(self.extras) if self.extras else set()
+        return req
 
     @property
     def constraint_line(self):
@@ -839,6 +891,8 @@ class Requirement(object):
             if k in good_keys
         }
         name = self.name
+        if 'markers' in req_dict and req_dict['markers']:
+            req_dict['markers'] = req_dict['markers'].replace('"', "'")
         base_dict = {
             k: v
             for k, v in self.req.pipfile_part[name].items()
@@ -850,23 +904,64 @@ class Requirement(object):
             conflicts = [k for k in (conflicting_keys[1:],) if k in base_dict]
             for k in conflicts:
                 base_dict.pop(k)
-        if "hashes" in base_dict and len(base_dict["hashes"]) == 1:
-            base_dict["hash"] = base_dict.pop("hashes")[0]
+        if "hashes" in base_dict:
+            _hashes = base_dict.pop("hashes")
+            hashes = []
+            for _hash in _hashes:
+                try:
+                    hashes.append(_hash.as_line())
+                except AttributeError:
+                    hashes.append(_hash)
+            base_dict["hashes"] = sorted(hashes)
         if len(base_dict.keys()) == 1 and "version" in base_dict:
             base_dict = base_dict.get("version")
         return {name: base_dict}
+
+    def as_ireq(self, prepared=True):
+        ireq_line = self.req.req.line
+        if ireq_line.startswith("-e "):
+            ireq_line = ireq_line[len("-e "):]
+            ireq = InstallRequirement.from_editable(ireq_line)
+        else:
+            ireq = InstallRequirement.from_line(ireq_line)
+        if prepared and not ireq.req:
+            ireq.req = self.get_requirement()
+        return ireq
 
     @property
     def pipfile_entry(self):
         return self.as_pipfile().copy().popitem()
 
-    @property
-    def ireq(self):
-        if not self._ireq:
-            ireq_line = self.as_line()
-            if ireq_line.startswith("-e "):
-                ireq_line = ireq_line[len("-e ") :]
-                self._ireq = InstallRequirement.from_editable(ireq_line)
-            else:
-                self._ireq = InstallRequirement.from_line(ireq_line)
-        return self._ireq
+    def get_dependencies(self, sources=None):
+        """Retrieve the dependencies of the current requirement.
+
+        Retrieves dependencies of the current requirement.  This only works on pinned
+        requirements.
+
+        :param sources: Pipfile-formatted sources, defaults to None
+        :param sources: list[dict], optional
+        :return: A set of requirement strings of the dependencies of this requirement.
+        :rtype: set(str)
+        """
+        if not sources:
+            sources = [{
+                'name': 'pypi',
+                'url': 'https://pypi.org/simple',
+                'verify_ssl': True,
+            }]
+        return get_dependencies(self.as_ireq(prepared=False), sources=sources)
+
+    def find_all_matches(self, sources=None, finder=None):
+        """Find all matching candidates for the current requirement.
+
+        Consults a finder to find all matching candidates.
+
+        :param sources: Pipfile-formatted sources, defaults to None
+        :param sources: list[dict], optional
+        :return: A list of Installation Candidates
+        :rtype: list[ :class:`~pip._internal.index.InstallationCandidate` ]
+        """
+
+        if not finder:
+            finder = get_finder(sources=sources)
+        return find_all_matches(finder, self.as_ireq())

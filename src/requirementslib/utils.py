@@ -4,8 +4,11 @@ import logging
 import os
 import posixpath
 import six
-
+import stat
+import sys
+from contextlib import contextmanager
 from itertools import product
+from ._compat import Command, cmdoptions
 
 try:
     from urllib.parse import urlparse
@@ -166,16 +169,6 @@ def is_valid_url(url):
     return all([pieces.scheme, any([pieces.netloc, pieces.path])])
 
 
-def pep423_name(name):
-    """Normalize package name to PEP 423 style standard."""
-    name = name.lower()
-    if any(i not in name for i in (VCS_LIST + SCHEME_LIST)):
-        return name.replace("_", "-")
-
-    else:
-        return name
-
-
 def prepare_pip_source_args(sources, pip_args=None):
     if pip_args is None:
         pip_args = []
@@ -197,3 +190,89 @@ def prepare_pip_source_args(sources, pip_args=None):
                         ["--trusted-host", urlparse(source["url"]).hostname]
                     )
     return pip_args
+
+
+def fs_str(string):
+    """Encodes a string into the proper filesystem encoding
+
+    Borrowed from pip-tools
+    """
+    if isinstance(string, str):
+        return string
+    assert not isinstance(string, bytes)
+    return string.encode(_fs_encoding)
+
+
+_fs_encoding = sys.getfilesystemencoding() or sys.getdefaultencoding()
+
+
+class PipCommand(Command):
+    name = 'PipCommand'
+
+
+def get_pip_command():
+    # Use pip's parser for pip.conf management and defaults.
+    # General options (find_links, index_url, extra_index_url, trusted_host,
+    # and pre) are defered to pip.
+    import optparse
+    pip_command = PipCommand()
+    pip_command.parser.add_option(cmdoptions.no_binary())
+    pip_command.parser.add_option(cmdoptions.only_binary())
+    index_opts = cmdoptions.make_option_group(
+        cmdoptions.index_group,
+        pip_command.parser,
+    )
+    pip_command.parser.insert_option_group(0, index_opts)
+    pip_command.parser.add_option(optparse.Option('--pre', action='store_true', default=False))
+
+    return pip_command
+
+
+@contextmanager
+def temp_cd(path):
+    if not isinstance(path, Path):
+        path = Path(path)
+    orig_path = Path(os.curdir).absolute().as_posix()
+    os.chdir(path.as_posix())
+    try:
+        yield
+    finally:
+        os.chdir(orig_path)
+
+
+# Borrowed from Pew.
+# See https://github.com/berdario/pew/blob/master/pew/_utils.py#L82
+@contextmanager
+def temp_environ():
+    """Allow the ability to set os.environ temporarily"""
+    environ = dict(os.environ)
+    try:
+        yield
+
+    finally:
+        os.environ.clear()
+        os.environ.update(environ)
+
+
+def mkdir_p(newdir):
+    """works the way a good mkdir should :)
+        - already exists, silently complete
+        - regular file in the way, raise an exception
+        - parent directory(ies) does not exist, make them as well
+        From: http://code.activestate.com/recipes/82465-a-friendly-mkdir/
+    """
+    if os.path.isdir(newdir):
+        pass
+    elif os.path.isfile(newdir):
+        raise OSError(
+            "a file with the same name as the desired dir, '{0}', already exists.".format(
+                newdir
+            )
+        )
+
+    else:
+        head, tail = os.path.split(newdir)
+        if head and not os.path.isdir(head):
+            mkdir_p(head)
+        if tail:
+            os.mkdir(newdir)

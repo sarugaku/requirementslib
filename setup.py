@@ -35,14 +35,15 @@ long_description = read("README.rst")
 tests_require = ["pytest", "pytest-xdist"]
 install_requires = [
     "attrs",
+    "appdirs",
     "packaging",
-    "distlib",
     "first",
     "six",
-    'pathlib2; python_version<"3.4"',
+    'pathlib2; python_version<="3.4"',
+    'backports.weakref; python_version<"3.4"',
     "requirements-parser",
+    "requests",
     "toml",
-    "contoml",
     'modutil; python_version>="3.7"',
 ]
 
@@ -83,7 +84,7 @@ setup(
     description="A tool for converting between pip-style and pipfile requirements.",
     long_description=long_description,
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Build Tools",
@@ -94,6 +95,7 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
