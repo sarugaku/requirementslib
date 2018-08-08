@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import os
+from packaging.markers import Marker, Value, Variable, Op
+from packaging.specifiers import Specifier, SpecifierSet, InvalidSpecifier
+from packaging.version import parse as parse_version
 import six
+import sys
 from attr import validators
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from itertools import chain, groupby
 from first import first
+from operator import attrgetter
 from .._compat import Link, InstallRequirement, partialmethod
 from ..utils import SCHEME_LIST, VCS_LIST, is_star
 
@@ -419,3 +424,50 @@ def partialclass(cls, *args, **kwds):
         __init__ = partialmethod(cls.__init__, *args, **kwds)
 
     return NewCls
+
+
+def clean_requires_python(candidates):
+    """Get a cleaned list of all the candidates with valid specifiers in the `requires_python` attributes."""
+    all_candidates = []
+    sys_version = '.'.join(map(str, sys.version_info[:3]))
+    py_version = parse_version(os.environ.get('PIP_PYTHON_VERSION', sys_version))
+    for c in candidates:
+        from_location = attrgetter("location.requires_python")
+        requires_python = getattr(c, "requires_python", from_location(c))
+        if requires_python:
+            # Old specifications had people setting this to single digits
+            # which is effectively the same as '>=digit,<digit+1'
+            if requires_python.isdigit():
+                requires_python = '>={0},<{1}'.format(requires_python, int(requires_python) + 1)
+            try:
+                specifierset = SpecifierSet(requires_python)
+            except InvalidSpecifier:
+                continue
+            else:
+                if not specifierset.contains(py_version):
+                    continue
+        all_candidates.append(c)
+    return all_candidates
+
+
+def fix_requires_python_marker(requires_python):
+    from packaging.requirements import Requirement
+    marker_str = ''
+    if any(requires_python.startswith(op) for op in Specifier._operators.keys()):
+        spec_dict = defaultdict(set)
+        # We are checking first if we have  leading specifier operator
+        # if not, we can assume we should be doing a == comparison
+        specifierset = list(SpecifierSet(requires_python))
+        # for multiple specifiers, the correct way to represent that in
+        # a specifierset is `Requirement('fakepkg; python_version<"3.0,>=2.6"')`
+        marker_key = Variable('python_version')
+        for spec in specifierset:
+            operator, val = spec._spec
+            cleaned_val = Value(val).serialize().replace('"', "")
+            spec_dict[Op(operator).serialize()].add(cleaned_val)
+        marker_str = ' and '.join([
+            "{0}{1}'{2}'".format(marker_key.serialize(), op, ','.join(vals))
+            for op, vals in spec_dict.items()
+        ])
+    marker_to_add = Requirement('fakepkg; {0}'.format(marker_str)).marker
+    return marker_to_add
