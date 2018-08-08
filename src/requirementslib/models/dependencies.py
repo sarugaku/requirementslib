@@ -36,6 +36,8 @@ from ..utils import (
 )
 from .cache import CACHE_DIR, DependencyCache
 from .utils import (
+    clean_requires_python,
+    fix_requires_python_marker,
     format_requirement,
     full_groupby,
     is_pinned_requirement,
@@ -69,7 +71,7 @@ def find_all_matches(finder, ireq, pre=False):
     :return: A list of matching candidates.
     :rtype: list[:class:`~pip._internal.index.InstallationCandidate`]
     """
-    candidates = finder.find_all_candidates(ireq.name)
+    candidates = clean_requires_python(finder.find_all_candidates(ireq.name))
     versions = {candidate.version for candidate in candidates}
     allowed_versions = _get_filtered_versions(ireq, versions, pre)
     if not pre and not allowed_versions:
@@ -138,7 +140,7 @@ class AbstractDependency(object):
         markers = set(self.markers,) if self.markers else set()
         if other.markers:
             markers.add(other.markers)
-        new_markers = packaging.markers.Marker(" or ".join([str(m) for m in sorted(markers)))
+        new_markers = packaging.markers.Marker(" or ".join([str(m) for m in sorted(markers)]))
         new_ireq = copy.deepcopy(self.requirement.ireq)
         new_ireq.req.specifier = new_specifiers
         new_ireq.req.marker = new_markers
@@ -386,8 +388,8 @@ def get_dependencies_from_cache(dep):
 def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache=None):
     """Retrieves dependencies for the given install requirement from the pip resolver.
 
-    :param ireq: A single InstallRequirement
-    :type ireq: :class:`~pip._internal.req.req_install.InstallRequirement`
+    :param dep: A single InstallRequirement
+    :type dep: :class:`~pip._internal.req.req_install.InstallRequirement`
     :param sources: Pipfile-formatted sources, defaults to None
     :type sources: list[dict], optional
     :return: A set of dependency lines for generating new InstallRequirements.
@@ -405,10 +407,7 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
         os.environ['PIP_EXISTS_ACTION'] = 'i'
         resolver.require_hashes = False
         try:
-            requirements = set(
-                format_requirement(r)
-                for r in resolver._resolve_one(reqset, dep)
-            )
+            results = resolver._resolve_one(reqset, dep)
         except Exception:
             pass    # FIXME: Needs to bubble the exception somehow to the user.
         finally:
@@ -416,6 +415,24 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
                 wheel_cache.cleanup()
             except AttributeError:
                 pass
+        resolver_requires_python = getattr(resolver, "requires_python", None)
+        requires_python = getattr(reqset, "requires_python", resolver_requires_python)
+        if requires_python:
+            add_marker = fix_requires_python_marker(requires_python)
+            reqset.remove(dep)
+            if dep.req.marker:
+                dep.req.marker._markers.extend(['and',].extend(add_marker._markers))
+            else:
+                dep.req.marker = add_marker
+            reqset.add(dep)
+        requirements = set()
+        for r in results:
+            if requires_python:
+                if r.req.marker:
+                    r.req.marker._markers.extend(['and',].extend(add_marker._markers))
+                else:
+                    r.req.marker = add_marker
+            requirements.add(format_requirement(r))
     if not dep.editable and requirements is not None:
         DEPENDENCY_CACHE[dep] = list(requirements)
     return requirements

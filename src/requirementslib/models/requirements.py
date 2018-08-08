@@ -907,10 +907,7 @@ class Requirement(object):
                     hashes.append(_hash.as_line())
                 except AttributeError:
                     hashes.append(_hash)
-            if len(hashes) == 1:
-                base_dict["hash"] = hashes
-            else:
-                base_dict["hashes"] = hashes
+            base_dict["hashes"] = sorted(hashes)
         if len(base_dict.keys()) == 1 and "version" in base_dict:
             base_dict = base_dict.get("version")
         return {name: base_dict}
