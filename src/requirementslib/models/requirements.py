@@ -929,10 +929,6 @@ class Requirement(object):
     def pipfile_entry(self):
         return self.as_pipfile().copy().popitem()
 
-    @property
-    def ireq(self):
-        return self.as_ireq()
-
     def get_dependencies(self, sources=None):
         """Retrieve the dependencies of the current requirement.
 
@@ -966,12 +962,3 @@ class Requirement(object):
         if not finder:
             finder = get_finder(sources=sources)
         return find_all_matches(finder, self.as_ireq())
-
-    def merge_markers(self, markers):
-        if not isinstance(markers, Marker):
-            markers = Marker(markers)
-        _markers = set(Marker(self.ireq.markers)) if self.ireq.markers else set(markers)
-        _markers.add(markers)
-        new_markers = Marker(" or ".join([str(m) for m in sorted(_markers)]))
-        self.markers = str(new_markers)
-        self.req.req.markers = new_markers
