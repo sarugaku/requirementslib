@@ -164,7 +164,7 @@ class Lockfile(object):
             self.encoder = _LockFileEncoder(newlines=DEFAULT_NEWLINES)
         s = self.encoder.encode(self.as_dict())
         open_kwargs = {"newline": self.encoder.newlines, "encoding": "utf-8"}
-        with atomic_open_for_write(self.lockfile_path.as_posix(), **open_kwargs) as f:
+        with atomic_open_for_write(self.path.as_posix(), **open_kwargs) as f:
             f.write(s)
             # Write newline at end of document. GH-319.
             # Only need '\n' here; the file object handles the rest.
