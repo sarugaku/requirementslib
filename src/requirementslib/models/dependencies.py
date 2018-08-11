@@ -12,6 +12,7 @@ try:
 except ImportError:     # Old Pythons.
     JSONDecodeError = ValueError
 import packaging.markers
+import packaging.utils
 import packaging.version
 import requests
 
@@ -289,10 +290,10 @@ def get_dependencies(ireq, sources=None, parent=None):
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str)
     """
-
     if not isinstance(ireq, InstallRequirement):
         name = getattr(
-            ireq, "project_name", getattr(ireq, "project", getattr(ireq, "name", None))
+            ireq, "project_name",
+            getattr(ireq, "project", ireq.name),
         )
         version = getattr(ireq, "version")
         ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
@@ -380,9 +381,23 @@ def get_dependencies_from_cache(ireq):
     """
     if ireq.editable or not is_pinned_requirement(ireq):
         return
-    if ireq in DEPENDENCY_CACHE:
-        return set(DEPENDENCY_CACHE[ireq])
-    return
+    if ireq not in DEPENDENCY_CACHE:
+        return
+    cached = set(DEPENDENCY_CACHE[ireq])
+
+    # Preserving sanity: A package cannot depend on itself. If this ever
+    # happens (it does sometimes, I don't know why), there is probably
+    # something wrong with the cache.
+    deps = {
+        d.name for d in (InstallRequirement.from_line(d) for d in cached)
+        if (packaging.utils.canonicalize_name(d.name) !=
+            packaging.utils.canonicalize_name(ireq.name))
+    }
+    if len(deps) != len(cached):
+        del DEPENDENCY_CACHE[ireq]
+        return
+
+    return cached
 
 
 def is_python(section):
