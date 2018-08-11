@@ -125,6 +125,14 @@ class DependencyCache(object):
         self.cache[pkgname][pkgversion_and_extras] = values
         self.write_cache()
 
+    def __delitem__(self, ireq):
+        pkgname, pkgversion_and_extras = self.as_cache_key(ireq)
+        try:
+            del self.cache[pkgname][pkgversion_and_extras]
+        except KeyError:
+            return
+        self.write_cache()
+
     def get(self, ireq, default=None):
         pkgname, pkgversion_and_extras = self.as_cache_key(ireq)
         return self.cache.get(pkgname, {}).get(pkgversion_and_extras, default)
