@@ -343,6 +343,11 @@ def get_dependencies_from_json(ireq):
     if ireq.editable or not is_pinned_requirement(ireq):
         return
 
+    # It is technically possible to parse extras out of the JSON API's
+    # requirement format, but it is such a chore let's just use the simple API.
+    if ireq.extras:
+        return
+
     session = requests.session()
     version = str(ireq.req.specifier).lstrip("=")
 
@@ -356,8 +361,9 @@ def get_dependencies_from_json(ireq):
             return
         for requires in requires_dist:
             i = InstallRequirement.from_line(requires)
+            # See above, we don't handle requirements with extras.
+            # TODO: Implement better parsing logic avoid false-positives.
             if "extra" not in repr(i.markers):
-                # TODO: Get dependencies for matching extra.
                 yield format_requirement(i)
 
     if ireq not in DEPENDENCY_CACHE:
