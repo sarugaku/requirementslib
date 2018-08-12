@@ -12,9 +12,10 @@ try:
 except ImportError:     # Old Pythons.
     JSONDecodeError = ValueError
 import packaging.markers
-import packaging.utils
 import packaging.version
 import requests
+
+from packaging.utils import canonicalize_name
 
 from .._compat import (
     pip_version,
@@ -391,15 +392,19 @@ def get_dependencies_from_cache(ireq):
         return
     cached = set(DEPENDENCY_CACHE[ireq])
 
-    # Preserving sanity: A package cannot depend on itself. If this ever
-    # happens (it does sometimes, I don't know why), there is probably
-    # something wrong with the cache.
-    deps = {
-        d.name for d in (InstallRequirement.from_line(d) for d in cached)
-        if (packaging.utils.canonicalize_name(d.name) !=
-            packaging.utils.canonicalize_name(ireq.name))
-    }
-    if len(deps) != len(cached):
+    # Preserving sanity: Run through the cache and make sure every entry if
+    # valid. If this fails, something is wrong with the cache. Drop it.
+    try:
+        broken = False
+        for line in cached:
+            name = canonicalize_name(InstallRequirement.from_line(line).name)
+            if name == canonicalize_name(ireq.name):
+                broken = True   # A package cannot depend on itself.
+                break
+    except Exception:
+        broken = True
+
+    if broken:
         del DEPENDENCY_CACHE[ireq]
         return
 
