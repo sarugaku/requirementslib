@@ -332,6 +332,11 @@ def get_dependencies_from_wheel_cache(ireq):
     return
 
 
+def _marker_contains_extra(ireq):
+    # TODO: Implement better parsing logic avoid false-positives.
+    return "extra" in repr(ireq.markers)
+
+
 def get_dependencies_from_json(ireq):
     """Retrieves dependencies for the given install requirement from the json api.
 
@@ -363,8 +368,7 @@ def get_dependencies_from_json(ireq):
         for requires in requires_dist:
             i = InstallRequirement.from_line(requires)
             # See above, we don't handle requirements with extras.
-            # TODO: Implement better parsing logic avoid false-positives.
-            if "extra" not in repr(i.markers):
+            if not _marker_contains_extra(i):
                 yield format_requirement(i)
 
     if ireq not in DEPENDENCY_CACHE:
@@ -399,7 +403,7 @@ def get_dependencies_from_cache(ireq):
         for line in cached:
             ireq = InstallRequirement.from_line(line)
             name = canonicalize_name(ireq.name)
-            if "extra" in repr(ireq.markers):
+            if _marker_contains_extra(ireq):
                 broken = True   # The "extra =" marker breaks everything.
             elif name == canonicalize_name(ireq.name):
                 broken = True   # A package cannot depend on itself.
