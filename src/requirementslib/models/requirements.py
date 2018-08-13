@@ -678,7 +678,7 @@ class Requirement(object):
     @property
     def extras_as_pip(self):
         if self.extras:
-            return "[{0}]".format(",".join(self.extras))
+            return "[{0}]".format(",".join(sorted(self.extras)))
 
         return ""
 
@@ -795,7 +795,7 @@ class Requirement(object):
             args["hashes"] = _pipfile.get("hashes", [pipfile.get("hash")])
         return cls(**args)
 
-    def as_line(self, sources=None):
+    def as_line(self, sources=None, force_extras=False):
         """Format this requirement as a line in requirements.txt.
 
         If `sources` provided, it should be an sequence of mappings, containing
@@ -806,7 +806,7 @@ class Requirement(object):
         """
         line = "{0}{1}{2}{3}{4}".format(
             self.req.line_part,
-            self.extras_as_pip if not self.is_vcs else "",
+            self.extras_as_pip if force_extras or not self.is_vcs else "",
             self.specifiers if self.specifiers else "",
             self.markers_as_pip,
             self.hashes_as_pip,
@@ -822,7 +822,7 @@ class Requirement(object):
 
     @property
     def constraint_line(self):
-        return self.as_line()
+        return self.as_line(force_extras=True)
 
     def as_pipfile(self):
         good_keys = (
