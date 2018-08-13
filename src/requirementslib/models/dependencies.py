@@ -401,9 +401,9 @@ def get_dependencies_from_cache(ireq):
     try:
         broken = False
         for line in cached:
-            ireq = InstallRequirement.from_line(line)
-            name = canonicalize_name(ireq.name)
-            if _marker_contains_extra(ireq):
+            dep_ireq = InstallRequirement.from_line(line)
+            name = canonicalize_name(dep_ireq.name)
+            if _marker_contains_extra(dep_ireq):
                 broken = True   # The "extra =" marker breaks everything.
             elif name == canonicalize_name(ireq.name):
                 broken = True   # A package cannot depend on itself.
