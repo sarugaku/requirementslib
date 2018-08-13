@@ -436,7 +436,7 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
 
     finder = get_finder(sources=sources, pip_options=pip_options)
     if not wheel_cache:
-        wheel_cache = WheelCache(CACHE_DIR, FormatControl(None, None))
+        wheel_cache = WHEEL_CACHE
     dep.is_direct = True
     reqset = RequirementSet()
     reqset.add_requirement(dep)
@@ -588,10 +588,14 @@ def start_resolver(finder=None, wheel_cache=None):
 
     pip_command = get_pip_command()
     pip_options = get_pip_options(pip_command=pip_command)
+
     if not finder:
         finder = get_finder(pip_command=pip_command, pip_options=pip_options)
+
     if not wheel_cache:
-        wheel_cache = WheelCache(CACHE_DIR, FormatControl(None, None))
+        wheel_cache = WHEEL_CACHE
+    mkdir_p(wheel_cache.cache_dir)
+
     download_dir = PKGS_DOWNLOAD_DIR
     mkdir_p(download_dir)
     _build_dir = TemporaryDirectory(fs_str("build"))
