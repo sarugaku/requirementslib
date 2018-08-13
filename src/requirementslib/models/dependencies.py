@@ -457,7 +457,8 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
         try:
             results = resolver._resolve_one(reqset, dep)
         except Exception:
-            pass    # FIXME: Needs to bubble the exception somehow to the user.
+            # FIXME: Needs to bubble the exception somehow to the user.
+            results = []
         finally:
             try:
                 wheel_cache.cleanup()
