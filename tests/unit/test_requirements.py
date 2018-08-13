@@ -75,7 +75,9 @@ DEP_PIP_PAIRS = [
     (
         {'FooProject': {
             'version': '==1.2',
-            'hashes': ['sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'],
+            'hashes': [
+                'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+            ],
         }},
         'FooProject==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
     ),
@@ -83,7 +85,9 @@ DEP_PIP_PAIRS = [
         {'FooProject': {
             'version': '==1.2',
             'extras': ['stuff'],
-            'hashes': ['sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'],
+            'hashes': [
+                'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+            ],
         }},
         'FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
     ),
@@ -102,6 +106,26 @@ DEP_PIP_PAIRS = [
     )
 ]
 
+# These are legacy Pipfile formats we need to be able to do Pipfile -> pip,
+# but don't need to for pip -> Pipfile anymore.
+DEP_PIP_PAIRS_LEGACY_PIPFILE = [
+    (
+        {'FooProject': {
+            'version': '==1.2',
+            'hash': 'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+        }},
+        'FooProject==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+    ),
+    (
+        {'FooProject': {
+            'version': '==1.2',
+            'extras': ['stuff'],
+            'hash': 'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+        }},
+        'FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
+    ),
+]
+
 
 @pytest.mark.utils
 @pytest.mark.parametrize('expected, requirement', DEP_PIP_PAIRS)
@@ -114,7 +138,9 @@ def test_convert_from_pip(expected, requirement):
 
 
 @pytest.mark.to_line
-@pytest.mark.parametrize('requirement, expected', DEP_PIP_PAIRS)
+@pytest.mark.parametrize(
+    'requirement, expected', DEP_PIP_PAIRS + DEP_PIP_PAIRS_LEGACY_PIPFILE,
+)
 def test_convert_from_pipfile(requirement, expected):
     pkg_name = first(requirement.keys())
     pkg_pipfile = requirement[pkg_name]
