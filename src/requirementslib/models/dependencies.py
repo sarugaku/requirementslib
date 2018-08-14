@@ -594,10 +594,11 @@ def start_resolver(finder=None, wheel_cache=None):
 
     if not wheel_cache:
         wheel_cache = WHEEL_CACHE
-    mkdir_p(wheel_cache.cache_dir)
+    mkdir_p(fs_str(os.path.join(wheel_cache.cache_dir, "wheels")))
 
     download_dir = PKGS_DOWNLOAD_DIR
     mkdir_p(download_dir)
+
     _build_dir = TemporaryDirectory(fs_str("build"))
     _source_dir = TemporaryDirectory(fs_str("source"))
     preparer = partialclass(
