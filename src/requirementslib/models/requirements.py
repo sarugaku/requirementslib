@@ -930,6 +930,8 @@ class Requirement(object):
             ireq = InstallRequirement.from_editable(ireq_line)
         else:
             ireq = InstallRequirement.from_line(ireq_line)
+        ireq.extras = tuple(self.extras)
+        ireq.markers = self.markers
         return ireq
 
     @property
