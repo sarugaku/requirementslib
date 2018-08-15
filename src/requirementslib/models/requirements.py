@@ -928,7 +928,7 @@ class Requirement(object):
             ireq = InstallRequirement.from_editable(ireq_line)
         else:
             ireq = InstallRequirement.from_line(ireq_line)
-        ireq.extras = tuple(self.extras) if self.extras else None
+        ireq.extras = tuple(self.extras) if self.extras else ()
         ireq.markers = self.markers
         return ireq
 
