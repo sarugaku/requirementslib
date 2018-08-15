@@ -56,7 +56,7 @@ PKGS_DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, "pkgs"))
 WHEEL_DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, "wheels"))
 
 DEPENDENCY_CACHE = DependencyCache()
-WHEEL_CACHE = WheelCache(CACHE_DIR, FormatControl(None, None))
+WHEEL_CACHE = WheelCache(CACHE_DIR, FormatControl(set(), set()))
 
 
 def _get_filtered_versions(ireq, versions, prereleases):
