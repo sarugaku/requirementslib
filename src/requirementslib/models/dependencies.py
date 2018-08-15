@@ -58,6 +58,12 @@ WHEEL_DOWNLOAD_DIR = fs_str(os.path.join(CACHE_DIR, "wheels"))
 DEPENDENCY_CACHE = DependencyCache()
 WHEEL_CACHE = WheelCache(CACHE_DIR, FormatControl(None, None))
 
+DEFAULT_SOURCE = {
+    "url": "https://pypi.org/simple",
+    "name": "pypi",
+    "verify_ssl": True,
+}
+
 
 def _get_filtered_versions(ireq, versions, prereleases):
     return set(ireq.specifier.filter(versions, prereleases=prereleases))
@@ -302,8 +308,14 @@ def get_dependencies(ireq, sources=None, parent=None):
     getters = [
         get_dependencies_from_cache,
         get_dependencies_from_wheel_cache,
-        get_dependencies_from_json,
-        functools.partial(get_dependencies_from_index, pip_options=pip_options)
+        functools.partial(
+            get_dependencies_from_json,
+            sources=sources,
+        ),
+        functools.partial(
+            get_dependencies_from_index,
+            sources=sources, pip_options=pip_options,
+        ),
     ]
     for getter in getters:
         deps = getter(ireq)
@@ -337,7 +349,7 @@ def _marker_contains_extra(ireq):
     return "extra" in repr(ireq.markers)
 
 
-def get_dependencies_from_json(ireq):
+def get_dependencies_from_json(ireq, sources=None):
     """Retrieves dependencies for the given install requirement from the json api.
 
     :param ireq: A single InstallRequirement
@@ -354,32 +366,47 @@ def get_dependencies_from_json(ireq):
     if ireq.extras:
         return
 
+    if not sources:
+        sources = [DEFAULT_SOURCE]
+
+    url_prefixes = [
+        proc_url[:-7]   # Strip "/simple".
+        for proc_url in (
+            raw_url.rstrip("/")
+            for raw_url in (source.get("url", "") for source in sources)
+        )
+        if proc_url.endswith("/simple")
+    ]
+
     session = requests.session()
     version = str(ireq.req.specifier).lstrip("=")
 
-    def gen(ireq):
-        info = None
-        info = session.get(
-            "https://pypi.org/pypi/{0}/{1}/json".format(ireq.req.name, version)
-        ).json()["info"]
-        requires_dist = info.get("requires_dist", info.get("requires"))
-        if not requires_dist:   # The API can return None for this.
-            return
-        for requires in requires_dist:
-            i = InstallRequirement.from_line(requires)
-            # See above, we don't handle requirements with extras.
-            if not _marker_contains_extra(i):
-                yield format_requirement(i)
-
-    if ireq not in DEPENDENCY_CACHE:
+    dependencies = None
+    for prefix in url_prefixes:
+        url = "{prefix}/pypi/{name}/{version}/json".format(
+            prefix=prefix, name=canonicalize_name(ireq.req.name),
+            version=version,
+        )
         try:
-            reqs = DEPENDENCY_CACHE[ireq] = list(gen(ireq))
-        except JSONDecodeError:
-            return
-        req_iter = iter(reqs)
-    else:
-        req_iter = gen(ireq)
-    return set(req_iter)
+            response = session.get(url)
+            response.raise_for_status()
+            info = response.json()["info"]
+            dependencies = [
+                format_requirement(dep_ireq) for dep_ireq in (
+                    InstallRequirement.from_line(line)
+                    for line in info.get("requires_dist", info["requires"])
+                )
+                if not _marker_contains_extra(dep_ireq)
+            ]
+        except Exception:
+            continue
+        break
+
+    if dependencies is None:
+        return
+    if ireq not in DEPENDENCY_CACHE:
+        DEPENDENCY_CACHE[ireq] = dependencies
+    return set(dependencies)
 
 
 def get_dependencies_from_cache(ireq):
@@ -533,9 +560,7 @@ def get_pip_options(args=[], sources=None, pip_command=None):
     if not pip_command:
         pip_command = get_pip_command()
     if not sources:
-        sources = [
-            {"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}
-        ]
+        sources = [DEFAULT_SOURCE]
     mkdir_p(CACHE_DIR)
     pip_args = args
     pip_args = prepare_pip_source_args(sources, pip_args)
@@ -560,9 +585,7 @@ def get_finder(sources=None, pip_command=None, pip_options=None):
     if not pip_command:
         pip_command = get_pip_command()
     if not sources:
-        sources = [
-            {"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}
-        ]
+        sources = [DEFAULT_SOURCE]
     if not pip_options:
         pip_options = get_pip_options(sources=sources, pip_command=pip_command)
     session = pip_command._build_session(pip_options)
