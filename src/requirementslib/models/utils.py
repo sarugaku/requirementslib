@@ -261,10 +261,13 @@ def is_pinned_requirement(ireq):
     if ireq.editable:
         return False
 
-    if len(ireq.specifier._specs) != 1:
+    specifier = getattr(ireq, "specifier", None)
+    if not specifier:
+        return False
+    if len(specifier._specs) != 1:
         return False
 
-    op, version = first(ireq.specifier._specs)._spec
+    op, version = first(specifier._specs)._spec
     return (op == '==' or op == '===') and not version.endswith('.*')
 
 
