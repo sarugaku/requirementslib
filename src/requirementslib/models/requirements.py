@@ -13,7 +13,7 @@ from packaging.markers import Marker
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from six.moves.urllib import parse as urllib_parse
-from six.moves.urllib.urlparse import unquote
+from six.moves.urllib.parse import unquote
 
 from pip_shims.shims import (
     InstallRequirement, Link, Wheel, _strip_extras, parse_version, path_to_url,
@@ -23,7 +23,7 @@ from vistir.compat import FileNotFoundError, Path
 from vistir.path import get_converted_relative_path, is_valid_url
 
 from ..exceptions import RequirementError
-from ..utils import VCS_LIST, is_vcs
+from ..utils import VCS_LIST, is_vcs, is_installable_file
 from .baserequirement import BaseRequirement
 from .dependencies import (
     AbstractDependency, find_all_matches, get_abstract_dependencies,
@@ -32,7 +32,7 @@ from .dependencies import (
 from .markers import PipenvMarkers
 from .utils import (
     HASH_STRING, add_ssh_scheme_to_git_uri, build_vcs_link, filter_none,
-    format_requirement, get_version, is_installable_file,
+    format_requirement, get_version,
     is_pinned_requirement, make_install_requirement, optional_instance_of,
     parse_extras, specs_to_string, split_markers_from_line,
     split_vcs_method_from_uri, strip_ssh_from_git_uri, validate_path,
