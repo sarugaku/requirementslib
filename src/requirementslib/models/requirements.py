@@ -737,7 +737,6 @@ class Requirement(object):
         if markers:
             req_markers = init_requirement("fakepkg;{0}".format(markers))
         r.req.marker = getattr(req_markers, "marker", None)
-        r.req.specifier = SpecifierSet(specifiers)
         r.req.local_file = getattr(r.req, "local_file", False)
         args = {
             "name": r.name,
