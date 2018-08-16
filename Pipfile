@@ -6,15 +6,17 @@ name = "pypi"
 [packages]
 
 [dev-packages]
-black = "*"
+black = {version = "*", markers = "python_version>='3.6'"}
 "flake8" = "*"
 pytest = "*"
 sphinx = "*"
 twine = "*"
 invoke = "*"
 colorama = {version = "*", markers = "os_name == 'nt'"}
-requirementslib = {path = ".", editable = true}
+requirementslib = {path = ".", editable = true, extras = ["tests"]}
 sphinx_rtd_theme = "*"
+pip_shims = "*"
+"vistir" = "*"
 rope = "*"
 towncrier = "*"
 parver = "*"
@@ -33,9 +35,6 @@ upload = "inv release.upload-dists"
 tag = "inv release.tag-version"
 docs = "inv release.build-docs"
 mdchangelog = "pandoc CHANGELOG.rst -f rst -t markdown -o CHANGELOG.md"
-
-[requires]
-python_version = "3.7"
 
 [pipenv]
 allow_prereleases = true
