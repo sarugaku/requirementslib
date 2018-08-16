@@ -713,6 +713,7 @@ class Requirement(object):
         vcs = None
         # Installable local files and installable non-vcs urls are handled
         # as files, generally speaking
+        line_is_vcs = is_vcs(line)
         if is_installable_file(line) or (is_valid_url(line) and not is_vcs(line)):
             r = FileRequirement.from_line(line_with_prefix)
         elif is_vcs(line):
