@@ -32,23 +32,6 @@ if sys.argv[-1] == "publish":
 
 long_description = read("README.rst")
 
-tests_require = ["pytest", "pytest-xdist"]
-install_requires = [
-    "attrs",
-    "appdirs",
-    "packaging",
-    "first",
-    "six",
-    'pathlib2; python_version<="3.4"',
-    'backports.weakref; python_version<"3.4"',
-    "requirements-parser",
-    "requests",
-    "toml",
-    "contoml",
-    "prettytoml",
-    'modutil; python_version>="3.7"',
-]
-
 
 class UploadCommand(Command):
     """Support setup.py publish."""
@@ -83,36 +66,11 @@ class UploadCommand(Command):
 setup(
     name="requirementslib",
     version=find_version("src", "requirementslib", "__init__.py"),
-    description="A tool for converting between pip-style and pipfile requirements.",
-    long_description=long_description,
-    classifiers=[
-        "Development Status :: 5 - Production",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Topic :: Software Development :: Build Tools",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
-    ],
-    keywords="pipfile requirements.txt pip requirementslib",
-    author="Dan Ryan",
-    author_email="dan@danryan.co",
-    url="https://github.com/sarugaku/requirementslib",
-    license="MIT",
-    package_dir={"": "src"},
+    package_dir={'': 'src'},
     packages=find_packages(where="src", exclude=["docs*", "tests*", "tasks*"]),
-    package_data={"": ["LICENSE"], "src._vendor.pipfile": ["LICENSE.*"]},
-    entry_points={},
-    tests_require=tests_require,
-    zip_safe=False,
-    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*",
-    install_requires=install_requires,
-    extras_require={"testing": tests_require},
+
+    # I don't know how to specify an empty key in setup.cfg.
+    package_data={
+        '': ['LICENSE*', 'README*'], "src._vendor.pipfile": ["LICENSE.*"]
+    },
 )
