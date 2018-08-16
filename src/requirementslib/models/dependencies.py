@@ -6,49 +6,28 @@ import functools
 import os
 
 import attr
-from first import first
-try:
-    from json import JSONDecodeError
-except ImportError:     # Old Pythons.
-    JSONDecodeError = ValueError
 import packaging.markers
 import packaging.version
 import requests
 
+from first import first
 from packaging.utils import canonicalize_name
 
-from .._compat import (
-    pip_version,
-    FormatControl,
-    InstallRequirement,
-    PackageFinder,
-    RequirementPreparer,
-    RequirementSet,
-    RequirementTracker,
-    Resolver,
-    TemporaryDirectory,
-    WheelCache,
+from pip_shims import (
+    FormatControl, InstallRequirement, PackageFinder, RequirementPreparer,
+    RequirementSet, RequirementTracker, Resolver, WheelCache, pip_version
 )
-from ..utils import (
-    fs_str,
-    get_pip_command,
-    mkdir_p,
-    prepare_pip_source_args,
-    temp_cd,
-    temp_environ,
-)
+from vistir.compat import JSONDecodeError, TemporaryDirectory, fs_str
+from vistir.contextmanagers import cd, temp_environ
+from vistir.misc import partialclass
+from vistir.path import mkdir_p
+
+from ..utils import get_pip_command, prepare_pip_source_args
 from .cache import CACHE_DIR, DependencyCache
 from .utils import (
-    clean_requires_python,
-    fix_requires_python_marker,
-    format_requirement,
-    full_groupby,
-    is_pinned_requirement,
-    key_from_ireq,
-    make_install_requirement,
-    name_from_req,
-    partialclass,
-    version_from_ireq,
+    clean_requires_python, fix_requires_python_marker, format_requirement,
+    full_groupby, is_pinned_requirement, key_from_ireq,
+    make_install_requirement, name_from_req, version_from_ireq
 )
 
 
@@ -446,7 +425,7 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
         os.environ['PIP_EXISTS_ACTION'] = 'i'
         dist = None
         if dep.editable and not dep.prepared and not dep.req:
-            with temp_cd(dep.setup_py_dir):
+            with cd(dep.setup_py_dir):
                 from setuptools.dist import distutils
                 try:
                     dist = distutils.core.run_setup(dep.setup_py)

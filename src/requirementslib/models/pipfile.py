@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
+import os
+
 import attr
 import contoml
-import os
 import toml
+
+from first import first
+
+from vistir.compat import FileNotFoundError, Path
+
 from .._vendor import pipfile
+from ..exceptions import RequirementError
 from .dependencies import get_finder, get_pip_options
 from .requirements import Requirement
 from .resolvers import DependencyResolver
-from .utils import optional_instance_of, filter_none, format_requirement
-from .._compat import Path, FileNotFoundError
-from ..exceptions import RequirementError
-from first import first
+from .utils import filter_none, format_requirement, optional_instance_of
 
 
 @attr.s

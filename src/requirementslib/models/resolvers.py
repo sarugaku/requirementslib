@@ -1,16 +1,15 @@
 # -*- coding=utf-8 -*-
-import attr
 from contextlib import contextmanager
+
+import attr
 import six
+
+from pip_shims.shims import VcsSupport, Wheel
+
+from ..utils import log
 from .cache import HashCache
 from .dependencies import AbstractDependency, find_all_matches, get_finder
-from .utils import (
-    format_requirement,
-    version_from_ireq,
-    is_pinned_requirement,
-)
-from .._compat import Wheel, VcsSupport
-from ..utils import log
+from .utils import format_requirement, is_pinned_requirement, version_from_ireq
 
 
 class ResolutionError(Exception):

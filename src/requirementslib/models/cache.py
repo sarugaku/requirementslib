@@ -1,16 +1,24 @@
 from __future__ import absolute_import, print_function, unicode_literals
-from appdirs import user_cache_dir
-from contextlib import contextmanager
+
 import copy
 import hashlib
 import json
 import os
-import requests
 import sys
 
+from contextlib import contextmanager
+
+import requests
+
+from appdirs import user_cache_dir
 from packaging.requirements import Requirement
+
+from pip_shims.shims import (
+    FAVORITE_HASH, Link, SafeFileCache, VcsSupport, is_file_url, url_to_path
+)
+
 from .utils import as_tuple, key_from_req, lookup_table
-from .._compat import FAVORITE_HASH, is_file_url, Link, SafeFileCache, url_to_path, VcsSupport
+
 
 CACHE_DIR = os.environ.get("PIPENV_CACHE_DIR", user_cache_dir("pipenv"))
 
