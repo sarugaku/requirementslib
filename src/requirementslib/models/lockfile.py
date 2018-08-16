@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-import attr
+
 import json
 import os
+
+import attr
 import six
+
+from vistir.compat import FileNotFoundError, Path
+from vistir.contextmanagers import atomic_open_for_write
+
+from .pipfile import Hash, RequiresSection, Source
 from .requirements import Requirement
-from .pipfile import Source, Hash, RequiresSection
 from .utils import optional_instance_of
-from ..utils import atomic_open_for_write
-from .._compat import Path, FileNotFoundError
 
 
 DEFAULT_NEWLINES = u"\n"

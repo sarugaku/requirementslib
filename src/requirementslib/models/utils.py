@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 import os
-from packaging.markers import Marker, Value, Variable, Op
-from packaging.specifiers import Specifier, SpecifierSet, InvalidSpecifier
-from packaging.version import parse as parse_version
-import six
 import sys
-from attr import validators
-from collections import OrderedDict, defaultdict
+
+from collections import defaultdict
 from itertools import chain, groupby
-from first import first
 from operator import attrgetter
-from .._compat import Link, InstallRequirement, partialmethod
+
+import six
+
+from attr import validators
+from first import first
+from packaging.markers import InvalidMarker, Marker, Op, Value, Variable
+from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
+from packaging.version import parse as parse_version
+
+from pip_shims.shims import InstallRequirement, Link
+
 from ..utils import SCHEME_LIST, VCS_LIST, is_star
 
 
@@ -108,7 +114,6 @@ def add_ssh_scheme_to_git_uri(uri):
 
 def split_markers_from_line(line):
     """Split markers from a dependency"""
-    from packaging.markers import Marker, InvalidMarker
     if not any(line.startswith(uri_prefix) for uri_prefix in SCHEME_LIST):
         marker_sep = ";"
     else:
@@ -140,7 +145,6 @@ def validate_path(instance, attr_, value):
 
 
 def validate_markers(instance, attr_, value):
-    from packaging.markers import Marker, InvalidMarker
     try:
         Marker("{0}{1}".format(attr_.name, value))
     except InvalidMarker:
@@ -148,8 +152,6 @@ def validate_markers(instance, attr_, value):
 
 
 def validate_specifiers(instance, attr_, value):
-    from packaging.specifiers import SpecifierSet, InvalidSpecifier
-    from packaging.markers import InvalidMarker
     if value == "":
         return True
     try:
@@ -357,13 +359,6 @@ def lookup_table(values, key=None, keyval=None, unique=False, use_lists=False):
     return dict(lut)
 
 
-def dedup(iterable):
-    """Deduplicate an iterable object like iter(set(iterable)) but
-    order-reserved.
-    """
-    return iter(OrderedDict.fromkeys(iterable))
-
-
 def name_from_req(req):
     """Get the name of the requirement"""
     if hasattr(req, 'project_name'):
@@ -419,19 +414,6 @@ def version_from_ireq(ireq):
     """
 
     return first(ireq.specifier._specs).version
-
-
-def partialclass(cls, *args, **kwds):
-    """Returns a partially instantiated class
-
-    :return: A partial class instance
-    :rtype:
-    """
-
-    class NewCls(cls):
-        __init__ = partialmethod(cls.__init__, *args, **kwds)
-
-    return NewCls
 
 
 def clean_requires_python(candidates):
