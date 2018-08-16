@@ -45,7 +45,7 @@ def is_vcs(pipfile_entry):
     elif isinstance(pipfile_entry, six.string_types):
         if not is_valid_url(pipfile_entry) and pipfile_entry.startswith("git+"):
             from .models.utils import add_ssh_scheme_to_git_uri
-            pipfile_entry = add_ssh_scheme_to_git_uri
+            pipfile_entry = add_ssh_scheme_to_git_uri(pipfile_entry)
         parsed_entry = urlsplit(pipfile_entry)
         return parsed_entry.scheme in VCS_SCHEMES
     return False
