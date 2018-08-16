@@ -15,6 +15,7 @@ from first import first
 from packaging.markers import InvalidMarker, Marker, Op, Value, Variable
 from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 from packaging.version import parse as parse_version
+from packaging.requirements import Requirement
 
 from pip_shims.shims import InstallRequirement, Link
 
@@ -32,6 +33,19 @@ def filter_none(k, v):
 
 def optional_instance_of(cls):
     return validators.optional(validators.instance_of(cls))
+
+
+def init_requirement(name):
+    req = Requirement(name)
+    req.vcs = None
+    req.local_file = None
+    req.revision = None
+    req.path = None
+    req.url = None
+    req.extras = set()
+    req.marker = None
+    req.specifier = SpecifierSet('')
+    return req
 
 
 def extras_to_string(extras):
