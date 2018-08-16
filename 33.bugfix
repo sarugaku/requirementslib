@@ -1,1 +1,0 @@
-Fix pipfile parser bug which mishandled missing ``requires`` section.
