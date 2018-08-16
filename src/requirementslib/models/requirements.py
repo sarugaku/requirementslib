@@ -6,7 +6,6 @@ import hashlib
 import os
 
 import attr
-import requirements
 
 from first import first
 from packaging.markers import Marker
@@ -32,12 +31,13 @@ from .dependencies import (
 from .markers import PipenvMarkers
 from .utils import (
     HASH_STRING, add_ssh_scheme_to_git_uri, build_vcs_link, filter_none,
-    format_requirement, get_version,
+    format_requirement, get_version, init_requirement,
     is_pinned_requirement, make_install_requirement, optional_instance_of,
     parse_extras, specs_to_string, split_markers_from_line,
     split_vcs_method_from_uri, strip_ssh_from_git_uri, validate_path,
     validate_specifiers, validate_vcs
 )
+from packaging.requirements import Requirement as PackagingRequirement
 
 
 @attr.s
@@ -46,21 +46,16 @@ class NamedRequirement(BaseRequirement):
     version = attr.ib(validator=attr.validators.optional(validate_specifiers))
     req = attr.ib()
     extras = attr.ib(default=attr.Factory(list))
+    editable = attr.ib(default=False)
 
     @req.default
     def get_requirement(self):
-        from pkg_resources import RequirementParseError
-        try:
-            req = first(requirements.parse("{0}{1}".format(canonicalize_name(self.name), self.version)))
-        except RequirementParseError:
-            raise RequirementError(
-                "Error parsing requirement: %s%s" % (self.name, self.version)
-            )
+        req = init_requirement("{0}{1}".format(canonicalize_name(self.name), self.version))
         return req
 
     @classmethod
     def from_line(cls, line):
-        req = first(requirements.parse(line))
+        req = init_requirement(line)
         specifiers = None
         if req.specifier:
             specifiers = specs_to_string(req.specs)
@@ -75,7 +70,7 @@ class NamedRequirement(BaseRequirement):
         creation_args["name"] = name
         version = get_version(pipfile)
         creation_args["version"] = version
-        creation_args["req"] = first(requirements.parse("{0}{1}".format(name, version)))
+        creation_args["req"] = init_requirement("{0}{1}".format(name, version))
         return cls(**creation_args)
 
     @property
@@ -278,14 +273,18 @@ class FileRequirement(BaseRequirement):
 
     @req.default
     def get_requirement(self):
-        prefix = "-e " if self.editable else ""
-        line = "{0}{1}".format(prefix, self.link.url)
-        req = first(requirements.parse(line))
+        req = init_requirement(canonicalize_name(self.name))
+        req.editable = False
+        req.line = self.link.url_without_fragment
         if self.path and self.link and self.link.scheme.startswith("file"):
             req.local_file = True
             req.path = self.path
-            req.uri = None
+            req.url = None
             self._uri_scheme = "file"
+        else:
+            req.local_file = False
+            req.path = None
+            req.url = self.link.url
         if self.editable:
             req.editable = True
         req.link = self.link
@@ -462,17 +461,6 @@ class VCSRequirement(FileRequirement):
     name = attr.ib()
     link = attr.ib()
     req = attr.ib()
-    _INCLUDE_FIELDS = (
-        "editable",
-        "uri",
-        "path",
-        "vcs",
-        "ref",
-        "subdirectory",
-        "name",
-        "link",
-        "req",
-    )
 
     def __attrs_post_init__(self):
         split = urllib_parse.urlsplit(self.uri)
@@ -513,14 +501,18 @@ class VCSRequirement(FileRequirement):
 
     @req.default
     def get_requirement(self):
-        prefix = "-e " if self.editable else ""
-        line = "{0}{1}".format(prefix, self.link.url)
-        req = first(requirements.parse(line))
+        req = init_requirement(canonicalize_name(self.name))
+        req.editable = self.editable
+        req.url = self.link.url_without_fragment
+        req.line = self.link.url
+        if self.ref:
+            req.revision = self.ref
+        if self.extras:
+            req.extras = set(self.extras)
+        req.vcs = self.vcs
         if self.path and self.link and self.link.scheme.startswith("file"):
             req.local_file = True
             req.path = self.path
-        if self.editable:
-            req.editable = True
         req.link = self.link
         if (
             self.uri != unquote(self.link.url_without_fragment)
@@ -535,12 +527,6 @@ class VCSRequirement(FileRequirement):
                 "dependencies. Please install remote dependency "
                 "in the form {0}#egg=<package-name>.".format(req.uri)
             )
-        if self.vcs and not req.vcs:
-            req.vcs = self.vcs
-        if self.ref and not req.revision:
-            req.revision = self.ref
-        if self.extras and not req.extras:
-            req.extras = self.extras
         return req
 
     @classmethod
@@ -601,7 +587,7 @@ class VCSRequirement(FileRequirement):
     def line_part(self):
         """requirements.txt compatible line part sans-extras"""
         if self.req:
-            return self.req.line
+            base = self.req.line
         base = "{0}".format(self.link)
         if self.editable:
             base = "-e {0}".format(base)
@@ -641,7 +627,6 @@ class Requirement(object):
     extras = attr.ib(default=attr.Factory(list))
     abstract_dep = attr.ib(default=None)
     _ireq = None
-    _INCLUDE_FIELDS = ("name", "markers", "index", "editable", "hashes", "extras")
 
     @name.default
     def get_name(self):
@@ -675,7 +660,7 @@ class Requirement(object):
     @specifiers.default
     def get_specifiers(self):
         if self.req and self.req.req.specifier:
-            return specs_to_string(self.req.req.specs)
+            return specs_to_string(self.req.req._specs)
         return
 
     @property
@@ -706,6 +691,7 @@ class Requirement(object):
         line = line.split(" ", 1)[1] if editable else line
         line, markers = split_markers_from_line(line)
         line, extras = _strip_extras(line)
+        specifiers = ''
         if extras:
             extras = parse_extras(extras)
         line = line.strip('"').strip("'").strip()
@@ -714,9 +700,9 @@ class Requirement(object):
         # Installable local files and installable non-vcs urls are handled
         # as files, generally speaking
         line_is_vcs = is_vcs(line)
-        if is_installable_file(line) or (is_valid_url(line) and not is_vcs(line)):
+        if is_installable_file(line) or (is_valid_url(line) and not line_is_vcs):
             r = FileRequirement.from_line(line_with_prefix)
-        elif is_vcs(line):
+        elif line_is_vcs:
             r = VCSRequirement.from_line(line_with_prefix, extras=extras)
             vcs = r.vcs
         elif line == "." and not is_installable_file(line):
@@ -732,6 +718,7 @@ class Requirement(object):
                 spec_idx = min((line.index(match) for match in spec_matches))
                 name = line[:spec_idx]
                 version = line[spec_idx:]
+                specifiers = version
             if not extras:
                 name, extras = _strip_extras(name)
                 if extras:
@@ -739,7 +726,12 @@ class Requirement(object):
             if version:
                 name = "{0}{1}".format(name, version)
             r = NamedRequirement.from_line(line)
-        r.req.markers = markers
+        req_markers = None
+        if markers:
+            req_markers = Requirement("fakepkg;{0}".format(markers))
+        r.req.marker = req_markers.marker if req_markers else None
+        r.req.specifier = SpecifierSet(specifiers)
+        r.req.local_file = getattr(r.req, "local_file", False)
         args = {
             "name": r.name,
             "vcs": vcs,
@@ -749,7 +741,7 @@ class Requirement(object):
         }
         if extras:
             args["extras"] = extras
-            r.req.extras = extras
+            r.req.extras = set(extras) if extras else set()
             r.extras = extras
         elif r.extras:
             args["extras"] = r.extras
@@ -782,17 +774,19 @@ class Requirement(object):
         else:
             r = NamedRequirement.from_pipfile(name, pipfile)
         markers = PipenvMarkers.from_pipfile(name, _pipfile)
+        req_markers = None
         if markers:
-            markers = str(markers)
-        r.req.markers = markers
+            _markers = str(markers)
+            req_markers = Requirement("fakepkg;{0}".format(_markers))
+        r.req.marker = req_markers.marker if req_markers else None
+        r.req.specifier = SpecifierSet(_pipfile["version"])
         extras = _pipfile.get("extras")
-        if extras:
-            r.req.extras = extras
+        r.req.extras = set(extras) if extras else set()
         args = {
             "name": r.name,
             "vcs": vcs,
             "req": r,
-            "markers": markers,
+            "markers": _markers,
             "extras": _pipfile.get("extras"),
             "editable": _pipfile.get("editable", False),
             "index": _pipfile.get("index"),
@@ -834,7 +828,7 @@ class Requirement(object):
     def get_markers(self):
         markers = self.markers
         if markers:
-            fake_pkg = requirements.parse('fakepkg; {0}'.format(markers))
+            fake_pkg = PackagingRequirement('fakepkg; {0}'.format(markers))
             markers = fake_pkg.markers
         return markers
 
@@ -848,8 +842,8 @@ class Requirement(object):
         req_line = self.req.req.line
         if req_line.startswith('-e '):
             _, req_line = req_line.split(" ", 1)
-        import packaging.requirements
-        req = packaging.requirements.Requirement(self.name)
+        req = init_requirement(self.name)
+        req.line = req_line
         req.specifier = SpecifierSet(self.specifiers if self.specifiers else '')
         if self.is_vcs or self.is_file_or_url:
             req.url = self.req.link.url_without_fragment
@@ -903,14 +897,18 @@ class Requirement(object):
         return {name: base_dict}
 
     def as_ireq(self):
-        ireq_line = self.req.req.line
-        if ireq_line.startswith("-e "):
-            ireq_line = ireq_line[len("-e "):]
+        ireq_line = self.as_line()
+        if self.editable or self.req.editable:
+            if ireq_line.startswith("-e "):
+                ireq_line = ireq_line[len("-e "):]
             ireq = InstallRequirement.from_editable(ireq_line)
         else:
             ireq = InstallRequirement.from_line(ireq_line)
-        ireq.extras = tuple(self.extras) if self.extras else ()
-        ireq.markers = self.markers
+        if not getattr(ireq, "req", None):
+            ireq.req = self.req.req
+        else:
+            ireq.req.extras = self.req.req.extras
+            ireq.req.marker = self.req.req.marker
         return ireq
 
     @property
@@ -984,4 +982,4 @@ class Requirement(object):
         _markers.add(markers)
         new_markers = Marker(" or ".join([str(m) for m in sorted(_markers)]))
         self.markers = str(new_markers)
-        self.req.req.markers = new_markers
+        self.req.req.marker = new_markers
