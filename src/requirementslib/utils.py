@@ -1,27 +1,27 @@
 # -*- coding=utf-8 -*-
 from __future__ import absolute_import
+
 import logging
 import os
-import posixpath
+
 import six
-import stat
-import sys
-from contextlib import contextmanager
-from itertools import product
-from ._compat import Command, cmdoptions
 
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from six.moves.urllib.parse import urlparse, urlsplit
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pip_shims import (
+    Command, VcsSupport, cmdoptions, is_archive_file, is_installable_dir
+)
+from vistir.compat import Path
+from vistir.path import is_valid_url
 
+
+VCS_ACCESS = VcsSupport()
 VCS_LIST = ("git", "svn", "hg", "bzr")
+VCS_SCHEMES = []
 SCHEME_LIST = ("http://", "https://", "ftp://", "ftps://", "file://")
+
+if not VCS_SCHEMES:
+    VCS_SCHEMES = VcsSupport().all_schemes
 
 
 def setup_logger():
@@ -43,72 +43,12 @@ def is_vcs(pipfile_entry):
         return any(key for key in pipfile_entry.keys() if key in VCS_LIST)
 
     elif isinstance(pipfile_entry, six.string_types):
-        vcs_starts = product(
-            ("git+", "hg+", "svn+", "bzr+"),
-            ("file", "ssh", "https", "http", "svn", "sftp", ""),
-        )
-
-        return next(
-            (
-                v
-                for v in (
-                    pipfile_entry.startswith("{0}{1}".format(vcs, scheme))
-                    for vcs, scheme in vcs_starts
-                )
-                if v
-            ),
-            False,
-        )
-
+        if not is_valid_url(pipfile_entry) and pipfile_entry.startswith("git+"):
+            from .models.utils import add_ssh_scheme_to_git_uri
+            pipfile_entry = add_ssh_scheme_to_git_uri
+        parsed_entry = urlsplit(pipfile_entry)
+        return parsed_entry.scheme in VCS_SCHEMES
     return False
-
-
-def check_for_unc_path(path):
-    """ Checks to see if a pathlib `Path` object is a unc path or not"""
-    if (
-        os.name == "nt"
-        and len(path.drive) > 2
-        and not path.drive[0].isalpha()
-        and path.drive[1] != ":"
-    ):
-        return True
-    else:
-        return False
-
-
-def get_converted_relative_path(path, relative_to=os.curdir):
-    """Convert `path` to be relative.
-
-    Given a vague relative path, return the path relative to the given
-    location.
-
-    This performs additional conversion to ensure the result is of POSIX form,
-    and starts with `./`, or is precisely `.`.
-    """
-
-    start_path = Path(relative_to)
-    try:
-        start = start_path.resolve()
-    except OSError:
-        start = start_path.absolute()
-
-    # check if there is a drive letter or mount point
-    # if it is a mountpoint use the original absolute path
-    # instead of the unc path
-    if check_for_unc_path(start):
-        start = start_path.absolute()
-
-    path = start.joinpath(path).relative_to(start)
-
-    # check and see if the path that was passed into the function is a UNC path
-    # and raise value error if it is not.
-    if check_for_unc_path(path):
-        raise ValueError("The path argument does not currently accept UNC paths")
-
-    relpath_s = posixpath.normpath(path.as_posix())
-    if not (relpath_s == "." or relpath_s.startswith("./")):
-        relpath_s = posixpath.join(".", relpath_s)
-    return relpath_s
 
 
 def multi_split(s, split):
@@ -124,7 +64,6 @@ def is_star(val):
 
 def is_installable_file(path):
     """Determine if a path can potentially be installed"""
-    from ._compat import is_installable_dir, is_archive_file
     from packaging import specifiers
 
     if hasattr(path, "keys") and any(
@@ -163,12 +102,6 @@ def is_installable_file(path):
     return False
 
 
-def is_valid_url(url):
-    """Checks if a given string is an url"""
-    pieces = urlparse(url)
-    return all([pieces.scheme, any([pieces.netloc, pieces.path])])
-
-
 def prepare_pip_source_args(sources, pip_args=None):
     if pip_args is None:
         pip_args = []
@@ -192,68 +125,6 @@ def prepare_pip_source_args(sources, pip_args=None):
     return pip_args
 
 
-@contextmanager
-def atomic_open_for_write(target, binary=False, newline=None, encoding=None):
-    """Atomically open `target` for writing.
-
-    This is based on Lektor's `atomic_open()` utility, but simplified a lot
-    to handle only writing, and skip many multi-process/thread edge cases
-    handled by Werkzeug.
-
-    How this works:
-
-    * Create a temp file (in the same directory of the actual target), and
-      yield for surrounding code to write to it.
-    * If some thing goes wrong, try to remove the temp file. The actual target
-      is not touched whatsoever.
-    * If everything goes well, close the temp file, and replace the actual
-      target with this new file.
-    """
-    from ._compat import NamedTemporaryFile
-
-    mode = "w+b" if binary else "w"
-    f = NamedTemporaryFile(
-        dir=os.path.dirname(target),
-        prefix=".__atomic-write",
-        mode=mode,
-        encoding=encoding,
-        newline=newline,
-        delete=False,
-    )
-    # set permissions to 0644
-    os.chmod(f.name, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
-    try:
-        yield f
-    except BaseException:
-        f.close()
-        try:
-            os.remove(f.name)
-        except OSError:
-            pass
-        raise
-    else:
-        f.close()
-        try:
-            os.remove(target)  # This is needed on Windows.
-        except OSError:
-            pass
-        os.rename(f.name, target)  # No os.replace() on Python 2.
-
-
-def fs_str(string):
-    """Encodes a string into the proper filesystem encoding
-
-    Borrowed from pip-tools
-    """
-    if isinstance(string, str):
-        return string
-    assert not isinstance(string, bytes)
-    return string.encode(_fs_encoding)
-
-
-_fs_encoding = sys.getfilesystemencoding() or sys.getdefaultencoding()
-
-
 class PipCommand(Command):
     name = 'PipCommand'
 
@@ -274,53 +145,3 @@ def get_pip_command():
     pip_command.parser.add_option(optparse.Option('--pre', action='store_true', default=False))
 
     return pip_command
-
-
-@contextmanager
-def temp_cd(path):
-    if not isinstance(path, Path):
-        path = Path(path)
-    orig_path = Path(os.curdir).absolute().as_posix()
-    os.chdir(path.as_posix())
-    try:
-        yield
-    finally:
-        os.chdir(orig_path)
-
-
-# Borrowed from Pew.
-# See https://github.com/berdario/pew/blob/master/pew/_utils.py#L82
-@contextmanager
-def temp_environ():
-    """Allow the ability to set os.environ temporarily"""
-    environ = dict(os.environ)
-    try:
-        yield
-
-    finally:
-        os.environ.clear()
-        os.environ.update(environ)
-
-
-def mkdir_p(newdir):
-    """works the way a good mkdir should :)
-        - already exists, silently complete
-        - regular file in the way, raise an exception
-        - parent directory(ies) does not exist, make them as well
-        From: http://code.activestate.com/recipes/82465-a-friendly-mkdir/
-    """
-    if os.path.isdir(newdir):
-        pass
-    elif os.path.isfile(newdir):
-        raise OSError(
-            "a file with the same name as the desired dir, '{0}', already exists.".format(
-                newdir
-            )
-        )
-
-    else:
-        head, tail = os.path.split(newdir)
-        if head and not os.path.isdir(head):
-            mkdir_p(head)
-        if tail:
-            os.mkdir(newdir)

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import attr
-from packaging.markers import Marker, InvalidMarker
-from .baserequirement import BaseRequirement
-from .utils import validate_markers, filter_none
+
+from packaging.markers import InvalidMarker, Marker
+
 from ..exceptions import RequirementError
+from .baserequirement import BaseRequirement
+from .utils import filter_none, validate_markers
 
 
 @attr.s

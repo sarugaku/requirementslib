@@ -1,62 +1,42 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import attr
 import collections
 import hashlib
 import os
+
+import attr
 import requirements
 
 from first import first
-from six.moves.urllib import parse as urllib_parse
 from packaging.markers import Marker
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.utils import canonicalize_name
-from packaging.version import parse as parse_version
+from six.moves.urllib import parse as urllib_parse
+from six.moves.urllib.urlparse import unquote
 
+from pip_shims.shims import (
+    InstallRequirement, Link, Wheel, _strip_extras, parse_version, path_to_url,
+    url_to_path
+)
+from vistir.compat import FileNotFoundError, Path
+from vistir.path import get_converted_relative_path, is_valid_url
+
+from ..exceptions import RequirementError
+from ..utils import VCS_LIST, is_vcs
 from .baserequirement import BaseRequirement
 from .dependencies import (
-    get_dependencies, get_finder, find_all_matches,
-    get_abstract_dependencies, AbstractDependency,
+    AbstractDependency, find_all_matches, get_abstract_dependencies,
+    get_dependencies, get_finder
 )
 from .markers import PipenvMarkers
 from .utils import (
-    HASH_STRING,
-    get_version,
-    specs_to_string,
-    validate_specifiers,
-    validate_path,
-    validate_vcs,
-    build_vcs_link,
-    add_ssh_scheme_to_git_uri,
-    strip_ssh_from_git_uri,
-    split_vcs_method_from_uri,
-    filter_none,
-    optional_instance_of,
-    split_markers_from_line,
-    parse_extras,
-    is_pinned_requirement,
-    format_requirement,
-    make_install_requirement,
-)
-from .._compat import (
-    Link,
-    path_to_url,
-    url_to_path,
-    _strip_extras,
-    InstallRequirement,
-    Path,
-    unquote,
-    Wheel,
-    FileNotFoundError,
-)
-from ..exceptions import RequirementError
-from ..utils import (
-    VCS_LIST,
-    is_installable_file,
-    is_vcs,
-    is_valid_url,
-    get_converted_relative_path,
+    HASH_STRING, add_ssh_scheme_to_git_uri, build_vcs_link, filter_none,
+    format_requirement, get_version, is_installable_file,
+    is_pinned_requirement, make_install_requirement, optional_instance_of,
+    parse_extras, specs_to_string, split_markers_from_line,
+    split_vcs_method_from_uri, strip_ssh_from_git_uri, validate_path,
+    validate_specifiers, validate_vcs
 )
 
 
