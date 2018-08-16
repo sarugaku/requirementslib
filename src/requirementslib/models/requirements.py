@@ -776,7 +776,7 @@ class Requirement(object):
         markers = PipenvMarkers.from_pipfile(name, _pipfile)
         req_markers = None
         if markers:
-            _markers = str(markers)
+            markers = str(markers)
             req_markers = Requirement("fakepkg;{0}".format(_markers))
         r.req.marker = req_markers.marker if req_markers else None
         r.req.specifier = SpecifierSet(_pipfile["version"])
@@ -786,7 +786,7 @@ class Requirement(object):
             "name": r.name,
             "vcs": vcs,
             "req": r,
-            "markers": _markers,
+            "markers": markers,
             "extras": _pipfile.get("extras"),
             "editable": _pipfile.get("editable", False),
             "index": _pipfile.get("index"),
