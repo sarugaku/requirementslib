@@ -1,6 +1,6 @@
 environment:
   matrix:
-    # Unit and integration tests. 
+    # Unit and integration tests.
     - PYTHON: "C:\\Python27"
       RUN_INTEGRATION_TESTS: "True"
     - PYTHON: "C:\\Python36-x64"
@@ -13,8 +13,8 @@ environment:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python --version"
-  - "python -m pip install --upgrade pip pytest pytest-xdist"
-  - "pip install -e ."
+  - "python -m pip install --upgrade pip"
+  - "python -m pip install -e .[tests]"
 
 build: off
 
@@ -23,4 +23,4 @@ test_script:
   - "subst T: %TEMP%"
   - "set TEMP=T:\\"
   - "set TMP=T:\\"
-  - "py.test -n auto -v tests"
+  - "python -m pytest -n auto -v tests"
