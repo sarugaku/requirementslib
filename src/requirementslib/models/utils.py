@@ -15,8 +15,9 @@ from first import first
 from packaging.markers import InvalidMarker, Marker, Op, Value, Variable
 from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 from packaging.version import parse as parse_version
-from packaging.requirements import Requirement
+from pkg_resources import Requirement
 
+from vistir.misc import dedup
 from pip_shims.shims import InstallRequirement, Link
 
 from ..utils import SCHEME_LIST, VCS_LIST, is_star
@@ -36,15 +37,11 @@ def optional_instance_of(cls):
 
 
 def init_requirement(name):
-    req = Requirement(name)
+    req = Requirement.parse(name)
     req.vcs = None
     req.local_file = None
     req.revision = None
     req.path = None
-    req.url = None
-    req.extras = set()
-    req.marker = None
-    req.specifier = SpecifierSet('')
     return req
 
 
@@ -61,11 +58,8 @@ def extras_to_string(extras):
 
 def parse_extras(extras_str):
     """Turn a string of extras into a parsed extras list"""
-    import requirements
-    extras = first(
-        requirements.parse("fakepkg{0}".format(extras_to_string(extras_str)))
-    ).extras
-    return extras
+    extras = Requirement("fakepkg{0}".format(extras_to_string(extras_str))).extras
+    return sorted(dedup([extra.lower() for extra in extras]))
 
 
 def specs_to_string(specs):
@@ -73,7 +67,11 @@ def specs_to_string(specs):
     if specs:
         if isinstance(specs, six.string_types):
             return specs
-        return ",".join(["".join(spec) for spec in specs])
+        try:
+            extras = ",".join(["".join(spec) for spec in specs])
+        except TypeError:
+            extras = ",".join(["".join(spec._spec) for spec in specs])
+        return extras
     return ""
 
 
@@ -455,7 +453,6 @@ def clean_requires_python(candidates):
 
 
 def fix_requires_python_marker(requires_python):
-    from packaging.requirements import Requirement
     marker_str = ''
     if any(requires_python.startswith(op) for op in Specifier._operators.keys()):
         spec_dict = defaultdict(set)

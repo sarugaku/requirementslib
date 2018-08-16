@@ -19,6 +19,7 @@ from pip_shims.shims import (
     url_to_path
 )
 from vistir.compat import FileNotFoundError, Path
+from vistir.misc import dedup
 from vistir.path import get_converted_relative_path, is_valid_url
 
 from ..exceptions import RequirementError
@@ -58,7 +59,7 @@ class NamedRequirement(BaseRequirement):
         req = init_requirement(line)
         specifiers = None
         if req.specifier:
-            specifiers = specs_to_string(req.specs)
+            specifiers = specs_to_string(req.specifier)
         req.line = line
         return cls(name=req.name, version=specifiers, req=req)
 
@@ -237,7 +238,7 @@ class FileRequirement(BaseRequirement):
             except (FileNotFoundError, IOError) as e:
                 dist = None
             except Exception as e:
-                from .._compat import InstallRequirement, make_abstract_dist
+                from pip_shims.shims import InstallRequirement, make_abstract_dist
 
                 try:
                     if not isinstance(Path, self.path):
@@ -284,7 +285,7 @@ class FileRequirement(BaseRequirement):
         else:
             req.local_file = False
             req.path = None
-            req.url = self.link.url
+            req.url = self.link.url_without_fragment
         if self.editable:
             req.editable = True
         req.link = self.link
@@ -501,14 +502,22 @@ class VCSRequirement(FileRequirement):
 
     @req.default
     def get_requirement(self):
+        name = self.name or self.link.egg_fragment
+        url = self.uri or self.link.url_without_fragment
+        if not name:
+            raise ValueError(
+                "pipenv requires an #egg fragment for version controlled "
+                "dependencies. Please install remote dependency "
+                "in the form {0}#egg=<package-name>.".format(url)
+            )
         req = init_requirement(canonicalize_name(self.name))
         req.editable = self.editable
-        req.url = self.link.url_without_fragment
+        req.url = self.uri
         req.line = self.link.url
         if self.ref:
             req.revision = self.ref
         if self.extras:
-            req.extras = set(self.extras)
+            req.extras = self.extras
         req.vcs = self.vcs
         if self.path and self.link and self.link.scheme.startswith("file"):
             req.local_file = True
@@ -520,13 +529,7 @@ class VCSRequirement(FileRequirement):
             and "git+git@" in self.uri
         ):
             req.line = self.uri
-            req.uri = self.uri
-        if not req.name:
-            raise ValueError(
-                "pipenv requires an #egg fragment for version controlled "
-                "dependencies. Please install remote dependency "
-                "in the form {0}#egg=<package-name>.".format(req.uri)
-            )
+            req.url = self.uri
         return req
 
     @classmethod
@@ -539,6 +542,10 @@ class VCSRequirement(FileRequirement):
             if k in pipfile
         ]
         for key in pipfile_keys:
+            if key == "extras":
+                extras = pipfile.get(key, None)
+                if extras:
+                    pipfile[key] = sorted(dedup([extra.lower() for extra in extras]))
             if key in VCS_LIST:
                 creation_args["vcs"] = key
                 composed_uri = add_ssh_scheme_to_git_uri(
@@ -653,14 +660,14 @@ class Requirement(object):
     @property
     def extras_as_pip(self):
         if self.extras:
-            return "[{0}]".format(",".join(sorted(self.extras)))
+            return "[{0}]".format(",".join(sorted([extra.lower() for extra in self.extras])))
 
         return ""
 
     @specifiers.default
     def get_specifiers(self):
         if self.req and self.req.req.specifier:
-            return specs_to_string(self.req.req._specs)
+            return specs_to_string(self.req.req.specifier)
         return
 
     @property
@@ -728,8 +735,8 @@ class Requirement(object):
             r = NamedRequirement.from_line(line)
         req_markers = None
         if markers:
-            req_markers = Requirement("fakepkg;{0}".format(markers))
-        r.req.marker = req_markers.marker if req_markers else None
+            req_markers = init_requirement("fakepkg;{0}".format(markers))
+        r.req.marker = getattr(req_markers, "marker", None)
         r.req.specifier = SpecifierSet(specifiers)
         r.req.local_file = getattr(r.req, "local_file", False)
         args = {
@@ -740,11 +747,12 @@ class Requirement(object):
             "editable": editable,
         }
         if extras:
+            extras = sorted(dedup([extra.lower() for extra in extras]))
             args["extras"] = extras
-            r.req.extras = set(extras) if extras else set()
+            r.req.extras = extras
             r.extras = extras
         elif r.extras:
-            args["extras"] = r.extras
+            args["extras"] = sorted(dedup([extra.lower() for extra in r.extras]))
         if hashes:
             args["hashes"] = hashes
         return cls(**args)
@@ -777,11 +785,11 @@ class Requirement(object):
         req_markers = None
         if markers:
             markers = str(markers)
-            req_markers = Requirement("fakepkg;{0}".format(_markers))
-        r.req.marker = req_markers.marker if req_markers else None
+            req_markers = init_requirement("fakepkg;{0}".format(markers))
+        r.req.marker = getattr(req_markers, "marker", None)
         r.req.specifier = SpecifierSet(_pipfile["version"])
         extras = _pipfile.get("extras")
-        r.req.extras = set(extras) if extras else set()
+        r.req.extras = sorted(dedup([extra.lower() for extra in extras])) if extras else []
         args = {
             "name": r.name,
             "vcs": vcs,
