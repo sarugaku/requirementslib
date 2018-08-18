@@ -748,6 +748,14 @@ class Requirement(object):
             req_markers = PackagingRequirement("fakepkg; {0}".format(markers))
         r.req.marker = getattr(req_markers, "marker", None)
         r.req.local_file = getattr(r.req, "local_file", False)
+        name = getattr(r.req, "name", None)
+        if not name:
+            name = getattr(r.req, "project_name", None)
+            r.req.name = name
+        if not name:
+            name = getattr(r.req, "key", None)
+            if name:
+                r.req.name = name
         args = {
             "name": r.name,
             "vcs": vcs,
@@ -794,7 +802,7 @@ class Requirement(object):
         req_markers = None
         if markers:
             markers = str(markers)
-            req_markers = init_requirement("fakepkg;{0}".format(markers))
+            req_markers = PackagingRequirement("fakepkg; {0}".format(markers))
         r.req.marker = getattr(req_markers, "marker", None)
         r.req.specifier = SpecifierSet(_pipfile["version"])
         extras = _pipfile.get("extras")
