@@ -319,7 +319,7 @@ class FileRequirement(BaseRequirement):
         editable = line.startswith("-e ")
         line = line.split(" ", 1)[1] if editable else line
         setup_path = None
-        if not any([is_installable_file(line), is_valid_url(line)]):
+        if not any([is_installable_file(line), is_valid_url(line), is_file_url(line)]):
             raise RequirementError(
                 "Supplied requirement is not installable: {0!r}".format(line)
             )
