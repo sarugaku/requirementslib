@@ -228,7 +228,7 @@ def test_get_requirements():
     git_extras = Requirement.from_line(
         '-e git+https://github.com/requests/requests.git@master#egg=requests[security]'
     )
-    assert git_extras.as_line() == '-e git+https://github.com/requests/requests.git@master#egg=requests'
+    assert git_extras.as_line() == '-e git+https://github.com/requests/requests.git@master#egg=requests[security]'
     assert git_extras.constraint_line == '-e git+https://github.com/requests/requests.git@master#egg=requests[security]'
     # these will fail due to not being real paths
     # local_wheel = Requirement.from_pipfile('six', {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'})
