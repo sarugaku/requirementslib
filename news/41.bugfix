@@ -1,0 +1,1 @@
+Fixed a bug which caused extras to be excluded from VCS urls generated from pipfiles.
