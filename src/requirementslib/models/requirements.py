@@ -686,6 +686,9 @@ class Requirement(object):
     def normalized_name(self):
         return canonicalize_name(self.name)
 
+    def copy(self):
+        return attr.evolve(self)
+
     @classmethod
     def from_line(cls, line):
         if isinstance(line, InstallRequirement):
