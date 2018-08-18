@@ -64,8 +64,10 @@ class NamedRequirement(BaseRequirement):
         name = getattr(req, "name", None)
         if not name:
             name = getattr(req, "project_name", None)
+            req.name = name
         if not name:
             name = getattr(req, "key", line)
+            req.name = name
         return cls(name=name, version=specifiers, req=req)
 
     @classmethod
@@ -743,7 +745,7 @@ class Requirement(object):
             r = NamedRequirement.from_line(line)
         req_markers = None
         if markers:
-            req_markers = init_requirement("fakepkg;{0}".format(markers))
+            req_markers = PackagingRequirement("fakepkg; {0}".format(markers))
         r.req.marker = getattr(req_markers, "marker", None)
         r.req.local_file = getattr(r.req, "local_file", False)
         args = {
