@@ -36,7 +36,7 @@ from .utils import (
     is_pinned_requirement, make_install_requirement, optional_instance_of,
     parse_extras, specs_to_string, split_markers_from_line,
     split_vcs_method_from_uri, strip_ssh_from_git_uri, validate_path,
-    validate_specifiers, validate_vcs
+    validate_specifiers, validate_vcs, extras_to_string
 )
 from packaging.requirements import Requirement as PackagingRequirement
 
@@ -602,7 +602,11 @@ class VCSRequirement(FileRequirement):
         """requirements.txt compatible line part sans-extras"""
         if self.req:
             base = self.req.line
-        base = "{0}".format(self.link)
+        if base and self.extras and not extras_to_string(self.extras) in base:
+            if self.subdirectory:
+                base = "{0}".format(self.get_link().url)
+            else:
+                base = "{0}{1}".format(base, extras_to_string(sorted(self.extras)))
         if self.editable:
             base = "-e {0}".format(base)
         return base
@@ -880,7 +884,7 @@ class Requirement(object):
 
     @property
     def constraint_line(self):
-        return self.as_line(force_extras=True)
+        return self.as_line()
 
     def as_pipfile(self):
         good_keys = (
