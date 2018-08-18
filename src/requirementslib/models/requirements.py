@@ -66,7 +66,7 @@ class NamedRequirement(BaseRequirement):
             name = getattr(req, "project_name", None)
         if not name:
             name = getattr(req, "key", line)
-        return cls(name=req.name, version=specifiers, req=req)
+        return cls(name=name, version=specifiers, req=req)
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
