@@ -20,7 +20,7 @@ from pip_shims.shims import (
 )
 from vistir.compat import FileNotFoundError, Path
 from vistir.misc import dedup
-from vistir.path import get_converted_relative_path, is_valid_url
+from vistir.path import get_converted_relative_path, is_valid_url, is_file_url
 
 from ..exceptions import RequirementError
 from ..utils import VCS_LIST, is_vcs, is_installable_file
@@ -710,7 +710,7 @@ class Requirement(object):
         # Installable local files and installable non-vcs urls are handled
         # as files, generally speaking
         line_is_vcs = is_vcs(line)
-        if is_installable_file(line) or (is_valid_url(line) and not line_is_vcs):
+        if is_installable_file(line) or ((is_file_url(line) or is_valid_url(line)) and not line_is_vcs):
             r = FileRequirement.from_line(line_with_prefix)
         elif line_is_vcs:
             r = VCSRequirement.from_line(line_with_prefix, extras=extras)
