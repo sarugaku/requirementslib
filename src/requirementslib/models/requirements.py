@@ -61,6 +61,11 @@ class NamedRequirement(BaseRequirement):
         if req.specifier:
             specifiers = specs_to_string(req.specifier)
         req.line = line
+        name = getattr(req, "name", None)
+        if not name:
+            name = getattr(req, "project_name", None)
+        if not name:
+            name = getattr(req, "key", line)
         return cls(name=req.name, version=specifiers, req=req)
 
     @classmethod
