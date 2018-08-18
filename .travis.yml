@@ -9,7 +9,6 @@ matrix:
 install:
   - "python -m pip install --upgrade pip pytest-timeout"
   - "python -m pip install -e .[tests]"
-  - "python -m pip install -e git+https://github.com/sarugaku/vistir@master#egg=vistir"
 script:
     - "python -m pytest -v -n 8 tests/"
 
