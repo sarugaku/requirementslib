@@ -15,6 +15,7 @@ from first import first
 from packaging.markers import InvalidMarker, Marker, Op, Value, Variable
 from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 from packaging.version import parse as parse_version
+from packaging.requirements import Requirement as PackagingRequirement
 from pkg_resources import Requirement
 
 from vistir.misc import dedup
@@ -470,5 +471,5 @@ def fix_requires_python_marker(requires_python):
             "{0}{1}'{2}'".format(marker_key.serialize(), op, ','.join(vals))
             for op, vals in spec_dict.items()
         ])
-    marker_to_add = Requirement.parse('fakepkg; {0}'.format(marker_str)).marker
+    marker_to_add = PackagingRequirement('fakepkg; {0}'.format(marker_str)).marker
     return marker_to_add
