@@ -58,7 +58,7 @@ def extras_to_string(extras):
 
 def parse_extras(extras_str):
     """Turn a string of extras into a parsed extras list"""
-    extras = Requirement("fakepkg{0}".format(extras_to_string(extras_str))).extras
+    extras = Requirement.parse("fakepkg{0}".format(extras_to_string(extras_str))).extras
     return sorted(dedup([extra.lower() for extra in extras]))
 
 
@@ -470,5 +470,5 @@ def fix_requires_python_marker(requires_python):
             "{0}{1}'{2}'".format(marker_key.serialize(), op, ','.join(vals))
             for op, vals in spec_dict.items()
         ])
-    marker_to_add = Requirement('fakepkg; {0}'.format(marker_str)).marker
+    marker_to_add = Requirement.parse('fakepkg; {0}'.format(marker_str)).marker
     return marker_to_add
