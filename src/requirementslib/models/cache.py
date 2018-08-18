@@ -16,7 +16,7 @@ from packaging.requirements import Requirement
 from pip_shims.shims import (
     FAVORITE_HASH, Link, SafeFileCache, VcsSupport, is_file_url, url_to_path
 )
-
+from vistir.path import mkdir_p
 from .utils import as_tuple, key_from_req, lookup_table
 
 
@@ -62,8 +62,8 @@ class DependencyCache(object):
     def __init__(self, cache_dir=None):
         if cache_dir is None:
             cache_dir = CACHE_DIR
-        if not os.path.isdir(cache_dir):
-            os.makedirs(cache_dir)
+        mkdir_p(cache_dir)
+
         py_version = '.'.join(str(digit) for digit in sys.version_info[:2])
         cache_filename = 'depcache-py{}.json'.format(py_version)
 
