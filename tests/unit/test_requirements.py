@@ -198,6 +198,12 @@ def test_get_requirements():
     # Test regression where VCS uris were being handled as paths rather than VCS entries
     assert git_reformat.vcs == 'git'
     assert git_reformat.link.url == 'git+ssh://git@github.com/pypa/pipenv.git#egg=pipenv'
+    # Test VCS requirements being added with extras for constraint_line
+    git_extras = Requirement.from_line(
+        '-e git+https://github.com/requests/requests.git@master#egg=requests[security]'
+    )
+    assert git_extras.as_line() == '-e git+https://github.com/requests/requests.git@master#egg=requests'
+    assert git_extras.constraint_line == '-e git+https://github.com/requests/requests.git@master#egg=requests[security]'
     # these will fail due to not being real paths
     # local_wheel = Requirement.from_pipfile('six', {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'})
     # assert local_wheel.as_line() == 'file:///home/hawk/git/wheels/six/six-1.11.0-py2.py3-none-any.whl'
