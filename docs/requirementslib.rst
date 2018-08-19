@@ -11,5 +11,5 @@ Submodules
 
 .. toctree::
 
-   requirementslib.requirements
+   requirementslib.models
    requirementslib.utils
