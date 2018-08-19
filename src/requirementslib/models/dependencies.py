@@ -20,9 +20,8 @@ from pip_shims import (
 from vistir.compat import JSONDecodeError, TemporaryDirectory, fs_str
 from vistir.contextmanagers import cd, temp_environ
 from vistir.misc import partialclass
-from vistir.path import mkdir_p
 
-from ..utils import get_pip_command, prepare_pip_source_args
+from ..utils import get_pip_command, prepare_pip_source_args, _ensure_dir
 from .cache import CACHE_DIR, DependencyCache
 from .utils import (
     clean_requires_python, fix_requires_python_marker, format_requirement,
@@ -515,7 +514,7 @@ def get_pip_options(args=[], sources=None, pip_command=None):
         sources = [
             {"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}
         ]
-    mkdir_p(CACHE_DIR)
+    _ensure_dir(CACHE_DIR)
     pip_args = args
     pip_args = prepare_pip_source_args(sources, pip_args)
     pip_options, _ = pip_command.parser.parse_args(pip_args)
@@ -573,10 +572,10 @@ def start_resolver(finder=None, wheel_cache=None):
 
     if not wheel_cache:
         wheel_cache = WHEEL_CACHE
-    mkdir_p(fs_str(os.path.join(wheel_cache.cache_dir, "wheels")))
+    _ensure_dir(fs_str(os.path.join(wheel_cache.cache_dir, "wheels")))
 
     download_dir = PKGS_DOWNLOAD_DIR
-    mkdir_p(download_dir)
+    _ensure_dir(download_dir)
 
     _build_dir = TemporaryDirectory(fs_str("build"))
     _source_dir = TemporaryDirectory(fs_str("source"))

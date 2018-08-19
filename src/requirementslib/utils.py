@@ -12,7 +12,7 @@ from pip_shims import (
     Command, VcsSupport, cmdoptions, is_archive_file, is_installable_dir
 )
 from vistir.compat import Path
-from vistir.path import is_valid_url
+from vistir.path import is_valid_url, ensure_mkdir_p
 
 
 VCS_ACCESS = VcsSupport()
@@ -145,3 +145,8 @@ def get_pip_command():
     pip_command.parser.add_option(optparse.Option('--pre', action='store_true', default=False))
 
     return pip_command
+
+
+@ensure_mkdir_p(mode=0o777)
+def _ensure_dir(path):
+    return path
