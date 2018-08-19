@@ -928,7 +928,7 @@ class Requirement(object):
         return {name: base_dict}
 
     def as_ireq(self):
-        ireq_line = self.as_line()
+        ireq_line = self.as_line(include_hashes=False)
         if self.editable or self.req.editable:
             if ireq_line.startswith("-e "):
                 ireq_line = ireq_line[len("-e "):]
