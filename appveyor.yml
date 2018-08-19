@@ -57,7 +57,11 @@ install:
 
     Invoke-Expression "$py_exe -m pip install --upgrade pip pytest-timeout pytest"
 
+    if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode)  }
+
     Invoke-Expression "$py_exe -m pip install -e .[tests]"
+
+    if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode)  }
 
     Invoke-Expression "$py_exe --version"
 
@@ -77,3 +81,5 @@ test_script:
     $env:PATH = "$py_path;$script_path;$env:PATH"
 
     Invoke-Expression "$py_exe -m pytest -v -n auto tests"
+
+    if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode)  }
