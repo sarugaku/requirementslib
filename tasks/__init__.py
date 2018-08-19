@@ -149,5 +149,4 @@ def release(ctx, type_, repo, prebump=PREBUMP):
     ctx.run(f'git commit -am "Prebump to {version}"')
 
 
-
 ns = invoke.Collection(vendoring, news, release)
