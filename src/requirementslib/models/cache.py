@@ -63,13 +63,11 @@ class DependencyCache(object):
     def __init__(self, cache_dir=None):
         if cache_dir is None:
             cache_dir = CACHE_DIR
-        if not vistir.compat.Path(CACHE_DIR).is_dir():
+        if not vistir.compat.Path(CACHE_DIR).absolute().is_dir():
             try:
-                _ensure_dir(cache_dir)
-            except OSError:
-                if os.path.isdir(os.path.abspath(cache_dir)):
-                    pass
-                raise
+                vistir.path.mkdir_p(os.path.abspath(cache_dir))
+            except FileExistsError:
+                pass
 
         py_version = '.'.join(str(digit) for digit in sys.version_info[:2])
         cache_filename = 'depcache-py{}.json'.format(py_version)
