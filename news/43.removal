@@ -1,1 +1,0 @@
-Moved pipfile and lockfile models to ``plette`` and added api wrappers for compatibility.

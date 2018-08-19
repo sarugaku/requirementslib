@@ -1,3 +1,44 @@
+1.1.0 (2018-08-19)
+==================
+
+Features
+--------
+
+- Added support for ``Requirement.get_dependencies()`` to return unpinned dependencies.
+  Implemented full support for both parsing and writing lockfiles.
+  Introduced lazy imports to enhance runtime performance.
+  Switch to ``packaging.canonicalize_name()`` instead of custom canonicalization function.
+  Added ``Requirement.copy()`` to the api to copy a requirement.  #33
+  
+- Add pep423 formatting to package names when generating ``as_line()`` output.
+  Sort extras when building lines.
+  Improve local editable requirement name resolution.  #36
+  
+
+Bug Fixes
+---------
+
+- - Fixed a bug which prevented dependency resolution using pip >= 18.0.
+
+  - Fix pipfile parser bug which mishandled missing ``requires`` section.  #33
+  
+- Fixed a bug which caused extras to be excluded from VCS urls generated from pipfiles.  #41
+  
+
+Vendored Libraries
+------------------
+
+- Unvendored ``pipfile`` in favor of ``plette``.  #33
+  
+
+Removals and Deprecations
+-------------------------
+
+- Unvendored ``pipfile`` in favor of ``plette``.  #33
+  
+- Moved pipfile and lockfile models to ``plette`` and added api wrappers for compatibility.  #43
+
+
 1.0.11 (2018-07-20)
 ===================
 
