@@ -75,7 +75,9 @@ DEP_PIP_PAIRS = [
     (
         {'FooProject': {
             'version': '==1.2',
-            'hash': 'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+            'hashes': [
+                'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+            ],
         }},
         'FooProject==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
     ),
@@ -83,7 +85,9 @@ DEP_PIP_PAIRS = [
         {'FooProject': {
             'version': '==1.2',
             'extras': ['stuff'],
-            'hash': 'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+            'hashes': [
+                'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+            ],
         }},
         'FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
     ),
@@ -102,6 +106,26 @@ DEP_PIP_PAIRS = [
     )
 ]
 
+# These are legacy Pipfile formats we need to be able to do Pipfile -> pip,
+# but don't need to for pip -> Pipfile anymore.
+DEP_PIP_PAIRS_LEGACY_PIPFILE = [
+    (
+        {'FooProject': {
+            'version': '==1.2',
+            'hash': 'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+        }},
+        'FooProject==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+    ),
+    (
+        {'FooProject': {
+            'version': '==1.2',
+            'extras': ['stuff'],
+            'hash': 'sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+        }},
+        'FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
+    ),
+]
+
 
 @pytest.mark.utils
 @pytest.mark.parametrize('expected, requirement', DEP_PIP_PAIRS)
@@ -114,7 +138,9 @@ def test_convert_from_pip(expected, requirement):
 
 
 @pytest.mark.to_line
-@pytest.mark.parametrize('requirement, expected', DEP_PIP_PAIRS)
+@pytest.mark.parametrize(
+    'requirement, expected', DEP_PIP_PAIRS + DEP_PIP_PAIRS_LEGACY_PIPFILE,
+)
 def test_convert_from_pipfile(requirement, expected):
     pkg_name = first(requirement.keys())
     pkg_pipfile = requirement[pkg_name]
@@ -160,19 +186,19 @@ def test_get_requirements():
     url_with_egg = Requirement.from_line(
         'https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip#egg=django-user-clipboard'
     ).requirement
-    assert url_with_egg.uri == 'https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip'
+    assert url_with_egg.url == 'https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip'
     assert url_with_egg.name == 'django-user-clipboard'
     # Test URLs without eggs pointing at installable zipfiles
     url = Requirement.from_line(
         'https://github.com/kennethreitz/tablib/archive/0.12.1.zip'
     ).requirement
-    assert url.uri == 'https://github.com/kennethreitz/tablib/archive/0.12.1.zip'
+    assert url.url == 'https://github.com/kennethreitz/tablib/archive/0.12.1.zip'
     # Test VCS urls with refs and eggnames
     vcs_url = Requirement.from_line(
         'git+https://github.com/kennethreitz/tablib.git@master#egg=tablib'
     ).requirement
     assert vcs_url.vcs == 'git' and vcs_url.name == 'tablib' and vcs_url.revision == 'master'
-    assert vcs_url.uri == 'git+https://github.com/kennethreitz/tablib.git'
+    assert vcs_url.url == 'git+https://github.com/kennethreitz/tablib.git'
     # Test normal package requirement
     normal = Requirement.from_line('tablib').requirement
     assert normal.name == 'tablib'
@@ -185,12 +211,12 @@ def test_get_requirements():
     ).requirement
     assert extras_markers.extras == ['security']
     assert extras_markers.name == 'requests'
-    assert extras_markers.markers == "os_name=='posix'"
+    assert str(extras_markers.marker) == 'os_name == "posix"'
     # Test VCS uris get generated correctly, retain git+git@ if supplied that way, and are named according to egg fragment
     git_reformat = Requirement.from_line(
         '-e git+git@github.com:pypa/pipenv.git#egg=pipenv'
     ).requirement
-    assert git_reformat.uri == 'git+git@github.com:pypa/pipenv.git'
+    assert git_reformat.url == 'git+git@github.com:pypa/pipenv.git'
     assert git_reformat.name == 'pipenv'
     assert git_reformat.editable
     # Previously VCS uris were being treated as local files, so make sure these are not handled that way
@@ -202,7 +228,7 @@ def test_get_requirements():
     git_extras = Requirement.from_line(
         '-e git+https://github.com/requests/requests.git@master#egg=requests[security]'
     )
-    assert git_extras.as_line() == '-e git+https://github.com/requests/requests.git@master#egg=requests'
+    assert git_extras.as_line() == '-e git+https://github.com/requests/requests.git@master#egg=requests[security]'
     assert git_extras.constraint_line == '-e git+https://github.com/requests/requests.git@master#egg=requests[security]'
     # these will fail due to not being real paths
     # local_wheel = Requirement.from_pipfile('six', {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'})

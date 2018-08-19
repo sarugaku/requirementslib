@@ -1,24 +1,34 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-import attr
+
 import json
+import os
+from vistir.compat import Path
+
 from .requirements import Requirement
-from .utils import optional_instance_of
-from .._compat import Path, FileNotFoundError
+
+import plette.lockfiles
 
 
-@attr.s
-class Lockfile(object):
-    dev_requirements = attr.ib(default=attr.Factory(list))
-    requirements = attr.ib(default=attr.Factory(list))
-    path = attr.ib(default=None, validator=optional_instance_of(Path))
-    pipfile_hash = attr.ib(default=None)
+class Lockfile(plette.lockfiles.Lockfile):
+    @classmethod
+    def load(cls, path):
+        if not path:
+            path = os.curdir
+        path = Path(path).absolute()
+        if path.is_dir():
+            path = path / "Pipfile.lock"
+        elif path.name == "Pipfile":
+            path = path.parent / "Pipfile.lock"
+        if not path.exists():
+            raise OSError("Path does not exist: %s" % path)
+        return cls.create(path.parent, lockfile_name=path.name)
 
     @classmethod
     def create(cls, project_path, lockfile_name="Pipfile.lock"):
         """Create a new lockfile instance
 
-        :param project_path: Path to the project root
+        :param project_path: Path to  project root
         :type project_path: str or :class:`~pathlib.Path`
         :returns: List[:class:`~requirementslib.Requirement`] objects
         """
@@ -28,20 +38,27 @@ class Lockfile(object):
         lockfile_path = project_path / lockfile_name
         requirements = []
         dev_requirements = []
-        if not lockfile_path.exists():
-            raise FileNotFoundError("No such lockfile: %s" % lockfile_path)
-
         with lockfile_path.open(encoding="utf-8") as f:
-            lockfile = json.loads(f.read())
+            lockfile = super(Lockfile, cls).load(f)
         for k in lockfile["develop"].keys():
-            dev_requirements.append(Requirement.from_pipfile(k, lockfile["develop"][k]))
+            dev_requirements.append(Requirement.from_pipfile(k, lockfile.develop[k]._data))
         for k in lockfile["default"].keys():
-            requirements.append(Requirement.from_pipfile(k, lockfile["default"][k]))
-        return cls(
-            path=lockfile_path,
-            requirements=requirements,
-            dev_requirements=dev_requirements,
-        )
+            requirements.append(Requirement.from_pipfile(k, lockfile.default[k]._data))
+        lockfile.requirements = requirements
+        lockfile.dev_requirements = dev_requirements
+        lockfile.path = lockfile_path
+        return lockfile
+
+    @property
+    def dev_requirements_list(self):
+        return [r.as_pipfile() for r in self.dev_requirements]
+
+    @property
+    def requirements_list(self):
+        return [r.as_pipfile() for r in self.requirements]
+
+    def write(self):
+        super(Lockfile, self).dump(self.path, encoding="utf-8")
 
     def as_requirements(self, include_hashes=False, dev=False):
         """Returns a list of requirements in pip-style format"""

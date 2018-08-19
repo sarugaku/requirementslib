@@ -122,3 +122,19 @@ def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=F
             ctx.run('git add {0}'.format(get_version_file(ctx)))
             log('Committing...')
             ctx.run('git commit -s -m "Bumped version."')
+
+
+@invoke.task
+def build_docs(ctx):
+    _current_version = get_version(ctx)
+    minor = [str(i) for i in Version.parse(_current_version).release[:2]]
+    docs_folder = (_get_git_root(ctx) / 'docs').as_posix()
+    if not docs_folder.endswith('/'):
+        docs_folder = '{0}/'.format(docs_folder)
+    args = ["--ext-autodoc", "--ext-viewcode", "-o", docs_folder]
+    args.extend(["-A", "'Dan Ryan <dan@danryan.co>'"])
+    args.extend(["-R", _current_version])
+    args.extend(["-V", ".".join(minor)])
+    args.extend(["-e", "-M", "-F", "src/requirementslib"])
+    log("Building docs...")
+    ctx.run("sphinx-apidoc {0}".format(" ".join(args)))

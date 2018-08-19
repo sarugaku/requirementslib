@@ -1,0 +1,3 @@
+- Fixed a bug which prevented dependency resolution using pip >= 18.0.
+
+- Fix pipfile parser bug which mishandled missing ``requires`` section.
