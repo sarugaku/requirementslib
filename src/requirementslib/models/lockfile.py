@@ -3,14 +3,34 @@ from __future__ import absolute_import
 
 import json
 import os
+
+import plette.lockfiles
+import six
+
 from vistir.compat import Path
+from vistir.contextmanagers import atomic_open_for_write
 
 from .requirements import Requirement
 
-import plette.lockfiles
+
+DEFAULT_NEWLINES = u"\n"
+
+
+def preferred_newlines(f):
+    if isinstance(f.newlines, six.text_type):
+        return f.newlines
+    return DEFAULT_NEWLINES
 
 
 class Lockfile(plette.lockfiles.Lockfile):
+    def __init__(self, *args, **kwargs):
+        path = kwargs.pop("path", None)
+        self.requirements = kwargs.pop("requirements", [])
+        self.dev_requirements = kwargs.pop("dev_requirements", [])
+        self.path = Path(path) if path else None
+        self.newlines = u"\n"
+
+
     @classmethod
     def load(cls, path):
         if not path:
@@ -40,6 +60,7 @@ class Lockfile(plette.lockfiles.Lockfile):
         dev_requirements = []
         with lockfile_path.open(encoding="utf-8") as f:
             lockfile = super(Lockfile, cls).load(f)
+            lockfile.newlines = preferred_newlines(f)
         for k in lockfile["develop"].keys():
             dev_requirements.append(Requirement.from_pipfile(k, lockfile.develop[k]._data))
         for k in lockfile["default"].keys():
@@ -58,7 +79,9 @@ class Lockfile(plette.lockfiles.Lockfile):
         return [r.as_pipfile() for r in self.requirements]
 
     def write(self):
-        super(Lockfile, self).dump(self.path, encoding="utf-8")
+        open_kwargs = {"newline": self.newlines}
+        with atomic_open_for_write(self.path.as_posix(), **open_kwargs) as f:
+            super(Lockfile, self).dump(f, encoding="utf-8")
 
     def as_requirements(self, include_hashes=False, dev=False):
         """Returns a list of requirements in pip-style format"""
