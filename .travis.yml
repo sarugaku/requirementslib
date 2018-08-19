@@ -34,4 +34,4 @@ jobs:
         - "pip install --upgrade pip pytest-timeout"
         - "pip install --upgrade -e .[tests]"
       script:
-        - "pytest -n auto --timeout 300 --cov=pip_shims --cov-report=term-missing --cov-report=xml --cov-report=html tests"
+        - "pytest -n auto --timeout 300 --cov=requirementslib --cov-report=term-missing --cov-report=xml --cov-report=html tests"
