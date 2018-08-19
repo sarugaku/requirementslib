@@ -1,0 +1,1 @@
+Fix parsing error in `Requirement.as_ireq()` if requirement contains hashes.
