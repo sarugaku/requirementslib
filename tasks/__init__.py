@@ -9,9 +9,8 @@ from . import news
 import pathlib
 import shutil
 import subprocess
-
-import invoke
 import parver
+import re
 from pathlib import Path
 
 from towncrier._builder import (
@@ -30,6 +29,14 @@ def _get_git_root(ctx):
     return Path(ctx.run('git rev-parse --show-toplevel', hide=True).stdout.strip())
 
 
+def find_version():
+    version_file = INIT_PY.read_text()
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
+
 @invoke.task()
 def clean(ctx):
     """Clean previously built package artifacts.
@@ -43,10 +50,10 @@ def clean(ctx):
 
 def _read_version():
     out = subprocess.check_output(['git', 'tag'], encoding='ascii')
+    versions = [line.strip() for line in out.splitlines() if line]
+    _unparsed = [v for v in versions if v.startswith('v')]
     try:
-        version = max(parver.Version.parse(v).normalize() for v in (
-            line.strip() for line in out.split('\n')
-        ) if v)
+        version = max(parver.Version.parse(v.lstrip("v")).normalize() for v in versions)
     except ValueError:
         version = parver.Version.parse('0.0.0')
     return version
@@ -149,4 +156,20 @@ def release(ctx, type_, repo, prebump=PREBUMP):
     ctx.run(f'git commit -am "Prebump to {version}"')
 
 
-ns = invoke.Collection(vendoring, news, release)
+@invoke.task
+def build_docs(ctx):
+    _current_version = find_version()
+    minor = _current_version.split(".")[:2]
+    docs_folder = (_get_git_root(ctx) / 'docs').as_posix()
+    if not docs_folder.endswith('/'):
+        docs_folder = '{0}/'.format(docs_folder)
+    args = ["--ext-autodoc", "--ext-viewcode", "-o", docs_folder]
+    args.extend(["-A", "'Dan Ryan <dan@danryan.co>'"])
+    args.extend(["-R", _current_version])
+    args.extend(["-V", ".".join(minor)])
+    args.extend(["-e", "-M", "-F", f"src/{PACKAGE_NAME}"])
+    print("Building docs...")
+    ctx.run("sphinx-apidoc {0}".format(" ".join(args)))
+
+
+ns = invoke.Collection(build_docs, vendoring, news, release)

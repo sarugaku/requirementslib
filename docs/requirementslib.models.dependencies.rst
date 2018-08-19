@@ -1,5 +1,5 @@
 requirementslib.models.dependencies module
-========================================
+==========================================
 
 .. automodule:: requirementslib.models.dependencies
     :members:

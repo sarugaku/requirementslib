@@ -64,6 +64,9 @@ author = 'Dan Ryan <dan@danryan.co>'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
+    'sphinx.ext.todo',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autosummary'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -93,10 +96,11 @@ exclude_patterns = ['_build', '_man', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 html_theme = 'sphinx_rtd_theme'
+autosummary_generate = True
 
 extlinks = {
-    'issue': ('https://github.com/techalchemy/requirementslib/issues/%s', '#'),
-    'pull': ('https://github.com/techalchemy/requirementslib/pull/%s', 'PR #'),
+    'issue': ('https://github.com/sarugaku/requirementslib/issues/%s', '#'),
+    'pull': ('https://github.com/sarugaku/requirementslib/pull/%s', 'PR #'),
 }
 html_theme_options = {
     'display_version': True,
@@ -207,3 +211,4 @@ texinfo_documents = [
 
 
 # -- Extension configuration -------------------------------------------------
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
