@@ -9,6 +9,7 @@ import sys
 from contextlib import contextmanager
 
 import requests
+import vistir
 
 from appdirs import user_cache_dir
 from packaging.requirements import Requirement
@@ -62,13 +63,13 @@ class DependencyCache(object):
     def __init__(self, cache_dir=None):
         if cache_dir is None:
             cache_dir = CACHE_DIR
-
-        try:
-            _ensure_dir(cache_dir)
-        except OSError:
-            if os.path.isdir(os.path.abspath(cache_dir)):
-                pass
-            raise
+        if not vistir.compat.Path(CACHE_DIR).is_dir():
+            try:
+                _ensure_dir(cache_dir)
+            except OSError:
+                if os.path.isdir(os.path.abspath(cache_dir)):
+                    pass
+                raise
 
         py_version = '.'.join(str(digit) for digit in sys.version_info[:2])
         cache_filename = 'depcache-py{}.json'.format(py_version)
