@@ -29,7 +29,7 @@ class Lockfile(plette.lockfiles.Lockfile):
         self.dev_requirements = kwargs.pop("dev_requirements", [])
         self.path = Path(path) if path else None
         self.newlines = u"\n"
-
+        super(Lockfile, self).__init__(*args, **kwargs)
 
     @classmethod
     def load(cls, path):
