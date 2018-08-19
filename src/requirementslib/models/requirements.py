@@ -68,7 +68,10 @@ class NamedRequirement(BaseRequirement):
         if not name:
             name = getattr(req, "key", line)
             req.name = name
-        return cls(name=name, version=specifiers, req=req)
+        extras = None
+        if req.extras:
+            extras = list(req.extras)
+        return cls(name=name, version=specifiers, req=req, extras=extras)
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
@@ -77,8 +80,12 @@ class NamedRequirement(BaseRequirement):
             creation_args = {k: v for k, v in pipfile.items() if k in cls.attr_fields()}
         creation_args["name"] = name
         version = get_version(pipfile)
+        extras = creation_args.get("extras", None)
         creation_args["version"] = version
-        creation_args["req"] = init_requirement("{0}{1}".format(name, version))
+        req = init_requirement("{0}{1}".format(name, version))
+        if extras:
+            req.extras += tuple(extras,)
+        creation_args["req"] = req
         return cls(**creation_args)
 
     @property
