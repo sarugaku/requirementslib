@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
+import errno
 import hashlib
 import json
 import os
@@ -17,7 +18,6 @@ from packaging.requirements import Requirement
 from pip_shims.shims import (
     FAVORITE_HASH, Link, SafeFileCache, VcsSupport, is_file_url, url_to_path
 )
-from ..utils import _ensure_dir
 from .utils import as_tuple, key_from_req, lookup_table
 
 
@@ -66,8 +66,10 @@ class DependencyCache(object):
         if not vistir.compat.Path(CACHE_DIR).absolute().is_dir():
             try:
                 vistir.path.mkdir_p(os.path.abspath(cache_dir))
-            except FileExistsError:
-                pass
+            except OSError as e:
+                if e.errno in (errno.EEXIST,):
+                    pass
+                raise
 
         py_version = '.'.join(str(digit) for digit in sys.version_info[:2])
         cache_filename = 'depcache-py{}.json'.format(py_version)
