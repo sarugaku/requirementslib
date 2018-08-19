@@ -98,6 +98,12 @@ DEP_PIP_PAIRS = [
         TEST_WHEEL_URI
     ),
     (
+        {'plette': {
+            'extras': ['validation'], 'version': '>=0.1.1'
+        }},
+        'plette[validation] (>=0.1.1)'
+    ),
+    (
         {'pythonfinder': {
             'ref': 'master', 'git': 'https://github.com/techalchemy/pythonfinder.git',
             'subdirectory': 'mysubdir', 'extras': ['dev'], 'editable': True
@@ -145,6 +151,9 @@ def test_convert_from_pipfile(requirement, expected):
     pkg_name = first(requirement.keys())
     pkg_pipfile = requirement[pkg_name]
     req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
+    if " (" in expected and expected.endswith(")"):
+        # To strip out plette[validation] (>=0.1.1)
+        expected = expected.replace(" (", "").rstrip(")")
     assert req.as_line() == expected.lower() if '://' not in expected else expected
 
 
