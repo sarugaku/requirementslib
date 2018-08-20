@@ -3,11 +3,7 @@ import os
 import pytest
 from first import first
 from requirementslib import Requirement
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from vistir.compat import Path
 
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
