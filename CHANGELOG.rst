@@ -1,3 +1,14 @@
+1.1.1 (2018-08-20)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug which sometimes caused extras to be dropped when parsing named requirements using constraint-style specifiers.  #44
+  
+- Fix parsing error in `Requirement.as_ireq()` if requirement contains hashes.  #45
+
+
 1.1.0 (2018-08-19)
 ==================
 
