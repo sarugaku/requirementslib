@@ -1,1 +1,0 @@
-Fixed a bug which sometimes caused extras to be dropped when parsing named requirements using constraint-style specifiers.
