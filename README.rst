@@ -2,19 +2,19 @@ RequirementsLib: Requirement Management Library for Pip and Pipenv
 ===================================================================
 
 .. image:: https://img.shields.io/pypi/v/requirementslib.svg
-    :target: https://pypi.python.org/pypi/requirementslib
+    :target: https://pypi.org/project/requirementslib
 
 .. image:: https://img.shields.io/pypi/l/requirementslib.svg
-    :target: https://pypi.python.org/pypi/requirementslib
+    :target: https://pypi.org/project/requirementslib
 
-.. image:: https://travis-ci.org/techalchemy/requirementslib.svg?branch=master
-    :target: https://travis-ci.org/techalchemy/requirementslib
+.. image:: https://travis-ci.org/sarugaku/requirementslib.svg?branch=master
+    :target: https://travis-ci.org/sarugaku/requirementslib
 
-.. image:: https://ci.appveyor.com/api/projects/status/n16s8fhn71o0v0tl/branch/master?svg=true
-    :target: https://ci.appveyor.com/project/techalchemy/requirementslib/branch/master
+.. image:: https://ci.appveyor.com/api/projects/status/hntt25rbnr5yiwmf/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/sarugaku/requirementslib
 
 .. image:: https://img.shields.io/pypi/pyversions/requirementslib.svg
-    :target: https://pypi.python.org/pypi/requirementslib
+    :target: https://pypi.org/project/requirementslib
 
 .. image:: https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg
     :target: https://saythanks.io/to/techalchemy
@@ -40,7 +40,7 @@ Install from `Github`_:
 
 
 .. _PyPI: https://www.pypi.org/project/requirementslib
-.. _Github: https://github.com/techalchemy/requirementslib
+.. _Github: https://github.com/sarugaku/requirementslib
 
 
 .. _`Summary`:
