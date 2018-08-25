@@ -1,3 +1,12 @@
+1.1.2 (2018-08-25)
+==================
+
+Features
+--------
+
+- Allow locking of specific vcs references using a new api: ``Requirement.req.get_commit_hash()`` and ``Requirement.commit_hash`` and updates via ``Requirement.req.update_repo()``.  #47
+
+
 1.1.1 (2018-08-20)
 ==================
 
