@@ -64,7 +64,7 @@ def test_format_requirement():
 
 
 def test_format_requirement_editable():
-    ireq = Requirement.form_line('git+git://fake.org/x/y.git#egg=y').as_ireq()
+    ireq = Requirement.from_line('-e git+git://fake.org/x/y.git#egg=y').as_ireq()
     assert utils.format_requirement(ireq) == '-e git+git://fake.org/x/y.git#egg=y'
 
 

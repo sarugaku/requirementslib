@@ -244,4 +244,4 @@ def test_get_requirements():
 
 def test_get_ref():
     r = Requirement.from_line("-e git+https://github.com/sarugaku/shellingham.git@1.2.1#egg=shellingham")
-    assert r.get_commit_hash() == "9abe7464dab5cc362fe08361619d3fb15f2e16ab"
+    assert r.commit_hash == "9abe7464dab5cc362fe08361619d3fb15f2e16ab"

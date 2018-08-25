@@ -45,6 +45,4 @@ class VCSRepository(object):
         self.repo_instance.update(self.checkout_directory, target_rev)
 
     def get_commit_hash(self, ref=None):
-        if ref:
-            self.checkout_ref(ref)
         return self.repo_instance.get_revision(self.checkout_directory)
