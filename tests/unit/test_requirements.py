@@ -240,3 +240,8 @@ def test_get_requirements():
     # assert local_wheel.as_line() == 'file:///home/hawk/git/wheels/six/six-1.11.0-py2.py3-none-any.whl'
     # local_wheel_from_line = Requirement.from_line('../wheels/six/six-1.11.0-py2.py3-none-any.whl')
     # assert local_wheel_from_line.as_pipfile() == {'six': {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'}}
+
+
+def test_get_ref():
+    r = Requirement.from_line("-e git+https://github.com/sarugaku/shellingham.git@1.2.1#egg=shellingham")
+    assert r.commit_hash == "9abe7464dab5cc362fe08361619d3fb15f2e16ab"
