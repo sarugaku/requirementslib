@@ -10,7 +10,6 @@ from requirementslib.models.dependencies import (
 from pip_shims import InstallRequirement
 
 
-
 def test_find_all_matches():
     r = Requirement.from_line("six")
     matches = r.find_all_matches()
