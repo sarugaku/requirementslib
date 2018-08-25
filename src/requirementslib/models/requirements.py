@@ -6,6 +6,7 @@ import hashlib
 import os
 
 import attr
+import atexit
 
 from first import first
 from packaging.markers import Marker
@@ -18,9 +19,9 @@ from pip_shims.shims import (
     InstallRequirement, Link, Wheel, _strip_extras, parse_version, path_to_url,
     url_to_path
 )
-from vistir.compat import FileNotFoundError, Path
+from vistir.compat import FileNotFoundError, Path, TemporaryDirectory
 from vistir.misc import dedup
-from vistir.path import get_converted_relative_path, is_valid_url, is_file_url
+from vistir.path import get_converted_relative_path, is_valid_url, is_file_url, mkdir_p
 
 from ..exceptions import RequirementError
 from ..utils import VCS_LIST, is_vcs, is_installable_file
@@ -38,6 +39,7 @@ from .utils import (
     split_vcs_method_from_uri, strip_ssh_from_git_uri, validate_path,
     validate_specifiers, validate_vcs, extras_to_string
 )
+from .vcs import VCSRepository
 from packaging.requirements import Requirement as PackagingRequirement
 
 
@@ -514,6 +516,44 @@ class VCSRequirement(FileRequirement):
             uri = "{0}+{1}".format(self.vcs, uri)
         return uri
 
+    def get_commit_hash(self, src_dir=None):
+        src_dir = os.environ.get('SRC_DIR', None) if not src_dir else src_dir
+        if not src_dir:
+            _src_dir = TemporaryDirectory()
+            atexit.register(_src_dir.cleanup)
+            src_dir = _src_dir.name
+        checkout_dir = Path(src_dir).joinpath(self.name).as_posix()
+        vcsrepo = VCSRepository(
+            url=self.link.url,
+            name=self.name,
+            ref=self.ref if self.ref else None,
+            checkout_directory=checkout_dir,
+            vcs_type=self.vcs
+        )
+        vcsrepo.obtain()
+        return vcsrepo.get_commit_hash()
+
+    def update_repo(self, src_dir=None, ref=None):
+        src_dir = os.environ.get('SRC_DIR', None) if not src_dir else src_dir
+        if not src_dir:
+            _src_dir = TemporaryDirectory()
+            atexit.register(_src_dir.cleanup)
+            src_dir = _src_dir.name
+        checkout_dir = Path(src_dir).joinpath(self.name).as_posix()
+        ref = self.ref if not ref else ref
+        vcsrepo = VCSRepository(
+            url=self.link.url,
+            name=self.name,
+            ref=ref if ref else None,
+            checkout_directory=checkout_dir,
+            vcs_type=self.vcs
+        )
+        if not os.path.exists(checkout_dir):
+            vcsrepo.obtain()
+        else:
+            vcsrepo.update()
+        return vcsrepo.get_commit_hash()
+
     @req.default
     def get_requirement(self):
         name = self.name or self.link.egg_fragment
@@ -681,6 +721,12 @@ class Requirement(object):
             return "[{0}]".format(",".join(sorted([extra.lower() for extra in self.extras])))
 
         return ""
+
+    @property
+    def commit_hash(self):
+        if not self.is_vcs:
+            return None
+        return self.req.get_commit_hash()
 
     @specifiers.default
     def get_specifiers(self):
