@@ -1,3 +1,12 @@
+1.1.4 (2018-08-26)
+==================
+
+Features
+--------
+
+- Improved ``Pipfile.lock`` loading time by lazily loading requirements in favor of quicker access to metadata and text.  #51
+
+
 1.1.3 (2018-08-25)
 ==================
 
