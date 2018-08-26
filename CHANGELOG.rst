@@ -1,3 +1,12 @@
+1.1.3 (2018-08-25)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug which caused wheel requirements to include specifiers in ``Requirement.as_line()`` output, preventing installation when passing this output to pip.  #49
+
+
 1.1.2 (2018-08-25)
 ==================
 
