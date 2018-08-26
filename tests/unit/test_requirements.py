@@ -198,6 +198,14 @@ def test_get_requirements():
         'https://github.com/kennethreitz/tablib/archive/0.12.1.zip'
     ).requirement
     assert url.url == 'https://github.com/kennethreitz/tablib/archive/0.12.1.zip'
+    wheel_line = "https://github.com/pypa/pipenv/raw/master/tests/test_artifacts/six-1.11.0+mkl-py2.py3-none-any.whl"
+    wheel = Requirement.from_line(wheel_line)
+    assert wheel.as_pipfile() == {
+        "six": {'file': 'https://github.com/pypa/pipenv/raw/master/tests/test_artifacts/six-1.11.0+mkl-py2.py3-none-any.whl'}
+    }
+    # Requirementslib inserts egg fragments as names when possible if we know the appropriate name
+    # this allows for custom naming
+    assert Requirement.from_pipfile(wheel.name, list(wheel.as_pipfile().values())[0]).as_line().split("#")[0] == wheel_line
     # Test VCS urls with refs and eggnames
     vcs_url = Requirement.from_line(
         'git+https://github.com/kennethreitz/tablib.git@master#egg=tablib'
