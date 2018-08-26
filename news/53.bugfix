@@ -1,0 +1,1 @@
+Fixed an issue which caused local file uri based VCS requirements to fail when parsed from the ``Pipfile`` format.
