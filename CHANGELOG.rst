@@ -1,3 +1,12 @@
+1.1.5 (2018-08-26)
+==================
+
+Bug Fixes
+---------
+
+- Fixed an issue which caused local file uri based VCS requirements to fail when parsed from the ``Pipfile`` format.  #53
+
+
 1.1.4 (2018-08-26)
 ==================
 
