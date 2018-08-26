@@ -889,12 +889,15 @@ class Requirement(object):
         If `sources` is omitted or falsy, no index information will be included
         in the requirement line.
         """
+        include_specifiers = True if self.specifiers else False
         if self.is_vcs:
             include_extras = False
+        if self.is_file_or_url or self.is_vcs:
+            include_specifiers = False
         parts = [
             self.req.line_part,
             self.extras_as_pip if include_extras else "",
-            self.specifiers if self.specifiers else "",
+            self.specifiers if include_specifiers else "",
             self.markers_as_pip,
         ]
         if include_hashes:
