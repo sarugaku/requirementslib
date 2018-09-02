@@ -892,12 +892,13 @@ class Requirement(object):
     def as_line(self, sources=None, include_hashes=True, include_extras=True):
         """Format this requirement as a line in requirements.txt.
 
-        If `sources` provided, it should be an sequence of mappings, containing
+        If ``sources`` provided, it should be an sequence of mappings, containing
         all possible sources to be used for this requirement.
 
-        If `sources` is omitted or falsy, no index information will be included
+        If ``sources`` is omitted or falsy, no index information will be included
         in the requirement line.
         """
+
         include_specifiers = True if self.specifiers else False
         if self.is_vcs:
             include_extras = False
