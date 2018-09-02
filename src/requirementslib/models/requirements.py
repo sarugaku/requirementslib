@@ -517,8 +517,11 @@ class VCSRequirement(FileRequirement):
         return uri
 
     def get_commit_hash(self, src_dir=None):
+        is_local = False
+        if is_file_url(self.uri):
+            is_local = True
         src_dir = os.environ.get('SRC_DIR', None) if not src_dir else src_dir
-        if not src_dir:
+        if not src_dir and not is_local:
             _src_dir = TemporaryDirectory()
             atexit.register(_src_dir.cleanup)
             src_dir = _src_dir.name
@@ -530,12 +533,16 @@ class VCSRequirement(FileRequirement):
             checkout_directory=checkout_dir,
             vcs_type=self.vcs
         )
-        vcsrepo.obtain()
+        if not is_local:
+            vcsrepo.obtain()
         return vcsrepo.get_commit_hash()
 
     def update_repo(self, src_dir=None, ref=None):
+        is_local = False
+        if is_file_url(self.uri):
+            is_local = True
         src_dir = os.environ.get('SRC_DIR', None) if not src_dir else src_dir
-        if not src_dir:
+        if not src_dir and not is_local:
             _src_dir = TemporaryDirectory()
             atexit.register(_src_dir.cleanup)
             src_dir = _src_dir.name
@@ -548,10 +555,11 @@ class VCSRequirement(FileRequirement):
             checkout_directory=checkout_dir,
             vcs_type=self.vcs
         )
-        if not os.path.exists(checkout_dir):
-            vcsrepo.obtain()
-        else:
-            vcsrepo.update()
+        if not is_local:
+            if not not os.path.exists(checkout_dir):
+                vcsrepo.obtain()
+            else:
+                vcsrepo.update()
         return vcsrepo.get_commit_hash()
 
     @req.default
