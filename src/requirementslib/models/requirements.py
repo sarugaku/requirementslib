@@ -562,6 +562,10 @@ class VCSRequirement(FileRequirement):
                 vcsrepo.update()
         return vcsrepo.get_commit_hash()
 
+    def lock_vcs_ref(self):
+        self.ref = self.get_commit_hash()
+        self.req.revision = self.ref
+
     @req.default
     def get_requirement(self):
         name = self.name or self.link.egg_fragment
