@@ -516,59 +516,6 @@ class VCSRequirement(FileRequirement):
             uri = "{0}+{1}".format(self.vcs, uri)
         return uri
 
-    def get_commit_hash(self, src_dir=None):
-        is_local = False
-        if is_file_url(self.uri):
-            is_local = True
-        src_dir = os.environ.get('SRC_DIR', None) if not src_dir else src_dir
-        if not src_dir and not is_local:
-            _src_dir = TemporaryDirectory()
-            atexit.register(_src_dir.cleanup)
-            src_dir = _src_dir.name
-        elif is_local:
-            checkout_dir = Path(self.path).as_posix()
-        else:
-            checkout_dir = Path(src_dir).joinpath(self.name).as_posix()
-        vcsrepo = VCSRepository(
-            url=self.link.url,
-            name=self.name,
-            ref=self.ref if self.ref else None,
-            checkout_directory=checkout_dir,
-            vcs_type=self.vcs
-        )
-        if not is_local:
-            vcsrepo.obtain()
-        return vcsrepo.get_commit_hash()
-
-    def update_repo(self, src_dir=None, ref=None):
-        is_local = False
-        if is_file_url(self.uri):
-            is_local = True
-        src_dir = os.environ.get('SRC_DIR', None) if not src_dir else src_dir
-        if not src_dir and not is_local:
-            _src_dir = TemporaryDirectory()
-            atexit.register(_src_dir.cleanup)
-            src_dir = _src_dir.name
-        checkout_dir = Path(src_dir).joinpath(self.name).as_posix()
-        ref = self.ref if not ref else ref
-        vcsrepo = VCSRepository(
-            url=self.link.url,
-            name=self.name,
-            ref=ref if ref else None,
-            checkout_directory=checkout_dir,
-            vcs_type=self.vcs
-        )
-        if not is_local:
-            if not not os.path.exists(checkout_dir):
-                vcsrepo.obtain()
-            else:
-                vcsrepo.update()
-        return vcsrepo.get_commit_hash()
-
-    def lock_vcs_ref(self):
-        self.ref = self.get_commit_hash()
-        self.req.revision = self.ref
-
     @req.default
     def get_requirement(self):
         name = self.name or self.link.egg_fragment
@@ -600,6 +547,57 @@ class VCSRequirement(FileRequirement):
             req.line = self.uri
             req.url = self.uri
         return req
+
+    @property
+    def is_local(self):
+        if is_file_url(self.uri):
+            return True
+        return False
+
+    def get_checkout_dir(self, src_dir=None):
+        src_dir = os.environ.get('SRC_DIR', None) if not src_dir else src_dir
+        checkout_dir = Path(self.path).absolute().as_posix() if self.is_local else None
+        if not checkout_dir and not src_dir:
+            _src_dir = TemporaryDirectory()
+            atexit.register(_src_dir.cleanup)
+            src_dir = _src_dir.name
+        if not self.is_local:
+            checkout_dir = Path(src_dir).joinpath(self.name).as_posix()
+        return checkout_dir
+
+    def get_commit_hash(self, src_dir=None):
+        checkout_dir = self.get_checkout_dir(src_dir=src_dir)
+        vcsrepo = VCSRepository(
+            url=self.link.url,
+            name=self.name,
+            ref=self.ref if self.ref else None,
+            checkout_directory=checkout_dir,
+            vcs_type=self.vcs
+        )
+        if not self.is_local:
+            vcsrepo.obtain()
+        return vcsrepo.get_commit_hash()
+
+    def update_repo(self, src_dir=None, ref=None):
+        checkout_dir = self.get_checkout_dir(src_dir=src_dir)
+        ref = self.ref if not ref else ref
+        vcsrepo = VCSRepository(
+            url=self.link.url,
+            name=self.name,
+            ref=ref if ref else None,
+            checkout_directory=checkout_dir,
+            vcs_type=self.vcs
+        )
+        if not self.is_local:
+            if not not os.path.exists(checkout_dir):
+                vcsrepo.obtain()
+            else:
+                vcsrepo.update()
+        return vcsrepo.get_commit_hash()
+
+    def lock_vcs_ref(self):
+        self.ref = self.get_commit_hash()
+        self.req.revision = self.ref
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
