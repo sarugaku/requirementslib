@@ -475,10 +475,10 @@ class VCSRequirement(FileRequirement):
     # : vcs reference name (branch / commit / tag)
     ref = attr.ib(default=None)
     subdirectory = attr.ib(default=None)
+    _repo = attr.ib(default=None)
     name = attr.ib()
     link = attr.ib()
     req = attr.ib()
-    repo = attr.ib()
 
     def __attrs_post_init__(self):
         split = urllib_parse.urlsplit(self.uri)
@@ -555,6 +555,12 @@ class VCSRequirement(FileRequirement):
             return True
         return False
 
+    @property
+    def repo(self):
+        if self._repo is None:
+            self._repo = self.get_vcs_repo()
+        return self._repo
+
     def get_checkout_dir(self, src_dir=None):
         src_dir = os.environ.get('PIP_SRC', None) if not src_dir else src_dir
         checkout_dir = None
@@ -567,23 +573,22 @@ class VCSRequirement(FileRequirement):
                 return checkout_dir
         return src_dir
 
-    @repo.default
     def get_vcs_repo(self, src_dir=None):
         checkout_dir = self.get_checkout_dir(src_dir=src_dir)
         if not checkout_dir:
             _src_dir = TemporaryDirectory()
             atexit.register(_src_dir.cleanup)
             checkout_dir = Path(_src_dir.name).joinpath(self.name).absolute().as_posix()
+        url = "{0}#egg={1}".format(self.vcs_uri, self.name)
         vcsrepo = VCSRepository(
-            url=self.link.url,
+            url=url,
             name=self.name,
             ref=self.ref if self.ref else None,
             checkout_directory=checkout_dir,
             vcs_type=self.vcs
         )
         if not (self.is_local and self.editable):
-            if not os.path.exists(checkout_dir):
-                vcsrepo.obtain()
+            vcsrepo.obtain()
         return vcsrepo
 
     def get_commit_hash(self):
@@ -689,7 +694,7 @@ class VCSRequirement(FileRequirement):
 
     @property
     def pipfile_part(self):
-        pipfile_dict = attr.asdict(self, filter=filter_none).copy()
+        pipfile_dict = attr.asdict(self, filter=lambda k, v: v is not None and k.name != '_repo').copy()
         if "vcs" in pipfile_dict:
             pipfile_dict = self._choose_vcs_source(pipfile_dict)
         name, _ = _strip_extras(pipfile_dict.pop("name"))
