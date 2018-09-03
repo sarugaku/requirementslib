@@ -497,9 +497,10 @@ class VCSRequirement(FileRequirement):
 
     @link.default
     def get_link(self):
+        uri = self.uri if self.uri else path_to_url(self.path)
         return build_vcs_link(
             self.vcs,
-            add_ssh_scheme_to_git_uri(self.uri),
+            add_ssh_scheme_to_git_uri(uri),
             name=self.name,
             ref=self.ref,
             subdirectory=self.subdirectory,
@@ -681,7 +682,9 @@ class VCSRequirement(FileRequirement):
     def line_part(self):
         """requirements.txt compatible line part sans-extras"""
         if self.is_local:
-            base_link = self.get_link()
+            base_link = self.link
+            if not self.link:
+                base_link = self.get_link()
             final_format = "{{0}}#egg={0}".format(base_link.egg_fragment) if base_link.egg_fragment else "{0}"
             base = final_format.format(self.vcs_uri)
         elif self.req:
