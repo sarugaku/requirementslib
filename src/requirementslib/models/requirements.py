@@ -941,7 +941,7 @@ class Requirement(object):
             else:
                 index_string = " ".join(source_list)
                 parts.extend([" ", index_string])
-        if not as_list:
+        if as_list:
             return parts
         line = "".join(parts)
         return line
