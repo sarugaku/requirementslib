@@ -525,7 +525,10 @@ class VCSRequirement(FileRequirement):
             _src_dir = TemporaryDirectory()
             atexit.register(_src_dir.cleanup)
             src_dir = _src_dir.name
-        checkout_dir = Path(src_dir).joinpath(self.name).as_posix()
+        elif is_local:
+            checkout_dir = Path(self.path).as_posix()
+        else:
+            checkout_dir = Path(src_dir).joinpath(self.name).as_posix()
         vcsrepo = VCSRepository(
             url=self.link.url,
             name=self.name,
@@ -714,12 +717,16 @@ class Requirement(object):
     def requirement(self):
         return self.req.req
 
+    def get_hashes_as_pip(self, as_list=False):
+        if self.hashes:
+            if as_list:
+                return [HASH_STRING.format(h) for h in self.hashes]
+            return "".join([HASH_STRING.format(h) for h in self.hashes])
+        return "" if not as_list else []
+
     @property
     def hashes_as_pip(self):
-        if self.hashes:
-            return "".join([HASH_STRING.format(h) for h in self.hashes])
-
-        return ""
+        self.get_hashes_as_pip()
 
     @property
     def markers_as_pip(self):
@@ -893,7 +900,7 @@ class Requirement(object):
             cls_inst.req.req.line = cls_inst.as_line()
         return cls_inst
 
-    def as_line(self, sources=None, include_hashes=True, include_extras=True):
+    def as_line(self, sources=None, include_hashes=True, include_extras=True, as_list=False):
         """Format this requirement as a line in requirements.txt.
 
         If ``sources`` provided, it should be an sequence of mappings, containing
@@ -914,15 +921,28 @@ class Requirement(object):
             self.specifiers if include_specifiers else "",
             self.markers_as_pip,
         ]
+        if as_list:
+            # This is used for passing to a subprocess call
+            parts = ["".join(parts)]
         if include_hashes:
-            parts.append(self.hashes_as_pip)
+            hashes = self.get_hashes_as_pip(as_list=as_list)
+            if as_list:
+                self.parts.extend(hashes)
+            else:
+                self.parts.append(hashes)
         if sources and not (self.requirement.local_file or self.vcs):
             from ..utils import prepare_pip_source_args
 
             if self.index:
                 sources = [s for s in sources if s.get("name") == self.index]
-            index_string = " ".join(prepare_pip_source_args(sources))
-            parts.extend([" ", index_string])
+            source_list = prepare_pip_source_args(sources)
+            if as_list:
+                parts.extend(sources)
+            else:
+                index_string = " ".join(source_list)
+                parts.extend([" ", index_string])
+        if not as_list:
+            return parts
         line = "".join(parts)
         return line
 
