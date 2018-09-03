@@ -253,3 +253,12 @@ def test_get_requirements():
 def test_get_ref():
     r = Requirement.from_line("-e git+https://github.com/sarugaku/shellingham.git@1.2.1#egg=shellingham")
     assert r.commit_hash == "9abe7464dab5cc362fe08361619d3fb15f2e16ab"
+
+
+def test_get_local_ref(tmpdir):
+    six_dir = tmpdir.join("six")
+    import vistir
+    c = vistir.misc.run(["git", "clone", "https://github.com/benjaminp/six.git", six_dir.strpath], return_object=True)
+    assert c.returncode == 0
+    r = Requirement.from_line("git+{0}#egg=six".format(Path(six_dir.strpath).as_uri()))
+    assert r.commit_hash
