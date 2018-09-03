@@ -927,9 +927,9 @@ class Requirement(object):
         if include_hashes:
             hashes = self.get_hashes_as_pip(as_list=as_list)
             if as_list:
-                self.parts.extend(hashes)
+                parts.extend(hashes)
             else:
-                self.parts.append(hashes)
+                parts.append(hashes)
         if sources and not (self.requirement.local_file or self.vcs):
             from ..utils import prepare_pip_source_args
 
