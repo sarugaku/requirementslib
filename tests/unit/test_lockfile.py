@@ -14,7 +14,7 @@ def test_lockfile(tmpdir):
         assert requires == []
 
         requires = lockfile.as_requirements(dev=True)
-        assert 'attrs==18.1.0' in requires
+        assert any(req.startswith("attrs") for req in requires)
 
 
 def test_lockfile_requirements(tmpdir):
