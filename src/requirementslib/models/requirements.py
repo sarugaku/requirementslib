@@ -478,6 +478,7 @@ class VCSRequirement(FileRequirement):
     name = attr.ib()
     link = attr.ib()
     req = attr.ib()
+    repo = attr.ib()
 
     def __attrs_post_init__(self):
         split = urllib_parse.urlsplit(self.uri)
@@ -555,18 +556,24 @@ class VCSRequirement(FileRequirement):
         return False
 
     def get_checkout_dir(self, src_dir=None):
-        src_dir = os.environ.get('SRC_DIR', None) if not src_dir else src_dir
-        checkout_dir = Path(self.path).absolute().as_posix() if self.is_local else None
-        if not checkout_dir and not src_dir:
+        src_dir = os.environ.get('PIP_SRC', None) if not src_dir else src_dir
+        checkout_dir = None
+        if self.is_local and self.editable:
+            path = self.path
+            if not path:
+                path = url_to_path(self.uri)
+            if path and os.path.exists(path):
+                checkout_dir = Path(self.path).absolute().as_posix()
+                return checkout_dir
+        return src_dir
+
+    @repo.default
+    def get_vcs_repo(self, src_dir=None):
+        checkout_dir = self.get_checkout_dir(src_dir=src_dir)
+        if not checkout_dir:
             _src_dir = TemporaryDirectory()
             atexit.register(_src_dir.cleanup)
-            src_dir = _src_dir.name
-        if not self.is_local:
-            checkout_dir = Path(src_dir).joinpath(self.name).as_posix()
-        return checkout_dir
-
-    def get_commit_hash(self, src_dir=None):
-        checkout_dir = self.get_checkout_dir(src_dir=src_dir)
+            checkout_dir = Path(_src_dir.name).joinpath(self.name).absolute().as_posix()
         vcsrepo = VCSRepository(
             url=self.link.url,
             name=self.name,
@@ -574,26 +581,22 @@ class VCSRequirement(FileRequirement):
             checkout_directory=checkout_dir,
             vcs_type=self.vcs
         )
-        if not self.is_local:
-            vcsrepo.obtain()
-        return vcsrepo.get_commit_hash()
+        if not (self.is_local and self.editable):
+            if not os.path.exists(checkout_dir):
+                vcsrepo.obtain()
+        return vcsrepo
+
+    def get_commit_hash(self):
+        hash_ = self.repo.get_commit_hash()
+        return hash_
 
     def update_repo(self, src_dir=None, ref=None):
-        checkout_dir = self.get_checkout_dir(src_dir=src_dir)
         ref = self.ref if not ref else ref
-        vcsrepo = VCSRepository(
-            url=self.link.url,
-            name=self.name,
-            ref=ref if ref else None,
-            checkout_directory=checkout_dir,
-            vcs_type=self.vcs
-        )
-        if not self.is_local:
-            if not not os.path.exists(checkout_dir):
-                vcsrepo.obtain()
-            else:
-                vcsrepo.update()
-        return vcsrepo.get_commit_hash()
+        if not (self.is_local and self.editable):
+            self.repo.update()
+            self.repo.checkout_ref(ref)
+        hash_ = self.repo.get_commit_hash()
+        return hash_
 
     def lock_vcs_ref(self):
         self.ref = self.get_commit_hash()
