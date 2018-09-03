@@ -23,8 +23,14 @@ class VCSRepository(object):
         return backend(url=self.url)
 
     def obtain(self):
-        self.repo_instance.unpack(self.checkout_directory)
-        self.commit_sha = self.get_commit_hash()
+        if not os.path.exists(self.checkout_directory):
+            self.repo_instance.unpack(self.checkout_directory)
+        if self.ref:
+            self.update(self.ref)
+            self.commit_sha = self.get_commit_hash(self.ref)
+        else:
+            if not self.commit_sha:
+                self.commit_sha = self.get_commit_hash()
 
     def checkout_ref(self, ref):
         target_rev = self.repo_instance.make_rev_options(ref)
