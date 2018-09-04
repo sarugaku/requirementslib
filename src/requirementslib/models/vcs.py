@@ -33,13 +33,16 @@ class VCSRepository(object):
     def obtain(self):
         if not os.path.exists(self.checkout_directory):
             self.repo_instance.obtain(self.checkout_directory)
+        sha = None
         with vistir.contextmanagers.cd(self.checkout_directory):
             if self.ref:
                 self.checkout_ref(self.ref)
-                self.commit_hash = self.get_commit_hash(self.ref)
+                sha = self.get_commit_hash(self.ref)
             else:
                 if not self.commit_sha:
-                    self.commit_sha = self.get_commit_hash()
+                    sha = self.get_commit_hash()
+        if sha:
+            self.commit_hash = sha
 
     def checkout_ref(self, ref):
         if not self.repo_instance.is_commit_id_equal(
@@ -59,10 +62,11 @@ class VCSRepository(object):
         self.commit_hash = self.get_commit_hash(ref)
 
     def get_commit_hash(self, ref=None):
+        sha = None
         with vistir.contextmanagers.cd(self.checkout_directory):
             if ref:
                 target_ref = self.repo_instance.make_rev_options(ref)
                 sha = self.repo_instance.get_revision_sha(self.checkout_directory, target_ref.arg_rev)
-                return sha
                 # return self.repo_instance.get_revision(self.checkout_directory)
-            return self.repo_instance.get_revision(self.checkout_directory)
+            sha = self.repo_instance.get_revision(self.checkout_directory)
+        return sha

@@ -485,6 +485,9 @@ class VCSRequirement(FileRequirement):
     req = attr.ib()
 
     def __attrs_post_init__(self):
+        if not self.uri:
+            if self.path:
+                self.uri = path_to_url(self.path)
         split = urllib_parse.urlsplit(self.uri)
         scheme, rest = split[0], split[1:]
         vcs_type = ""
@@ -639,9 +642,10 @@ class VCSRequirement(FileRequirement):
                     "{0}+{1}".format(key, pipfile.get(key))
                 ).split("+", 1)[1]
                 url_keys = [pipfile.get(key), composed_uri]
-                is_url = any(validity_fn(url_key) for url_key in url_keys for validity_fn in [is_valid_url, is_file_url])
-                target_key = "uri" if is_url else "path"
-                creation_args[target_key] = pipfile.get(key)
+                if any(is_valid_url(k) for k in url_keys) or any(is_file_url(k) for k in url_keys):
+                    creation_args["uri"] = pipfile.get(key)
+                else:
+                    creation_args["path"] = pipfile.get("key")
             else:
                 creation_args[key] = pipfile.get(key)
         creation_args["name"] = name
