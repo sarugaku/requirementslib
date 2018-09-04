@@ -1,3 +1,26 @@
+1.1.6 (2018-09-04)
+==================
+
+Features
+--------
+
+- ``Requirement.get_commit_hash`` and ``Requirement.update_repo`` will no longer clone local repositories to temporary directories or local src directories in order to determine commit hashes.  #60
+  
+- Added ``Requirement.lock_vcs_ref()`` api for locking the VCS commit hash to the current commit (and obtaining it and determining it if necessary).  #64
+  
+- ``Requirement.as_line()`` now offers the parameter ``as_list`` to return requirements more suited for passing directly to ``subprocess.run`` and ``subprocess.Popen`` calls.  #67
+  
+
+Bug Fixes
+---------
+
+- Fixed a bug error formatting of the path validator method of local requirements.  #57
+  
+- Fixed an issue which prevented successful loads of ``Pipfile`` objects missing entries in some sections.  #59
+  
+- Fixed an issue which caused ``Requirement.get_commit_hash()`` to fail for local requirements.  #67
+
+
 1.1.5 (2018-08-26)
 ==================
 

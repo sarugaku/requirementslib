@@ -1,1 +1,0 @@
-Fixed an issue which caused ``Requirement.get_commit_hash()`` to fail for local requirements.
