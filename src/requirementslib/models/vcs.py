@@ -58,7 +58,6 @@ class VCSRepository(object):
         self.commit_hash = self.get_commit_hash(ref)
 
     def get_commit_hash(self, ref=None):
-        sha = None
         if ref:
             target_ref = self.repo_instance.make_rev_options(ref)
             return self.repo_instance.get_revision_sha(self.checkout_directory, target_ref.arg_rev)
