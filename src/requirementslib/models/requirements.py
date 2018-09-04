@@ -613,8 +613,8 @@ class VCSRequirement(FileRequirement):
         return repo_hash
 
     @contextmanager
-    def locked_vcs_repo(self):
-        vcsrepo = self.get_vcs_repo()
+    def locked_vcs_repo(self, src_dir=None):
+        vcsrepo = self.get_vcs_repo(src_dir=src_dir)
         if self.ref and not self.is_local:
             vcsrepo.checkout_ref(self.ref)
         self.ref = self.get_commit_hash()
