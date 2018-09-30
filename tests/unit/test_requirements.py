@@ -258,7 +258,7 @@ def test_get_ref():
 def test_get_local_ref(tmpdir):
     six_dir = tmpdir.join("six")
     import vistir
-    c = vistir.misc.run(["git", "clone", "https://github.com/benjaminp/six.git", six_dir.strpath], return_object=True)
+    c = vistir.misc.run(["git", "clone", "https://github.com/benjaminp/six.git", six_dir.strpath], return_object=True, nospin=True)
     assert c.returncode == 0
     r = Requirement.from_line("git+{0}#egg=six".format(Path(six_dir.strpath).as_uri()))
     assert r.commit_hash
