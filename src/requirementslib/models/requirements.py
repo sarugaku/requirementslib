@@ -760,7 +760,7 @@ class Requirement(object):
     @property
     def markers_as_pip(self):
         if self.markers:
-            return "; {0}".format(self.markers).replace('"', "'")
+            return " ; {0}".format(self.markers).replace('"', "'")
 
         return ""
 
