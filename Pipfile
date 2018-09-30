@@ -16,7 +16,7 @@ colorama = {version = "*", markers = "os_name == 'nt'"}
 requirementslib = {path = ".", editable = true, extras = ["tests"]}
 sphinx_rtd_theme = "*"
 pip_shims = "*"
-"vistir" = "*"
+"vistir" = ">=0.1.6"
 rope = "*"
 towncrier = "*"
 parver = "*"
