@@ -15,7 +15,7 @@ from pip_shims.shims import (
     is_installable_dir as _is_installable_dir
 )
 from vistir.compat import Path
-from vistir.path import is_valid_url, ensure_mkdir_p
+from vistir.path import is_valid_url, ensure_mkdir_p, create_tracked_tempdir
 
 
 VCS_LIST = ("git", "svn", "hg", "bzr")
@@ -169,6 +169,8 @@ def _ensure_dir(path):
 
 @contextlib.contextmanager
 def ensure_setup_py(base_dir):
+    if not base_dir:
+        base_dir = create_tracked_tempdir(prefix="requirementslib-setup")
     base_dir = Path(base_dir)
     setup_py = base_dir.joinpath("setup.py")
     is_new = False if setup_py.exists() else True
@@ -179,4 +181,3 @@ def ensure_setup_py(base_dir):
     finally:
         if is_new:
             setup_py.unlink()
-

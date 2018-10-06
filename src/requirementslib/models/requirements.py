@@ -1054,8 +1054,7 @@ class Requirement(object):
         if self.editable or self.req.editable:
             if ireq_line.startswith("-e "):
                 ireq_line = ireq_line[len("-e "):]
-            setup_dir = ireq.setup_py_dir if ireq.setup_py_dir else self.req.path
-            with ensure_setup_py(setup_dir):
+            with ensure_setup_py(self.req.path):
                 ireq = InstallRequirement.from_editable(ireq_line)
         else:
             ireq = InstallRequirement.from_line(ireq_line)
