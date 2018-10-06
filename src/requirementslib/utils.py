@@ -175,7 +175,7 @@ def ensure_setup_py(base_dir):
     setup_py = base_dir.joinpath("setup.py")
     is_new = False if setup_py.exists() else True
     if not setup_py.exists():
-        setup_py.write_text("")
+        setup_py.write_text(u"")
     try:
         yield
     finally:
