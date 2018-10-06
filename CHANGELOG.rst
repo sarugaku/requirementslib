@@ -1,3 +1,12 @@
+1.1.7 (2018-10-06)
+==================
+
+Bug Fixes
+---------
+
+- Add space before environment markers ; to make editable packages can be installed by pip  #70
+
+
 1.1.6 (2018-09-04)
 ==================
 
