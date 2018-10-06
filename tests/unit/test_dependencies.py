@@ -17,7 +17,7 @@ def test_find_all_matches():
 
 
 def test_get_dependencies():
-    r = Requirement.from_line("requests")
+    r = Requirement.from_line("requests==2.19.1")
     deps = r.get_dependencies()
     assert len(deps) > 0
     deps_from_ireq = requirementslib.models.dependencies.get_dependencies(r.as_ireq())
