@@ -480,6 +480,7 @@ class VCSRequirement(FileRequirement):
     ref = attr.ib(default=None)
     subdirectory = attr.ib(default=None)
     _repo = attr.ib(default=None)
+    _base_line = attr.ib(default=None)
     name = attr.ib()
     link = attr.ib()
     req = attr.ib()
@@ -681,6 +682,7 @@ class VCSRequirement(FileRequirement):
             editable=editable,
             uri=uri,
             extras=extras,
+            base_line=line
         )
 
     @property
@@ -692,8 +694,10 @@ class VCSRequirement(FileRequirement):
                 base_link = self.get_link()
             final_format = "{{0}}#egg={0}".format(base_link.egg_fragment) if base_link.egg_fragment else "{0}"
             base = final_format.format(self.vcs_uri)
-        elif self.req:
-            base = self.req.line
+        elif self._base_line:
+            base = self._base_line
+        else:
+            base = self.link.url
         if base and self.extras and not extras_to_string(self.extras) in base:
             if self.subdirectory:
                 base = "{0}".format(self.get_link().url)
@@ -814,6 +818,7 @@ class Requirement(object):
             hashes = line.split(" --hash=")
             line, hashes = hashes[0], hashes[1:]
         editable = line.startswith("-e ")
+        print("Got line: %s" % line)
         line = line.split(" ", 1)[1] if editable else line
         line, markers = split_markers_from_line(line)
         line, extras = _strip_extras(line)
