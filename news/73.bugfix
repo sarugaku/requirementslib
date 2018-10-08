@@ -1,1 +1,0 @@
-Fixed a bug which caused VCS URIs to build incorrectly when calling ``VCSRequirement.as_line()`` in some cases.

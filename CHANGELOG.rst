@@ -1,3 +1,14 @@
+1.1.8 (2018-10-08)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug which caused VCS URIs to build incorrectly when calling ``VCSRequirement.as_line()`` in some cases.  #73
+  
+- Fixed bug that editable package with ref by @ is not supported correctly  #74
+
+
 1.1.7 (2018-10-06)
 ==================
 
