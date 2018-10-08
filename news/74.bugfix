@@ -1,0 +1,1 @@
+Fixed bug that editable package with ref by @ is not supported correctly
