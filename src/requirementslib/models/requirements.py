@@ -619,6 +619,13 @@ class VCSRequirement(FileRequirement):
             vcsrepo.checkout_ref(self.ref)
         self.ref = self.get_commit_hash()
         self.req.revision = self.ref
+
+        # Remove potential ref in the end of uri after ref is parsed
+        if "@" in self.link.show_url and "@" in self.uri:
+            uri, ref = self.uri.rsplit("@", 1)
+            if ref in self.ref:
+                self.uri = uri
+
         yield vcsrepo
         self._repo = vcsrepo
 
