@@ -1,0 +1,1 @@
+Fixed a bug in named requirement normalization which caused querying the index to fail when looking up requirements with dots in their names.
