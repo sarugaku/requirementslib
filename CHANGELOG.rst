@@ -1,3 +1,12 @@
+1.1.9 (2018-10-10)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug in named requirement normalization which caused querying the index to fail when looking up requirements with dots in their names.  #79
+
+
 1.1.8 (2018-10-08)
 ==================
 

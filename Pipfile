@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+docker = "*"
 
 [dev-packages]
 black = {version = "*", markers = "python_version>='3.6'"}
