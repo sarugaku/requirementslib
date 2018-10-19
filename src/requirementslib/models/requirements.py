@@ -627,7 +627,7 @@ class VCSRequirement(FileRequirement):
         self.req.revision = self.ref
 
         # Remove potential ref in the end of uri after ref is parsed
-        if "@ " in self.link.show_url and "@" in self.uri:
+        if "@" in self.link.show_url and "@" in self.uri:
             uri, ref = self.uri.rsplit("@", 1)
             if ref in self.ref:
                 self.uri = uri
@@ -680,7 +680,7 @@ class VCSRequirement(FileRequirement):
             name = link.egg_fragment
         subdirectory = link.subdirectory_fragment
         ref = None
-        if "@ " in link.show_url and "@" in uri:
+        if "@" in link.show_url and "@" in uri:
             uri, ref = uri.rsplit("@", 1)
         if relpath and "@" in relpath:
             relpath, ref = relpath.rsplit("@", 1)

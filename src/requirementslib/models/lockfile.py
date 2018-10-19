@@ -91,12 +91,8 @@ class Lockfile(object):
         if not path:
             path = os.curdir
         path = Path(path).absolute()
-        if path.is_dir():
-            project_path = path
-            lockfile_path = path / "Pipfile.lock"
-        elif path.name == "Pipfile":
-            project_path = path.parent
-            lockfile_path = path.parent / "Pipfile.lock"
+        project_path = path if path.is_dir() else path.parent
+        lockfile_path = project_path / "Pipfile.lock"
         if not project_path.exists():
             raise OSError("Project does not exist: %s" % project_path.as_posix())
         elif not lockfile_path.exists() and not create:
@@ -126,6 +122,10 @@ class Lockfile(object):
             "path": lockfile_path
         }
         return cls(**creation_args)
+
+    @classmethod
+    def create(cls, path, create=True):
+        return cls.load(path, create=create)
 
     @property
     def develop(self):
