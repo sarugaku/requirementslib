@@ -72,6 +72,19 @@ class Lockfile(object):
             retval = super(Lockfile, self).__getattribute__(k, *args, **kwargs)
         return retval
 
+    def get_deps(self, dev=False, only=True):
+        deps = {}
+        if dev:
+            deps.update(self.develop._data)
+            if only:
+                return deps
+        for dep in self.default._data.keys():
+            if dep in deps:
+                deps[dep].update(self.default._data[dep])
+            else:
+                deps[dep] = self.default._data[dep]
+        return deps
+
     @classmethod
     def read_projectfile(cls, path):
         """Read the specified project file and provide an interface for writing/updating.

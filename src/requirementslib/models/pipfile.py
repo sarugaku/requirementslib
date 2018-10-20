@@ -6,6 +6,8 @@ import attr
 import copy
 import os
 
+import tomlkit
+
 from vistir.compat import Path, FileNotFoundError
 
 from .requirements import Requirement
@@ -19,6 +21,32 @@ import plette.pipfiles
 is_pipfile = optional_instance_of(plette.pipfiles.Pipfile)
 is_path = optional_instance_of(Path)
 is_projectfile = optional_instance_of(ProjectFile)
+
+
+class PipfileLoader(plette.pipfiles.Pipfile):
+    @classmethod
+    def validate(cls, data):
+        for key, klass in plette.pipfiles.PIPFILE_SECTIONS.items():
+            if key not in data or key == "source":
+                continue
+            klass.validate(data[key])
+
+    @classmethod
+    def load(cls, f, encoding=None):
+        content = f.read()
+        if encoding is not None:
+            content = content.decode(encoding)
+        _data = tomlkit.loads(content)
+        if "source" not in _data:
+            # HACK: There is no good way to prepend a section to an existing
+            # TOML document, but there's no good way to copy non-structural
+            # content from one TOML document to another either. Modify the
+            # TOML content directly, and load the new in-memory document.
+            sep = "" if content.startswith("\n") else "\n"
+            content = plette.pipfiles.DEFAULT_SOURCE_TOML + sep + content
+        data = tomlkit.loads(content)
+        print(data)
+        return cls(data)
 
 
 @attr.s(slots=True)
@@ -40,6 +68,19 @@ class Pipfile(object):
     @_pipfile.default
     def _get_pipfile(self):
         return self.projectfile.model
+
+    def get_deps(self, dev=False, only=True):
+        deps = {}
+        if dev:
+            deps.update(self.develop._data)
+            if only:
+                return deps
+        for dep in self.default._data.keys():
+            if dep in deps:
+                deps[dep].update(self.default._data[dep])
+            else:
+                deps[dep] = self.default._data[dep]
+        return deps
 
     def __getattr__(self, k, *args, **kwargs):
         retval = None
@@ -80,7 +121,7 @@ class Pipfile(object):
         """
         pf = ProjectFile.read(
             path,
-            plette.pipfiles.Pipfile,
+            PipfileLoader,
             invalid_ok=True
         )
         return pf
@@ -99,7 +140,7 @@ class Pipfile(object):
         if not path:
             raise RuntimeError("Must pass a path to classmethod 'Pipfile.load'")
         if not isinstance(path, Path):
-            path = Path(path)
+            path = Path(path).absolute()
         pipfile_path = path if path.name == "Pipfile" else path.joinpath("Pipfile")
         project_path = pipfile_path.parent
         if not project_path.exists():
@@ -124,10 +165,10 @@ class Pipfile(object):
         projectfile = cls.load_projectfile(path, create=create)
         pipfile = projectfile.model
         dev_requirements = [
-            Requirement.from_pipfile(k, v._data) for k, v in pipfile.get("dev-packages", {}).items()
+            Requirement.from_pipfile(k, getattr(v, "_data", v)) for k, v in pipfile.get("dev-packages", {}).items()
         ]
         requirements = [
-            Requirement.from_pipfile(k, v._data) for k, v in pipfile.get("packages", {}).items()
+            Requirement.from_pipfile(k, getattr(v, "_data", v)) for k, v in pipfile.get("packages", {}).items()
         ]
         creation_args = {
             "projectfile": projectfile,
