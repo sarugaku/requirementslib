@@ -14,6 +14,7 @@ from .project import ProjectFile
 from .requirements import Requirement
 
 from .utils import optional_instance_of
+from ..utils import is_vcs, is_editable
 
 DEFAULT_NEWLINES = u"\n"
 
@@ -52,10 +53,21 @@ class Lockfile(object):
     def __getattr__(self, k, *args, **kwargs):
         retval = None
         lockfile = super(Lockfile, self).__getattribute__("_lockfile")
+        section = None
+        pkg_type = None
         try:
             return super(Lockfile, self).__getattribute__(k)
         except AttributeError:
             retval = getattr(lockfile, k, None)
+            if retval is not None:
+                return retval
+            if "-" in k:
+                section, _, pkg_type = k.partition("-")
+                vals = getattr(lockfile, section, {})
+                if pkg_type == "vcs":
+                    retval = {k: v for k, v in vals.items() if is_vcs(v)}
+                elif pkg_type == "editable":
+                    retval = {k: v for k, v in vals.items() if is_editable(v)}
         if not retval:
             retval = super(Lockfile, self).__getattribute__(k, *args, **kwargs)
         return retval
