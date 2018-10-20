@@ -12,6 +12,7 @@ from .requirements import Requirement
 from .project import ProjectFile
 from .utils import optional_instance_of
 from ..exceptions import RequirementError
+from ..utils import is_vcs, is_editable
 import plette.pipfiles
 
 
@@ -43,10 +44,20 @@ class Pipfile(object):
     def __getattr__(self, k, *args, **kwargs):
         retval = None
         pipfile = super(Pipfile, self).__getattribute__("_pipfile")
+        section = None
+        pkg_type = None
         try:
             return super(Pipfile, self).__getattribute__(k)
         except AttributeError:
-            retval = getattr(pipfile, k, None)
+            if retval is not None:
+                return retval
+            if "-" in k:
+                section, _, pkg_type = k.partition("-")
+                vals = getattr(pipfile, section, {})
+                if pkg_type == "vcs":
+                    retval = {k: v for k, v in vals.items() if is_vcs(v)}
+                elif pkg_type == "editable":
+                    retval = {k: v for k, v in vals.items() if is_editable(v)}
         if not retval:
             retval = super(Pipfile, self).__getattribute__(k, *args, **kwargs)
         return retval

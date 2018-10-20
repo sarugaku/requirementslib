@@ -8,6 +8,8 @@ import os
 import six
 import tomlkit
 
+six.add_move(six.MovedAttribute("Mapping", "collections", "collections.abc"))
+from six.moves import Mapping
 from six.moves.urllib.parse import urlparse, urlsplit
 
 from pip_shims.shims import (
@@ -16,6 +18,8 @@ from pip_shims.shims import (
 )
 from vistir.compat import Path
 from vistir.path import is_valid_url, ensure_mkdir_p, create_tracked_tempdir
+
+
 
 
 VCS_LIST = ("git", "svn", "hg", "bzr")
@@ -63,6 +67,12 @@ def is_vcs(pipfile_entry):
             pipfile_entry = add_ssh_scheme_to_git_uri(pipfile_entry)
         parsed_entry = urlsplit(pipfile_entry)
         return parsed_entry.scheme in VCS_SCHEMES
+    return False
+
+
+def is_editable(pipfile_entry):
+    if isinstance(pipfile_entry, Mapping):
+        return pipfile_entry.get("editable", False) == True
     return False
 
 
