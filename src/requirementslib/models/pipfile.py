@@ -14,7 +14,7 @@ from .requirements import Requirement
 from .project import ProjectFile
 from .utils import optional_instance_of
 from ..exceptions import RequirementError
-from ..utils import is_vcs, is_editable
+from ..utils import is_vcs, is_editable, merge_items
 import plette.pipfiles
 
 
@@ -45,7 +45,6 @@ class PipfileLoader(plette.pipfiles.Pipfile):
             sep = "" if content.startswith("\n") else "\n"
             content = plette.pipfiles.DEFAULT_SOURCE_TOML + sep + content
         data = tomlkit.loads(content)
-        print(data)
         return cls(data)
 
 
@@ -69,39 +68,50 @@ class Pipfile(object):
     def _get_pipfile(self):
         return self.projectfile.model
 
+    @property
+    def pipfile(self):
+        return self._pipfile
+
     def get_deps(self, dev=False, only=True):
         deps = {}
         if dev:
-            deps.update(self.develop._data)
+            deps.update(self.pipfile["dev-packages"]._data)
             if only:
                 return deps
-        for dep in self.default._data.keys():
-            if dep in deps:
-                deps[dep].update(self.default._data[dep])
-            else:
-                deps[dep] = self.default._data[dep]
+        deps = merge_items([deps, self.pipfile["packages"]._data])
         return deps
 
-    def __getattr__(self, k, *args, **kwargs):
+    def __getitem__(self, k, *args, **kwargs):
         retval = None
-        pipfile = super(Pipfile, self).__getattribute__("_pipfile")
+        pipfile = self._pipfile
         section = None
         pkg_type = None
         try:
-            return super(Pipfile, self).__getattribute__(k)
-        except AttributeError:
-            if retval is not None:
-                return retval
+            retval = pipfile[k]
+        except KeyError:
             if "-" in k:
-                section, _, pkg_type = k.partition("-")
-                vals = getattr(pipfile, section, {})
+                section, _, pkg_type = k.rpartition("-")
+                vals = getattr(pipfile.get(section, {}), "_data", {})
                 if pkg_type == "vcs":
                     retval = {k: v for k, v in vals.items() if is_vcs(v)}
                 elif pkg_type == "editable":
                     retval = {k: v for k, v in vals.items() if is_editable(v)}
-        if not retval:
-            retval = super(Pipfile, self).__getattribute__(k, *args, **kwargs)
+            if retval is None:
+                raise
+        else:
+            retval = getattr(retval, "_data", retval)
         return retval
+
+    def __getattr__(self, k, *args, **kwargs):
+        retval = None
+        pipfile = super(Pipfile, self).__getattribute__("_pipfile")
+        try:
+            retval = super(Pipfile, self).__getattribute__(k)
+        except AttributeError:
+            retval = getattr(pipfile, k, None)
+        if retval is not None:
+            return retval
+        return super(Pipfile, self).__getattribute__(k, *args, **kwargs)
 
     @property
     def requires_python(self):
