@@ -81,6 +81,15 @@ class Pipfile(object):
         deps = merge_items([deps, self.pipfile["packages"]._data])
         return deps
 
+    def get(self, k):
+        return self.__getitem__(k)
+
+    def __contains__(self, k):
+        check_pipfile = k in self.extended_keys or self.pipfile.__contains__(k)
+        if check_pipfile:
+            return True
+        return super(Pipfile, self).__contains__(k)
+
     def __getitem__(self, k, *args, **kwargs):
         retval = None
         pipfile = self._pipfile
