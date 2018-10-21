@@ -1,0 +1,1 @@
+Added a new interface for merging ``dev`` and ``default`` sections in both ``Pipfile`` and ``Lockfile`` objects using ``get_deps(dev=True, only=False)``.
