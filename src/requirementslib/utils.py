@@ -30,8 +30,10 @@ VCS_LIST = ("git", "svn", "hg", "bzr")
 VCS_SCHEMES = []
 SCHEME_LIST = ("http://", "https://", "ftp://", "ftps://", "file://")
 
+VCS_SUPPORT = VcsSupport()
+
 if not VCS_SCHEMES:
-    VCS_SCHEMES = VcsSupport().all_schemes
+    VCS_SCHEMES = VCS_SUPPORT.all_schemes
 
 
 def setup_logger():
