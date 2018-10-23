@@ -73,7 +73,6 @@ class Lockfile(object):
         return super(Lockfile, self).__contains__(k)
 
     def __setitem__(self, k, v):
-        retval = None
         lockfile = self._lockfile
         lockfile.__setitem__(k, v)
 
