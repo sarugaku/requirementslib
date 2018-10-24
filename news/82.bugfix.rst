@@ -1,1 +1,0 @@
-``Requirement.as_line()`` now provides an argument to make the inclusion of markers optional by passing ``include_markers=False``.

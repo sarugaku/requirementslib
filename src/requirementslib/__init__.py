@@ -1,5 +1,5 @@
 # -*- coding=utf-8 -*-
-__version__ = '1.1.10.dev0'
+__version__ = '1.2.0'
 
 from .models.requirements import Requirement
 from .models.lockfile import Lockfile
