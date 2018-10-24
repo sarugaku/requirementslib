@@ -75,11 +75,10 @@ class Pipfile(object):
     def get_deps(self, dev=False, only=True):
         deps = {}
         if dev:
-            deps.update(self.pipfile["dev-packages"]._data)
+            deps.update(self.pipfile._data["dev-packages"])
             if only:
                 return deps
-        deps = merge_items([deps, self.pipfile["packages"]._data])
-        return deps
+        return merge_items([deps, self.pipfile._data["packages"]])
 
     def get(self, k):
         return self.__getitem__(k)
