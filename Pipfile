@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-docker = "*"
 
 [dev-packages]
 black = {version = "*", markers = "python_version>='3.6'"}
@@ -13,11 +12,10 @@ pytest = "*"
 sphinx = "*"
 twine = "*"
 invoke = "*"
-colorama = {version = "*", markers = "os_name == 'nt'"}
 requirementslib = {path = ".", editable = true, extras = ["tests"]}
 sphinx_rtd_theme = "*"
 pip_shims = "*"
-"vistir" = ">=0.1.6"
+vistir = { version = ">=0.1.6", extras = ["spinner"] }
 rope = "*"
 towncrier = "*"
 parver = "*"
