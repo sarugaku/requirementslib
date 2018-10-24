@@ -1,3 +1,22 @@
+1.2.0 (2018-10-24)
+==================
+
+Features
+--------
+
+- ``Pipfile`` and ``Lockfile`` models will now properly perform import and export operations with fully data serialization.  #83
+  
+- Added a new interface for merging ``dev`` and ``default`` sections in both ``Pipfile`` and ``Lockfile`` objects using ``get_deps(dev=True, only=False)``.  #85
+  
+
+Bug Fixes
+---------
+
+- ``Requirement.as_line()`` now provides an argument to make the inclusion of markers optional by passing ``include_markers=False``.  #82
+  
+- ``Pipfile`` and ``Lockfile`` models are now able to successfully perform creation operations on projects which currently do not have existing files if supplied ``create=True``.  #84
+
+
 1.1.9 (2018-10-10)
 ==================
 
