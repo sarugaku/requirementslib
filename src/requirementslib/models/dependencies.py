@@ -611,13 +611,16 @@ def start_resolver(finder=None, wheel_cache=None):
         wheel_cache=wheel_cache,
         use_user_site=False,
     )
-    if packaging.version.parse(pip_version) >= packaging.version.parse('18'):
-        with RequirementTracker() as req_tracker:
-            preparer = preparer(req_tracker=req_tracker)
+    try:
+        if packaging.version.parse(pip_version) >= packaging.version.parse('18'):
+            with RequirementTracker() as req_tracker:
+                preparer = preparer(req_tracker=req_tracker)
+                yield resolver(preparer=preparer)
+        else:
+            preparer = preparer()
             yield resolver(preparer=preparer)
-    else:
-        preparer = preparer()
-        yield resolver(preparer=preparer)
+    finally:
+        finder.session.close()
 
 
 def get_grouped_dependencies(constraints):
