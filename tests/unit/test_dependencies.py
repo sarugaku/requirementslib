@@ -2,6 +2,8 @@
 import requirementslib
 from requirementslib.models.requirements import Requirement
 from requirementslib.models.dependencies import (
+    AbstractDependency,
+    get_dependencies,
     get_abstract_dependencies,
     get_dependencies_from_json,
     get_dependencies_from_index
@@ -20,7 +22,7 @@ def test_get_dependencies():
     r = Requirement.from_line("requests==2.19.1")
     deps = r.get_dependencies()
     assert len(deps) > 0
-    deps_from_ireq = requirementslib.models.dependencies.get_dependencies(r.as_ireq())
+    deps_from_ireq = get_dependencies(r.as_ireq())
     assert len(deps_from_ireq) > 0
     assert sorted(set(deps_from_ireq)) == sorted(set(deps))
 
@@ -29,7 +31,7 @@ def get_abstract_deps():
     r = Requirement.from_line("requests")
     deps = [InstallRequirement.from_line(d) for d in r.get_dependencies()]
     abstract_deps = r.get_abstract_dependencies()
-    req_abstract_dep = requirementslib.models.dependencies.AbstractDependency.from_requirement(r)
+    req_abstract_dep = AbstractDependency.from_requirement(r)
     assert r.abstract_dep == req_abstract_dep
     assert len(abstract_deps) > 0
     deps_from_ireqs = get_abstract_dependencies(deps, parent=r)

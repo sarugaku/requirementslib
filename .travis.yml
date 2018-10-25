@@ -31,7 +31,10 @@ jobs:
     - stage: coverage
       python: "3.6"
       install:
-        - "pip install --upgrade pip pytest-timeout"
+        - "pip install --upgrade pip pytest-timeout coverage"
         - "pip install --upgrade -e .[tests]"
       script:
-        - "pytest -n auto --timeout 300 --cov=requirementslib --cov-report=term-missing --cov-report=xml --cov-report=html tests"
+        # - "pytest -n auto --timeout 300 --cov=requirementslib --cov-report=term-missing --cov-report=xml --cov-report=html tests"
+        - "coverage run --parallel -m pytest --timeout 300 []"
+        - "coverage combine"
+        - "coverage report"

@@ -71,6 +71,6 @@ setup(
 
     # I don't know how to specify an empty key in setup.cfg.
     package_data={
-        '': ['LICENSE*', 'README*'], "src._vendor.pipfile": ["LICENSE.*"]
+        '': ['LICENSE*', 'README*'],
     },
 )
