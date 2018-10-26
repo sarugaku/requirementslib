@@ -7,7 +7,7 @@ matrix:
   fast_finish: true
 
 install:
-  - "python -m pip install --upgrade pip coverage"
+  - "python -m pip install --upgrade pip pytest-timeout coverage"
   - "python -m pip install -e .[tests]"
 script:
     - "coverage run --parallel -m py.test tests/ --timeout 300"
