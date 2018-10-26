@@ -1,3 +1,12 @@
+1.2.1 (2018-10-26)
+==================
+
+Bug Fixes
+---------
+
+- Fixed an issue which caused accidental leakage of open ``requests.session`` instances.  #87
+
+
 1.2.0 (2018-10-24)
 ==================
 
