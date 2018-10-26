@@ -7,10 +7,10 @@ matrix:
   fast_finish: true
 
 install:
-  - "python -m pip install --upgrade pip pytest-timeout"
+  - "python -m pip install --upgrade pip coverage"
   - "python -m pip install -e .[tests]"
 script:
-    - "python -m pytest -v -n 8 tests/"
+    - "coverage run --parallel -m py.test tests/ --timeout 300"
 
 jobs:
   include:
@@ -35,6 +35,5 @@ jobs:
         - "pip install --upgrade -e .[tests]"
       script:
         # - "pytest -n auto --timeout 300 --cov=requirementslib --cov-report=term-missing --cov-report=xml --cov-report=html tests"
-        - "coverage run --parallel -m pytest --timeout 300 []"
         - "coverage combine"
         - "coverage report"
