@@ -1,1 +1,0 @@
-Fixed an issue which caused accidental leakage of open ``requests.session`` instances.
