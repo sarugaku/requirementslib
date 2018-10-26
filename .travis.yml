@@ -11,6 +11,7 @@ install:
   - "python -m pip install -e .[tests]"
 script:
     - "coverage run --parallel -m py.test tests/ --timeout 300"
+    - "coverage report"
 
 jobs:
   include:
