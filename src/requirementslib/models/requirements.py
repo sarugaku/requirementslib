@@ -585,7 +585,7 @@ class VCSRequirement(FileRequirement):
     def get_vcs_repo(self, src_dir=None):
         from .vcs import VCSRepository
         checkout_dir = self.get_checkout_dir(src_dir=src_dir)
-        url = "{0}#egg={1}".format(self.vcs_uri, self.name)
+        url = "{0}#egg={1}".format(self.link.url_without_fragment, self.name)
         vcsrepo = VCSRepository(
             url=url,
             name=self.name,
@@ -616,11 +616,10 @@ class VCSRequirement(FileRequirement):
 
     @contextmanager
     def locked_vcs_repo(self, src_dir=None):
+        if not src_dir:
+            src_dir = create_tracked_tempdir(prefix="requirementslib-", suffix="-src")
         vcsrepo = self.get_vcs_repo(src_dir=src_dir)
-        if self.ref and not self.is_local:
-            vcsrepo.checkout_ref(self.ref)
-        self.ref = self.get_commit_hash()
-        self.req.revision = self.ref
+        self.req.revision = vcsrepo.get_commit_hash()
 
         # Remove potential ref in the end of uri after ref is parsed
         if "@" in self.link.show_url and "@" in self.uri:
