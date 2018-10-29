@@ -1,3 +1,12 @@
+1.2.2 (2018-10-29)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug which prevented mercurial repositories from acquiring commit hashes successfully.  #89
+
+
 1.2.1 (2018-10-26)
 ==================
 
