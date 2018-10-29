@@ -585,9 +585,16 @@ class VCSRequirement(FileRequirement):
     def get_vcs_repo(self, src_dir=None):
         from .vcs import VCSRepository
         checkout_dir = self.get_checkout_dir(src_dir=src_dir)
-        url = "{0}#egg={1}".format(self.link.url_without_fragment, self.name)
+        link = build_vcs_link(
+            self.vcs,
+            self.uri,
+            name=self.name,
+            ref=self.ref,
+            subdirectory=self.subdirectory,
+            extras=self.extras
+        )
         vcsrepo = VCSRepository(
-            url=url,
+            url=link.url,
             name=self.name,
             ref=self.ref if self.ref else None,
             checkout_directory=checkout_dir,
@@ -595,6 +602,10 @@ class VCSRequirement(FileRequirement):
         )
         if not self.is_local:
             vcsrepo.obtain()
+        if self.subdirectory:
+            self.setup_path = Path(checkout_dir) / self.subdirectory / "setup.py"
+        else:
+            self.setup_path = Path(checkout_dir) / "setup.py"
         return vcsrepo
 
     def get_commit_hash(self):
@@ -612,6 +623,7 @@ class VCSRequirement(FileRequirement):
         if not self.is_local and ref is not None:
             self.repo.checkout_ref(ref)
         repo_hash = self.repo.get_commit_hash()
+        self.req.revision = repo_hash
         return repo_hash
 
     @contextmanager
@@ -1069,7 +1081,7 @@ class Requirement(object):
         if self.editable or self.req.editable:
             if ireq_line.startswith("-e "):
                 ireq_line = ireq_line[len("-e "):]
-            with ensure_setup_py(self.req.path):
+            with ensure_setup_py(self.req.setup_path):
                 ireq = ireq_from_editable(ireq_line)
         else:
             ireq = ireq_from_line(ireq_line)
