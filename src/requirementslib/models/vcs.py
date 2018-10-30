@@ -1,7 +1,6 @@
 # -*- coding=utf-8 -*-
 import attr
 from pip_shims import VcsSupport, parse_version, pip_version
-import vistir
 import os
 
 
