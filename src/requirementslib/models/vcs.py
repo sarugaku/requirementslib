@@ -1,7 +1,6 @@
 # -*- coding=utf-8 -*-
 import attr
 from pip_shims import VcsSupport, parse_version, pip_version
-import vistir
 import os
 
 
@@ -14,6 +13,7 @@ class VCSRepository(object):
     name = attr.ib()
     checkout_directory = attr.ib()
     vcs_type = attr.ib()
+    subdirectory = attr.ib(default=None)
     commit_sha = attr.ib(default=None)
     ref = attr.ib(default=None)
     repo_instance = attr.ib()
