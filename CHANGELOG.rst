@@ -1,3 +1,12 @@
+1.2.3 (2018-10-30)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug which prevented installation of editable vcs requirements with subdirectory specifiers.  #91
+
+
 1.2.2 (2018-10-29)
 ==================
 
