@@ -1,3 +1,12 @@
+1.2.4 (2018-11-02)
+==================
+
+Bug Fixes
+---------
+
+- Fixed an issue which caused failures when determining the path to ``setup.py`` files.  #93
+
+
 1.2.3 (2018-10-30)
 ==================
 
