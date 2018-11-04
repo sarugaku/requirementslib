@@ -1,3 +1,12 @@
+1.2.5 (2018-11-04)
+==================
+
+Features
+--------
+
+- Restructured library imports to improve performance.  #95
+
+
 1.2.4 (2018-11-02)
 ==================
 
