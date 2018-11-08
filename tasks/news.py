@@ -1,6 +1,6 @@
 # -*- coding=utf-8 -*-
 import invoke
-import toml
+import tomlkit
 import uuid
 from pathlib import Path
 
@@ -23,8 +23,8 @@ def get_random():
 
 @invoke.task
 def add(ctx, description, type_='feature', issue=None):
-    toml_file = get_toml_file(ctx)
-    tf = toml.load(toml_file.as_posix())
+    with get_toml_file(ctx).open() as f:
+        tf = tomlkit.parse(f.read_text())
     allowed_types = tf.get('tool', {}).get('towncrier', {}).get('type', [])
     if allowed_types:
         allowed_types = [t.get('directory') for t in allowed_types]
