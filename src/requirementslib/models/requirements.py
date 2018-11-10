@@ -14,7 +14,7 @@ import pip_shims
 from first import first
 from packaging.markers import Marker
 from packaging.requirements import Requirement as PackagingRequirement
-from packaging.specifiers import Specifier, SpecifierSet
+from packaging.specifiers import Specifier, SpecifierSet, LegacySpecifier, InvalidSpecifier
 from packaging.utils import canonicalize_name
 from six.moves.urllib import parse as urllib_parse
 from six.moves.urllib.parse import unquote
@@ -1137,7 +1137,10 @@ class Requirement(object):
         return markers
 
     def get_specifier(self):
-        return Specifier(self.specifiers)
+        try:
+            return Specifier(self.specifiers)
+        except InvalidSpecifier:
+            return LegacySpecifier(self.specifiers)
 
     def get_version(self):
         return pip_shims.shims.parse_version(self.get_specifier().version)
