@@ -1,0 +1,1 @@
+Fixed a bug with ``Pipfile.load()`` which caused a false ``ValidationError`` to raise when parsing a valid ``Pipfile``.
