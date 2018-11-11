@@ -1,5 +1,6 @@
 # -*- coding=utf-8 -*-
 
+import atexit
 import contextlib
 import copy
 import functools
@@ -582,6 +583,7 @@ def get_finder(sources=None, pip_command=None, pip_options=None):
         allow_all_prereleases=pip_options.pre,
         session=session,
     )
+    atexit.register(finder.session.close)
     return finder
 
 
