@@ -1,5 +1,6 @@
 # -*- coding=utf-8 -*-
 from pytest import raises
+from requirementslib import utils as base_utils
 from requirementslib.models import utils
 from requirementslib.models.requirements import Requirement
 
@@ -38,8 +39,8 @@ def test_build_vcs_link():
 def test_strip_ssh_from_git_url():
     url = "git+ssh://git@github.com/sarugaku/passa.git"
     url_no_ssh = "git+git@github.com/sarugaku/passa.git"
-    assert utils.strip_ssh_from_git_uri(url) == url_no_ssh
-    assert utils.add_ssh_scheme_to_git_uri(url_no_ssh) == url
+    assert base_utils.strip_ssh_from_git_uri(url) == url_no_ssh
+    assert base_utils.add_ssh_scheme_to_git_uri(url_no_ssh) == url
 
 
 def test_split_markers_from_line():

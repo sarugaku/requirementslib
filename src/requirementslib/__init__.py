@@ -1,9 +1,9 @@
 # -*- coding=utf-8 -*-
 __version__ = '1.2.6.dev0'
 
-import warnings
-
 import logging
+import warnings
+from vistir.compat import ResourceWarning
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
