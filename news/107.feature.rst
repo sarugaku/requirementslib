@@ -1,0 +1,1 @@
+Requirement names will now be harvested from all available sources, including from ``setup.py`` execution, ``setup.cfg`` files, and any metadata provided as input.
