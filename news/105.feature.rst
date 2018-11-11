@@ -1,0 +1,1 @@
+Additional metadata will now be gathered for ``Requirement`` objects which contain a ``setup.cfg`` on their base path.

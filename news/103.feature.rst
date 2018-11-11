@@ -1,0 +1,1 @@
+Local and remote archive ``FileRequirements`` will now be unpacked to a temporary directory for parsing.
