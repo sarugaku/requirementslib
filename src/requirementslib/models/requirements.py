@@ -367,18 +367,8 @@ class FileRequirement(object):
             else:
                 req.url = self.link.url_without_fragment
         else:
-            req = init_requirement(normalize_name(self.name))
-            req.editable = False
-            req.line = self.link.url_without_fragment
-            if self.path and self.link and self.link.scheme.startswith("file"):
-                req.local_file = True
-                req.path = self.path
-                req.url = None
-                self._uri_scheme = "file"
-            else:
-                req.local_file = False
-                req.path = None
-        if not getattr(req, "url", None):
+            req.local_file = False
+            req.path = None
             req.url = self.link.url_without_fragment
         if self.editable:
             req.editable = True
@@ -418,9 +408,11 @@ class FileRequirement(object):
         if relpath and not path:
             path = relpath
         if not path and uri and link.scheme == "file":
-            path = get_converted_relative_path(
-                os.path.abspath(pip_shims.shims.url_to_path(unquote(uri)))
-            )
+            path = os.path.abspath(pip_shims.shims.url_to_path(unquote(uri)))
+            try:
+                path = get_converted_relative_path(path)
+            except ValueError:  # Vistir raises a ValueError if it can't make a relpath
+                path = path
         if line and not (uri_scheme and uri and link):
             vcs_type, uri_scheme, relpath, path, uri, link = cls.get_link_from_line(line)
         if not uri_scheme:
@@ -538,10 +530,7 @@ class FileRequirement(object):
             arg_dict["name"] = name
         elif link.egg_fragment:
             arg_dict["name"] = link.egg_fragment
-        if req:
-            arg_dict["req"] = req
-        created = cls(**arg_dict)
-        return created
+        return cls.create(**arg_dict)
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
@@ -600,10 +589,7 @@ class FileRequirement(object):
             seed = unquote(self.link.url_without_fragment) or self.uri
         # add egg fragments to remote artifacts (valid urls only)
         if not self._has_hashed_name and self.is_remote_artifact:
-            if not self.link.is_wheel and self.link.is_artifact:
-                seed = "{0}@{1}".format(self.name, seed)
-            else:
-                seed += "#egg={0}".format(self.name)
+            seed += "#egg={0}".format(self.name)
         editable = "-e " if self.editable else ""
         return "{0}{1}".format(editable, seed)
 
@@ -1064,9 +1050,9 @@ class Requirement(object):
 
     @classmethod
     def from_line(cls, line):
-        from pip_shims import InstallRequirement
+        import pip_shims.shims
 
-        if isinstance(line, InstallRequirement):
+        if isinstance(line, pip_shims.shims.InstallRequirement):
             line = format_requirement(line)
         hashes = None
         if "--hash=" in line:
@@ -1144,13 +1130,20 @@ class Requirement(object):
         if hashes:
             args["hashes"] = hashes
         cls_inst = cls(**args)
-        if not cls_inst.is_named and (not cls_inst.editable or cls_inst.req._has_hashed_name):
-            old_name = cls_inst.req.req.name or cls_inst.req.name
-            info_dict = cls_inst.run_requires()
-            calced_name = info_dict.get("name", old_name)
-            if old_name != calced_name:
-                cls_inst.req.req.line.replace(old_name, calced_name)
-            cls_inst.name = cls_inst.req.name = calced_name
+        if not cls_inst.is_named and not cls_inst.editable and not name:
+            if cls_inst.is_vcs:
+                ireq = pip_shims.shims.install_req_from_req(cls_inst.as_line(include_hashes=False))
+                info = SetupInfo.from_ireq(ireq)
+                if info is not None:
+                    info_dict = info.as_dict()
+                    cls_inst.req.setup_info = info
+                else:
+                    info_dict = {}
+            else:
+                info_dict = cls_inst.run_requires()
+            found_name = info_dict.get("name", old_name)
+            if old_name != found_name:
+                cls_inst.req.req.line.replace(old_name, found_name)
         return cls_inst
 
     @classmethod
@@ -1205,8 +1198,18 @@ class Requirement(object):
         if cls_inst.is_named:
             cls_inst.req.req.line = cls_inst.as_line()
         old_name = cls_inst.req.req.name or cls_inst.req.name
-        if not cls_inst.is_named and not cls_inst.editable:
-            info_dict = cls_inst.run_requires()
+        if not cls_inst.is_named and not cls_inst.editable and not name:
+            if cls_inst.is_vcs:
+                import pip_shims.shims
+                ireq = pip_shims.shims.install_req_from_req(cls_inst.as_line(include_hashes=False))
+                info = SetupInfo.from_ireq(ireq)
+                if info is not None:
+                    info_dict = info.as_dict()
+                    cls_inst.req.setup_info = info
+                else:
+                    info_dict = {}
+            else:
+                info_dict = cls_inst.run_requires()
             found_name = info_dict.get("name", old_name)
             if old_name != found_name:
                 cls_inst.req.req.line.replace(old_name, found_name)
@@ -1435,12 +1438,19 @@ class Requirement(object):
         return find_all_matches(finder, self.as_ireq())
 
     def run_requires(self, sources=None, finder=None):
-        from .setup_info import SetupInfo
-        if not finder:
-            from .dependencies import get_finder
-            finder = get_finder(sources=sources)
-        info = SetupInfo.from_requirement(self, finder=finder)
-        info_dict = info.get_info()
+        if self.req and self.req.setup_info is not None:
+            info_dict = self.req.setup_info.as_dict()
+        else:
+            from .setup_info import SetupInfo
+            if not finder:
+                from .dependencies import get_finder
+                finder = get_finder(sources=sources)
+            info = SetupInfo.from_requirement(self, finder=finder)
+            if info is None:
+                return {}
+            info_dict = info.get_info()
+            if self.req and not self.req.setup_info:
+                self.req.setup_info = info
         if self.req._has_hashed_name and info_dict.get("name"):
             self.req.name = self.name = info_dict["name"]
             if self.req.req.name != info_dict["name"]:

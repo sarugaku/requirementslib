@@ -1,5 +1,4 @@
 # -*- coding=utf-8 -*-
-import configparser
 import contextlib
 import os
 
@@ -14,6 +13,7 @@ except ImportError:
     import distutils
 
 from appdirs import user_cache_dir
+from six.moves import configparser
 from six.moves.urllib.parse import unquote
 from vistir.compat import Path
 from vistir.contextmanagers import cd
@@ -103,7 +103,7 @@ def iter_egginfos(path, pkg_name=None):
 def find_egginfo(target, pkg_name=None):
     egg_dirs = (egg_dir for egg_dir in iter_egginfos(target, pkg_name=pkg_name))
     if pkg_name:
-        return next(iter(egg_dirs), None)
+        yield next(iter(egg_dirs), None)
     else:
         for egg_dir in egg_dirs:
             yield egg_dir
