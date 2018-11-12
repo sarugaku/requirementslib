@@ -23,13 +23,26 @@ is_path = optional_instance_of(Path)
 is_projectfile = optional_instance_of(ProjectFile)
 
 
+def reorder_source_keys(data):
+    for i, entry in enumerate(data["source"]):
+        table = tomlkit.table()
+        table["name"] = entry["name"]
+        table["url"] = entry["url"]
+        table["verify_ssl"] = entry["verify_ssl"]
+        data["source"][i] = table
+    return data
+
+
 class PipfileLoader(plette.pipfiles.Pipfile):
     @classmethod
     def validate(cls, data):
         for key, klass in plette.pipfiles.PIPFILE_SECTIONS.items():
             if key not in data or key == "source":
                 continue
-            klass.validate(data[key])
+            try:
+                klass.validate(data[key])
+            except Exception:
+                pass
 
     @classmethod
     def load(cls, f, encoding=None):
@@ -37,6 +50,8 @@ class PipfileLoader(plette.pipfiles.Pipfile):
         if encoding is not None:
             content = content.decode(encoding)
         _data = tomlkit.loads(content)
+        _data["source"] = _data.get("source", []) + _data.get("sources", [])
+        _data = reorder_source_keys(_data)
         if "source" not in _data:
             if "sources" in _data:
                 _data["source"] = _data["sources"]
@@ -49,7 +64,14 @@ class PipfileLoader(plette.pipfiles.Pipfile):
                 sep = "" if content.startswith("\n") else "\n"
                 content = plette.pipfiles.DEFAULT_SOURCE_TOML + sep + content
         data = tomlkit.loads(content)
-        return cls(data)
+        instance = cls(data)
+        instance._data = dict(instance._data)
+        return instance
+
+    def __getattribute__(self, key):
+        if key == "source":
+            return self._data[key]
+        return super(PipfileLoader, self).__getattribute__(key)
 
 
 @attr.s(slots=True)
@@ -57,7 +79,7 @@ class Pipfile(object):
     path = attr.ib(validator=is_path, type=Path)
     projectfile = attr.ib(validator=is_projectfile, type=ProjectFile)
     _pipfile = attr.ib(type=plette.pipfiles.Pipfile)
-    _pyproject = attr.ib(default=attr.Factory(tomlkit.toml_document), type=tomlkit.toml_document.TOMLDocument)
+    _pyproject = attr.ib(default=attr.Factory(tomlkit.document), type=tomlkit.toml_document.TOMLDocument)
     build_system = attr.ib(default=attr.Factory(dict), type=dict)
     requirements = attr.ib(default=attr.Factory(list), type=list)
     dev_requirements = attr.ib(default=attr.Factory(list), type=list)
