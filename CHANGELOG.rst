@@ -1,3 +1,28 @@
+1.3.0 (2018-11-12)
+==================
+
+Features
+--------
+
+- Added support for loading metadata from ``pyproject.toml``.  #102
+  
+- Local and remote archive ``FileRequirements`` will now be unpacked to a temporary directory for parsing.  #103
+  
+- Dependency information will now be parsed from local paths, including locally unpacked archives, via ``setup.py egg_info`` execution.  #104
+  
+- Additional metadata will now be gathered for ``Requirement`` objects which contain a ``setup.cfg`` on their base path.  #105
+  
+- Requirement names will now be harvested from all available sources, including from ``setup.py`` execution, ``setup.cfg`` files, and any metadata provided as input.  #107
+  
+- Added a flag for PEP508 style direct url requirements.  #99
+  
+
+Bug Fixes
+---------
+
+- Fixed a bug with ``Pipfile.load()`` which caused a false ``ValidationError`` to raise when parsing a valid ``Pipfile``.  #110
+
+
 1.2.5 (2018-11-04)
 ==================
 
