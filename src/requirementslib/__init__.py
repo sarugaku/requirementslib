@@ -1,5 +1,5 @@
 # -*- coding=utf-8 -*-
-__version__ = '1.2.6.dev0'
+__version__ = '1.3.0'
 
 import logging
 import warnings
