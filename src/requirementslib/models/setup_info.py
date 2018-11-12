@@ -122,7 +122,7 @@ def get_metadata(path, pkg_name=None):
     if egg_dir is not None:
         import pkg_resources
 
-        egg_dir = os.path.abspath(egg_dir)
+        egg_dir = os.path.abspath(egg_dir.path)
         base_dir = os.path.dirname(egg_dir)
         path_metadata = pkg_resources.PathMetadata(base_dir, egg_dir)
         dist = next(
