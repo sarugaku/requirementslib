@@ -221,21 +221,28 @@ class SetupInfo(object):
     def run_setup(self):
         if self.setup_py is not None and self.setup_py.exists():
             with cd(self.setup_py.parent), _suppress_distutils_logs():
+                from setuptools.dist import distutils
+                script_name = self.setup_py.as_posix()
                 if sys.version_info < (3, 5):
-                    save_argv = sys.argv[:]
+                    save_argv = sys.argv
+                    g = {"__file__": script_name}
+                    l = {"__name__": "__main__"}
                 else:
                     save_argv = sys.argv.copy()
+                    l = {}
+                    g = {"__file__": script_name, "__name__": "__main__"}
                 # This is for you, Hynek
                 # see https://github.com/hynek/environ_config/blob/69b1c8a/setup.py
                 try:
                     global _setup_distribution, _setup_stop_after
                     _setup_stop_after = "run"
-                    script_name = self.setup_py.as_posix()
-                    g = {"__file__": script_name, "__name__": "__main__"}
                     sys.argv[0] = script_name
                     sys.argv[1:] = ["egg_info", "--egg-base", self.base_dir]
                     with open(script_name, 'rb') as f:
-                        exec(f.read(), g, l)
+                        if sys.version_info < (3, 5):
+                            exec(f.read(), g, l)
+                        else:
+                            exec(f.read(), g)
                 finally:
                     _setup_stop_after = None
                     sys.argv = save_argv
