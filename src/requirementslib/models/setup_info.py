@@ -232,7 +232,6 @@ class SetupInfo(object):
                     _setup_stop_after = "run"
                     script_name = self.setup_py.as_posix()
                     g = {"__file__": script_name, "__name__": "__main__"}
-                    l = {}
                     sys.argv[0] = script_name
                     sys.argv[1:] = ["egg_info", "--egg-base", self.base_dir]
                     with open(script_name, 'rb') as f:
