@@ -1,0 +1,1 @@
+Dependency information will now be parsed from local paths, including locally unpacked archives, via ``setup.py egg_info`` execution.
