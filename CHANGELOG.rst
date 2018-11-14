@@ -1,3 +1,12 @@
+1.3.1 (2018-11-13)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug with parsing branch names which contain slashes.  #112
+
+
 1.3.0 (2018-11-12)
 ==================
 
