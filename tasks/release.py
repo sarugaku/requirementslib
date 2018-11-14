@@ -85,7 +85,7 @@ def tag_version(ctx, push=False):
 
 
 @invoke.task
-def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=False, pre=False, tag=None, clear=False, commit=False,):
+def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=False, pre=False, post=False, tag=None, clear=False, commit=False,):
     _current_version = get_version(ctx)
     current_version = Version.parse(_current_version)
     new_version = current_version
@@ -95,8 +95,8 @@ def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=F
     if pre and dev and not clear:
         print("Pre and dev cannot be used together.")
         return
-    if not dev and not pre:
-        new_version = new_version.clear(pre=True, dev=True)
+    if not dev and not pre and not post:
+        new_version = new_version.clear(pre=True, dev=True, post=True)
     elif dev:
         new_version = new_version.bump_dev()
     elif pre:
@@ -107,6 +107,8 @@ def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=F
         new_version = new_version.bump_release(1)
     elif micro:
         new_version = new_version.bump_release(2)
+    elif post:
+        new_version = new_version.bump_post("post").bump_post("post")
     if clear:
         new_version = new_version.clear(dev=True, pre=True, post=True)
     log('Updating version to %s' % new_version.normalize())
