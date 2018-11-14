@@ -92,7 +92,7 @@ def _render_log():
     return rendered
 
 
-REL_TYPES = ('major', 'minor', 'patch',)
+REL_TYPES = ('major', 'minor', 'patch', 'post')
 
 
 def _bump_release(version, type_):
