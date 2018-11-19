@@ -1,0 +1,1 @@
+Don't write redundant ``egg-info`` under project root when ``src`` is used as package base.
