@@ -1,1 +1,0 @@
-Take the path passed in if it's valid when loading or creating the lockfile/pipfile.

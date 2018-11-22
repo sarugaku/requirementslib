@@ -1,3 +1,22 @@
+1.3.2 (2018-11-22)
+==================
+
+Features
+--------
+
+- Enhanced parsing of dependency and extras detail from ``setup.cfg`` files.  #118
+  
+
+Bug Fixes
+---------
+
+- Take the path passed in if it's valid when loading or creating the lockfile/pipfile.  #114
+  
+- Don't write redundant ``egg-info`` under project root when ``src`` is used as package base.  #115
+  
+- Fixed an issue which prevented parsing of extras and dependency information from local ``setup.py`` files and could cause irrecoverable errors.  #116
+
+
 1.3.1 (2018-11-13)
 ==================
 
