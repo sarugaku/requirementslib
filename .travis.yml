@@ -10,7 +10,7 @@ install:
   - "python -m pip install --upgrade pip pytest-timeout coverage"
   - "python -m pip install -e .[tests]"
 script:
-    - "coverage run --parallel -m py.test tests/ --timeout 300"
+    - "pytest -n auto -ra tests/"
 
 jobs:
   include:
@@ -25,15 +25,16 @@ jobs:
     - stage: packaging
       python: "3.6"
       install:
-        - "python -m pip install --upgrade check-manifest readme-renderer"
+        - "python -m pip install --upgrade readme-renderer[md] twine"
       script:
-        - "python setup.py check -m -r -s"
-#    - stage: coverage
-      #python: "3.6"
-      #install:
-        #- "pip install --upgrade pip pytest-timeout coverage"
-        #- "pip install --upgrade -e .[tests]"
-      #script:
-        ## - "pytest -n auto --timeout 300 --cov=requirementslib --cov-report=term-missing --cov-report=xml --cov-report=html tests"
-        #- "coverage combine"
-        #- "coverage report"
+        - "python setup.py sdist"
+        - "twine check dist/*"
+    - stage: coverage
+      python: "3.6"
+      install:
+        - "pip install --upgrade pip pytest-timeout pytest-cov coverage"
+        - "pip install --upgrade -e .[tests]"
+      script:
+        - "pytest -n auto --timeout 300 --cov=requirementslib --cov-report=term-missing --cov-report=xml --cov-report=html tests"
+        - "coverage combine"
+        - "coverage report"
