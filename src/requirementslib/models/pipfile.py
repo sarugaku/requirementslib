@@ -38,23 +38,26 @@ except ImportError:
 
 VALIDATORS = plette.models.base.VALIDATORS
 
-def validate(cls, data):
-    # type: (Any, Dict[str, Any]) -> None
-    if not cerberus:    # Skip validation if Cerberus is not available.
-        return
-    schema = cls.__SCHEMA__
-    key = id(schema)
-    try:
-        v = VALIDATORS[key]
-    except KeyError:
-        v = VALIDATORS[key] = cerberus.Validator(schema, allow_unknown=True)
-    if v.validate(dict(data), normalize=False):
-        return
-    raise plette.models.base.ValidationError(data, v)
-
 
 def patch_plette():
-    # type: () -> NoReturn
+    # type: () -> None
+
+    global VALIDATORS
+
+    def validate(cls, data):
+        # type: (Any, Dict[str, Any]) -> None
+        if not cerberus:    # Skip validation if Cerberus is not available.
+            return
+        schema = cls.__SCHEMA__
+        key = id(schema)
+        try:
+            v = VALIDATORS[key]
+        except KeyError:
+            v = VALIDATORS[key] = cerberus.Validator(schema, allow_unknown=True)
+        if v.validate(dict(data), normalize=False):
+            return
+        raise plette.models.base.ValidationError(data, v)
+
     names = ["plette.models.base", plette.models.base.__name__]
     names = [name for name in names if name in sys.modules]
     for name in names:
