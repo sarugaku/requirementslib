@@ -1,0 +1,1 @@
+Enhanced parsing of dependency and extras detail from ``setup.cfg`` files.
