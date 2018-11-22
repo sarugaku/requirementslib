@@ -1,3 +1,12 @@
+1.3.3 (2018-11-22)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug which caused runtime monkeypatching of plette validation to fail.  #120
+
+
 1.3.2 (2018-11-22)
 ==================
 
