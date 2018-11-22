@@ -1,1 +1,0 @@
-Fixed an issue which prevented parsing of extras and dependency information from local ``setup.py`` files and could cause irrecoverable errors.
