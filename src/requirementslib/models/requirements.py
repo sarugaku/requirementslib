@@ -285,12 +285,13 @@ class FileRequirement(object):
             build_deps.extend(self.pyproject_requires)
         return deps, setup_deps, build_deps
 
+
     @uri.default
     def get_uri(self):
         if self.path and not self.uri:
             self._uri_scheme = "path"
             return pip_shims.shims.path_to_url(os.path.abspath(self.path))
-        elif self.req and getattr(self.req, "url"):
+        elif getattr(self, "req", None) and getattr(self.req, "url"):
             return self.req.url
 
     @name.default
@@ -321,7 +322,7 @@ class FileRequirement(object):
                 if self.extras:
                     line = "{0}[{1}]".format(line, ",".join(self.extras))
                 _ireq = pip_shims.shims.install_req_from_line(line)
-            if self.req:
+            if getattr(self, "req", None):
                 _ireq.req = copy.deepcopy(self.req)
             else:
                 if self.extras:
@@ -710,7 +711,7 @@ class VCSRequirement(FileRequirement):
     def get_name(self):
         return (
             self.link.egg_fragment or self.req.name
-            if self.req
+            if getattr(self, "req", None)
             else super(VCSRequirement, self).get_name()
         )
 
