@@ -64,7 +64,9 @@ def patch_plette():
             module = plette.models.base
         original_fn = getattr(module, "validate")
         for key in ["__qualname__", "__name__", "__module__"]:
-            setattr(validate, key, getattr(original_fn, key))
+            original_val = getattr(original_fn, key, None)
+            if original_val is not None:
+                setattr(validate, key, original_val)
         setattr(module, "validate", validate)
         sys.modules[name] = module
 
