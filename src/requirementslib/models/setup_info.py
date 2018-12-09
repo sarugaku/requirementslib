@@ -358,6 +358,7 @@ class SetupInfo(object):
         return self.as_dict()
 
     def as_dict(self):
+        # type: () -> Dict[str, Any]
         prop_dict = {
             "name": self.name,
             "version": self.version,
