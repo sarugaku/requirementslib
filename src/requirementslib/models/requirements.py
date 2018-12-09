@@ -60,17 +60,25 @@ from .utils import (
     get_pyproject
 )
 
+from ..environment import MYPY_RUNNING
+
+if MYPY_RUNNING:
+    from typing import Optional, TypeVar, List, Dict, Union, Any, Tuple
+    from pip_shims.shims import Link
+    RequirementType = TypeVar('RequirementType', covariant=True, bound=PackagingRequirement)
+
 
 @attr.s(slots=True)
 class NamedRequirement(object):
-    name = attr.ib()
-    version = attr.ib(validator=attr.validators.optional(validate_specifiers))
-    req = attr.ib()
-    extras = attr.ib(default=attr.Factory(list))
-    editable = attr.ib(default=False)
+    name = attr.ib()  # type: str
+    version = attr.ib(validator=attr.validators.optional(validate_specifiers))  # type: Optional[str]
+    req = attr.ib()  # type: PackagingRequirement
+    extras = attr.ib(default=attr.Factory(list))  # type: List[str]
+    editable = attr.ib(default=False)  # type: bool
 
     @req.default
     def get_requirement(self):
+        # type: () -> RequirementType
         req = init_requirement(
             "{0}{1}".format(canonicalize_name(self.name), self.version)
         )
@@ -78,8 +86,9 @@ class NamedRequirement(object):
 
     @classmethod
     def from_line(cls, line):
+        # type: (str) -> NamedRequirement
         req = init_requirement(line)
-        specifiers = None
+        specifiers = None  # type: Optional[str]
         if req.specifier:
             specifiers = specs_to_string(req.specifier)
         req.line = line
@@ -90,29 +99,32 @@ class NamedRequirement(object):
         if not name:
             name = getattr(req, "key", line)
             req.name = name
-        extras = None
+        extras = None  # type: Optional[List[str]]
         if req.extras:
             extras = list(req.extras)
-        return cls(name=name, version=specifiers, req=req, extras=extras)
+            return cls(name=name, version=specifiers, req=req, extras=extras)
+        return cls(name=name, version=specifiers, req=req)
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
-        creation_args = {}
+        # type: (str, Dict[str, Union[str, Optional[str], Optional[List[str]]]]) -> NamedRequirement
+        creation_args = {}  # type: Dict[str, Union[Optional[str], Optional[List[str]]]]
         if hasattr(pipfile, "keys"):
             attr_fields = [field.name for field in attr.fields(cls)]
             creation_args = {k: v for k, v in pipfile.items() if k in attr_fields}
         creation_args["name"] = name
-        version = get_version(pipfile)
+        version = get_version(pipfile)  # type: Optional[str]
         extras = creation_args.get("extras", None)
         creation_args["version"] = version
         req = init_requirement("{0}{1}".format(name, version))
         if extras:
             req.extras += tuple(extras)
         creation_args["req"] = req
-        return cls(**creation_args)
+        return cls(**creation_args)  # type: ignore
 
     @property
     def line_part(self):
+        # type: () -> str
         # FIXME: This should actually be canonicalized but for now we have to
         # simply lowercase it and replace underscores, since full canonicalization
         # also replaces dots and that doesn't actually work when querying the index
@@ -120,6 +132,7 @@ class NamedRequirement(object):
 
     @property
     def pipfile_part(self):
+        # type: () -> Dict[str, Any]
         pipfile_dict = attr.asdict(self, filter=filter_none).copy()
         if "version" not in pipfile_dict:
             pipfile_dict["version"] = "*"
@@ -138,34 +151,35 @@ class FileRequirement(object):
     containing directories."""
 
     #: Path to the relevant `setup.py` location
-    setup_path = attr.ib(default=None)
+    setup_path = attr.ib(default=None)  # type: Optional[str]
     #: path to hit - without any of the VCS prefixes (like git+ / http+ / etc)
-    path = attr.ib(default=None, validator=attr.validators.optional(validate_path))
+    path = attr.ib(default=None, validator=attr.validators.optional(validate_path))  # type: Optional[str]
     #: Whether the package is editable
-    editable = attr.ib(default=False)
+    editable = attr.ib(default=False)  # type: bool
     #: Extras if applicable
-    extras = attr.ib(default=attr.Factory(list))
-    _uri_scheme = attr.ib(default=None)
+    extras = attr.ib(default=attr.Factory(list))  # type: List[str]
+    _uri_scheme = attr.ib(default=None)  # type: Optional[str]
     #: URI of the package
-    uri = attr.ib()
+    uri = attr.ib()  # type: Optional[str]
     #: Link object representing the package to clone
-    link = attr.ib()
+    link = attr.ib()  # type: Optional[Link]
     #: PyProject Requirements
-    pyproject_requires = attr.ib(default=attr.Factory(list))
+    pyproject_requires = attr.ib(default=attr.Factory(list))  # type: List
     #: PyProject Build System
-    pyproject_backend = attr.ib(default=None)
+    pyproject_backend = attr.ib(default=None)  # type: Optional[str]
     #: PyProject Path
-    pyproject_path = attr.ib(default=None)
-    _has_hashed_name = attr.ib(default=False)
+    pyproject_path = attr.ib(default=None)  # type: Optional[str]
+    _has_hashed_name = attr.ib(default=False)  # type: bool
     #: Package name
-    name = attr.ib()
+    name = attr.ib()  # type: Optional[str]
     #: A :class:`~pkg_resources.Requirement` isntance
-    req = attr.ib()
+    req = attr.ib()  # type: Optional[PackagingRequirement]
     #: Setup metadata e.g. dependencies
-    setup_info = attr.ib(default=None)
+    setup_info = attr.ib(default=None)  # type: Dict[str, Any]
 
     @classmethod
     def get_link_from_line(cls, line):
+        # type: (str) -> LinkInfo
         """Parse link information from given requirement line.
 
         Return a 6-tuple:
@@ -386,6 +400,9 @@ class FileRequirement(object):
 
     @property
     def is_remote_artifact(self):
+        # type: () -> bool
+        if self.link is None:
+            return False
         return (
             any(
                 self.link.scheme.startswith(scheme)
@@ -397,6 +414,7 @@ class FileRequirement(object):
 
     @property
     def is_direct_url(self):
+        # type: () -> bool
         return self.is_remote_artifact
 
     @property
@@ -410,12 +428,24 @@ class FileRequirement(object):
 
     @classmethod
     def create(
-        cls, path=None, uri=None, editable=False, extras=None, link=None, vcs_type=None,
-        name=None, req=None, line=None, uri_scheme=None, setup_path=None, relpath=None
+        cls,
+        path=None,  # type: Optional[str]
+        uri=None,  # type: str
+        editable=False,  # type: bool
+        extras=None,  # type: Optional[List[str]]
+        link=None,  # type: Link
+        vcs_type=None,  # type: Optional[Any]
+        name=None,  # type: Optional[str]
+        req=None,  # type: Optional[Any]
+        line=None,  # type: Optional[str]
+        uri_scheme=None,  # type: str
+        setup_path=None,  # type: Optional[Any]
+        relpath=None,  # type: Optional[Any]
     ):
+        # type: (...) -> FileRequirement
         if relpath and not path:
             path = relpath
-        if not path and uri and link.scheme == "file":
+        if not path and uri and link is not None and link.scheme == "file":
             path = os.path.abspath(pip_shims.shims.url_to_path(unquote(uri)))
             try:
                 path = get_converted_relative_path(path)
@@ -491,22 +521,30 @@ class FileRequirement(object):
             creation_kwargs["path"] = relpath if relpath else path
         if req:
             creation_kwargs["req"] = req
-        if creation_kwargs.get("req") and line and not getattr(creation_kwargs["req"], "line", None):
-            creation_kwargs["req"].line = line
+        creation_req = creation_kwargs.get("req")
+        if creation_kwargs.get("req") is not None:
+            creation_req_line = getattr(creation_req, "line", None)
+            if creation_req_line is None and line is not None:
+                creation_kwargs["req"].line = line  # type: ignore
         if name:
             creation_kwargs["name"] = name
-        cls_inst = cls(**creation_kwargs)
+        cls_inst = cls(**creation_kwargs)  # type: ignore
         if not _line:
             if editable and uri_scheme == "path":
                 _line = relpath if relpath else path
             else:
-                _line = unquote(cls_inst.link.url_without_fragment) or cls_inst.uri
-                _line = "{0}#egg={1}".format(line, cls_inst.name) if not cls_inst._has_hashed_name else _line
-        cls_inst.req.line = line if line else _line
+                instance_link = getattr(cls_inst, "link", None)
+                if instance_link is not None:
+                    _line = unquote(instance_link.url_without_fragment) or cls_inst.uri
+                    if not cls_inst._has_hashed_name:
+                        _line = "{0}#egg={1}".format(line, cls_inst.name)
+        if cls_inst.req is not None:
+            cls_inst.req.line = line if line else _line
         return cls_inst
 
     @classmethod
     def from_line(cls, line, extras=None):
+        # type: (str, Optional[List[str]]) -> FileRequirement
         line = line.strip('"').strip("'")
         link = None
         path = None
@@ -550,6 +588,7 @@ class FileRequirement(object):
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
+        # type: (str, Dict[str, Any]) -> FileRequirement
         # Parse the values out. After this dance we should have two variables:
         # path - Local filesystem path.
         # uri - Absolute URI that is parsable with urlsplit.
@@ -596,21 +635,29 @@ class FileRequirement(object):
 
     @property
     def line_part(self):
+        # type: () -> str
+        link_url = None  # type: Optional[str]
+        seed = None  # type: Optional[str]
+        if self.link is not None:
+            link_url = unquote(self.link.url_without_fragment)
         if self._uri_scheme and self._uri_scheme == "path":
             # We may need any one of these for passing to pip
-            seed = self.path or unquote(self.link.url_without_fragment) or self.uri
+            seed = self.path or link_url or self.uri
         elif (self._uri_scheme and self._uri_scheme == "file") or (
             (self.link.is_artifact or self.link.is_wheel) and self.link.url
         ):
-            seed = unquote(self.link.url_without_fragment) or self.uri
+            seed = link_url or self.uri
         # add egg fragments to remote artifacts (valid urls only)
-        if not self._has_hashed_name and self.is_remote_artifact:
+        if not self._has_hashed_name and self.is_remote_artifact and seed is not None:
             seed += "#egg={0}".format(self.name)
         editable = "-e " if self.editable else ""
+        if seed is None:
+            raise ValueError("Could not calculate url for {0!r}".format(self))
         return "{0}{1}".format(editable, seed)
 
     @property
     def pipfile_part(self):
+        # type: () -> Dict[str, Dict[str, Any]]
         excludes = [
             "_base_line", "_has_hashed_name", "setup_path", "pyproject_path",
             "pyproject_requires", "pyproject_backend", "setup_info"
@@ -622,39 +669,37 @@ class FileRequirement(object):
             pipfile_dict.pop("_uri_scheme")
         # For local paths and remote installable artifacts (zipfiles, etc)
         collision_keys = {"file", "uri", "path"}
+        collision_order =["file", "uri", "path"]  # type: List[str]
+        key_match = next(iter(k for k in collision_order if k in pipfile_dict.keys()))
         if self._uri_scheme:
             dict_key = self._uri_scheme
             target_key = (
                 dict_key
                 if dict_key in pipfile_dict
-                else next(
-                    (k for k in ("file", "uri", "path") if k in pipfile_dict), None
-                )
+                else key_match
             )
-            if target_key:
+            if target_key is not None:
                 winning_value = pipfile_dict.pop(target_key)
-                collisions = (k for k in collision_keys if k in pipfile_dict)
+                collisions = [k for k in collision_keys if k in pipfile_dict]
                 for key in collisions:
                     pipfile_dict.pop(key)
                 pipfile_dict[dict_key] = winning_value
         elif (
             self.is_remote_artifact
-            or self.link.is_artifact
+            or (self.link is not None and self.link.is_artifact)
             and (self._uri_scheme and self._uri_scheme == "file")
         ):
             dict_key = "file"
             # Look for uri first because file is a uri format and this is designed
             # to make sure we add file keys to the pipfile as a replacement of uri
-            target_key = next(
-                (k for k in ("file", "uri", "path") if k in pipfile_dict), None
-            )
-            winning_value = pipfile_dict.pop(target_key)
+            if key_match is not None:
+                winning_value = pipfile_dict.pop(key_match)
             key_to_remove = (k for k in collision_keys if k in pipfile_dict)
             for key in key_to_remove:
                 pipfile_dict.pop(key)
             pipfile_dict[dict_key] = winning_value
         else:
-            collisions = [key for key in ["path", "file", "uri"] if key in pipfile_dict]
+            collisions = [key for key in collision_order if key in pipfile_dict.keys()]
             if len(collisions) > 1:
                 for k in collisions[1:]:
                     pipfile_dict.pop(k)
@@ -1032,6 +1077,7 @@ class Requirement(object):
 
     @property
     def commit_hash(self):
+        # type: () -> Optional[str]
         if not self.is_vcs:
             return None
         commit_hash = None
@@ -1047,14 +1093,31 @@ class Requirement(object):
 
     @property
     def is_vcs(self):
+        # type: () -> bool
         return isinstance(self.req, VCSRequirement)
 
     @property
+    def build_backend(self):
+        if self.is_vcs or (self.is_file_or_url and self.req.is_local):
+            setup_info = self.run_requires()
+            build_backend = setup_info.get("build_backend")
+            return build_backend
+
+    @property
+    def uses_pep517(self):
+        # type: () -> bool
+        if self.build_backend:
+            return True
+        return False
+
+    @property
     def is_file_or_url(self):
+        # type: () -> bool
         return isinstance(self.req, FileRequirement)
 
     @property
     def is_named(self):
+        # type: () -> bool
         return isinstance(self.req, NamedRequirement)
 
     @property

@@ -1,0 +1,1 @@
+Added ``is_pep517`` and ``build_backend`` properties to the top level ``Requirement`` object to help determine how to build the requirement.
