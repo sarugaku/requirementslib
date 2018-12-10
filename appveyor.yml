@@ -63,6 +63,10 @@ install:
 
     if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode)  }
 
+    Invoke-Expression "$py_exe -m pip install -e git+https://github.com/sarugaku/vistir.git#egg=vistir"
+
+    if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode)  }
+
     Invoke-Expression "$py_exe --version"
 
 
@@ -86,6 +90,6 @@ test_script:
 
     $env:GIT_SSL_CAINFO="$(Get-Content cacert.txt)"
 
-    Invoke-Expression "$py_exe -m pytest -ra -n auto tests"
+    Invoke-Expression "$py_exe -m pytest -ra tests"
 
     if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode)  }
