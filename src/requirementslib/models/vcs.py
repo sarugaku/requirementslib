@@ -5,6 +5,7 @@ import attr
 import importlib
 import os
 import pip_shims
+import six
 import sys
 
 
@@ -78,9 +79,13 @@ class VCSRepository(object):
         target_module = pip_shims.shims.VcsSupport.__module__
         pip_vcs = importlib.import_module(target_module)
         run_command_defaults = pip_vcs.VersionControl.run_command.__defaults__
+        # set the default to not write stdout, the first option sets this value
         new_defaults = [False,] + list(run_command_defaults)[1:]
         new_defaults = tuple(new_defaults)
-        pip_vcs.VersionControl.run_command.__defaults__ = new_defaults
+        if six.PY3:
+            pip_vcs.VersionControl.run_command.__defaults__ = new_defaults
+        else:
+            pip_vcs.VersionControl.run_command.__func__.__defaults__ = new_defaults
         sys.modules[target_module] = pip_vcs
         cls.DEFAULT_RUN_ARGS = new_defaults
         return new_defaults
