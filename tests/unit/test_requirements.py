@@ -262,3 +262,11 @@ def test_get_local_ref(tmpdir):
     assert c.returncode == 0
     r = Requirement.from_line("git+{0}#egg=six".format(Path(six_dir.strpath).as_uri()))
     assert r.commit_hash
+
+
+def test_stdout_is_suppressed(capsys, tmpdir):
+    r = Requirement.from_line("git+https://github.com/sarugaku/requirementslib.git@remove-python-toml#egg=requirementslib")
+    r.req.get_vcs_repo(src_dir=tmpdir.strpath)
+    out, err = capsys.readouterr()
+    assert out.strip() == "", out
+    assert err.strip() == "", err

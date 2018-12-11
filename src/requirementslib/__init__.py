@@ -1,4 +1,5 @@
 # -*- coding=utf-8 -*-
+from __future__ import absolute_import, print_function
 __version__ = '1.3.4.dev0'
 
 import logging

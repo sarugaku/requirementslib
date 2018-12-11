@@ -1,0 +1,1 @@
+Suppressed output written to ``stdout`` by pip during clones of repositories to non-base branches.
