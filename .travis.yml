@@ -9,8 +9,9 @@ matrix:
 install:
   - "python -m pip install --upgrade pip pytest-timeout coverage"
   - "python -m pip install -e .[tests]"
+  - "python -m pip install -e git+https://github.com/sarugaku/vistir.git#egg=vistir"
 script:
-    - "pytest -n auto -ra tests/"
+    - "pytest -ra tests/"
 
 jobs:
   include:
@@ -34,5 +35,6 @@ jobs:
       install:
         - "pip install --upgrade pip pytest-timeout pytest-cov coverage"
         - "pip install --upgrade -e .[tests]"
+        - "python -m pip install -e git+https://github.com/sarugaku/vistir.git#egg=vistir"
       script:
         - "pytest -n auto --timeout 300 --cov=requirementslib --cov-report=term-missing --cov-report=xml --cov-report=html tests"
