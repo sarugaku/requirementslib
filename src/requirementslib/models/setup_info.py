@@ -24,12 +24,19 @@ from vistir.contextmanagers import cd
 from vistir.misc import run
 from vistir.path import create_tracked_tempdir, ensure_mkdir_p, mkdir_p
 
-from .utils import init_requirement, get_pyproject
+from .utils import init_requirement, get_pyproject, get_name_variants
+from ..environment import MYPY_RUNNING
 
 try:
     from os import scandir
 except ImportError:
     from scandir import scandir
+
+
+if MYPY_RUNNING:
+    from typing import Any, Dict, List, Generator, Optional, Union
+    from pip_shims.shims import InstallRequirement
+    from pkg_resources import Requirement as PkgResourcesRequirement
 
 
 CACHE_DIR = os.environ.get("PIPENV_CACHE_DIR", user_cache_dir("pipenv"))
@@ -61,6 +68,7 @@ def _suppress_distutils_logs():
 
 @ensure_mkdir_p(mode=0o775)
 def _get_src_dir():
+    # type: () -> str
     src = os.environ.get("PIP_SRC")
     if src:
         return src
@@ -71,6 +79,7 @@ def _get_src_dir():
 
 
 def ensure_reqs(reqs):
+    # type: (List[Union[str, PkgResourcesRequirement]]) -> List[PkgResourcesRequirement]
     import pkg_resources
     if not isinstance(reqs, Iterable):
         raise TypeError("Expecting an Iterable, got %r" % reqs)
@@ -85,6 +94,7 @@ def ensure_reqs(reqs):
 
 
 def _prepare_wheel_building_kwargs(ireq):
+    # type: (InstallRequirement) -> Dict[str, str]
     download_dir = os.path.join(CACHE_DIR, "pkgs")
     mkdir_p(download_dir)
 
@@ -115,16 +125,25 @@ def _prepare_wheel_building_kwargs(ireq):
 
 
 def iter_egginfos(path, pkg_name=None):
+    # type: (str, Optional[str]) -> Generator
+    if pkg_name is not None:
+        pkg_variants = get_name_variants(pkg_name)
+    non_matching_dirs = []
     for entry in scandir(path):
         if entry.is_dir():
-            if not entry.name.endswith("egg-info"):
-                for dir_entry in iter_egginfos(entry.path, pkg_name=pkg_name):
-                    yield dir_entry
-            elif pkg_name is None or entry.name.startswith(pkg_name.replace("-", "_")):
-                yield entry
+            entry_name, ext = os.path.splitext(entry.name)
+            if ext.endswith("egg-info"):
+                if pkg_name is None or entry_name in pkg_variants:
+                    yield entry
+            elif not entry.name.endswith("egg-info"):
+                non_matching_dirs.append(entry)
+    for entry in non_matching_dirs:
+        for dir_entry in iter_egginfos(entry.path, pkg_name=pkg_name):
+            yield dir_entry
 
 
 def find_egginfo(target, pkg_name=None):
+    # type: (str, Optional[str]) -> Generator
     egg_dirs = (egg_dir for egg_dir in iter_egginfos(target, pkg_name=pkg_name))
     if pkg_name:
         yield next(iter(egg_dirs), None)
@@ -134,8 +153,6 @@ def find_egginfo(target, pkg_name=None):
 
 
 def get_metadata(path, pkg_name=None):
-    if pkg_name:
-        pkg_name = packaging.utils.canonicalize_name(pkg_name)
     egg_dir = next(iter(find_egginfo(path, pkg_name=pkg_name)), None)
     if egg_dir is not None:
         import pkg_resources
@@ -150,7 +167,7 @@ def get_metadata(path, pkg_name=None):
         if dist:
             try:
                 requires = dist.requires()
-            except exception:
+            except Exception:
                 requires = []
             try:
                 dep_map = dist._build_dep_map()
@@ -314,6 +331,7 @@ class SetupInfo(object):
 
     def get_egg_metadata(self):
         if self.setup_py is not None and self.setup_py.exists():
+            name = self.name if self.name is not None else None
             metadata = get_metadata(self.setup_py.parent.as_posix(), pkg_name=self.name)
             if metadata:
                 if not self.name:
@@ -414,7 +432,7 @@ class SetupInfo(object):
             path = pip_shims.shims.url_to_path(unquote(ireq.link.url_without_fragment))
             if pip_shims.shims.is_installable_dir(path):
                 ireq_src_dir = path
-        if not ireq.editable or not (pip_shims.is_file_url(ireq.link) and ireq_src_dir):
+        if not ireq.editable and not (pip_shims.is_file_url(ireq.link) and ireq_src_dir):
             pip_shims.shims.unpack_url(
                 ireq.link,
                 ireq.source_dir,
