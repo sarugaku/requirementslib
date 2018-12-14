@@ -21,26 +21,45 @@ from vistir.misc import dedup
 
 from ..utils import SCHEME_LIST, VCS_LIST, is_star, add_ssh_scheme_to_git_uri
 
+from ..environment import MYPY_RUNNING
+
+if MYPY_RUNNING:
+    from typing import Union, Optional, List, Set, Any, TypeVar
+    from attr import _ValidatorType
+    from pkg_resources import Requirement as PkgResourcesRequirement
+    from pip_shims import Link
+    _T = TypeVar("_T")
+
 
 HASH_STRING = " --hash={0}"
 
 
 def filter_none(k, v):
+    # type: (str, Any) -> bool
     if v:
         return True
     return False
 
 
 def optional_instance_of(cls):
+    # type: (Any) -> _ValidatorType[Optional[_T]]
     return validators.optional(validators.instance_of(cls))
 
 
 def create_link(link):
+    # type: (str) -> Link
+
+    if not isinstance(link, six.string_types):
+        raise TypeError("must provide a string to instantiate a new link")
     from pip_shims import Link
     return Link(link)
 
 
 def init_requirement(name):
+    # type: (str) -> PkgResourcesRequirement
+
+    if not isinstance(name, six.string_types):
+        raise TypeError("must supply a name to generate a requirement")
     from pkg_resources import Requirement
     req = Requirement.parse(name)
     req.vcs = None
@@ -539,6 +558,7 @@ def fix_requires_python_marker(requires_python):
 
 
 def normalize_name(pkg):
+    # type: (str) -> str
     """Given a package name, return its normalized, non-canonicalized form.
 
     :param str pkg: The name of a package
@@ -548,3 +568,22 @@ def normalize_name(pkg):
 
     assert isinstance(pkg, six.string_types)
     return pkg.replace("_", "-").lower()
+
+
+def get_name_variants(pkg):
+    # type: (str) -> Set[str]
+    """
+    Given a packager name, get the variants of its name for both the canonicalized
+    and "safe" forms.
+
+    :param str pkg: The package to lookup
+    :returns: A list of names.
+    :rtype: Set
+    """
+
+    if not isinstance(pkg, six.string_types):
+        raise TypeError("must provide a string to derive package names")
+    from pkg_resources import safe_name
+    from packaging.utils import canonicalize_name
+    names = {safe_name(pkg), canonicalize_name(pkg)}
+    return names

@@ -18,7 +18,7 @@ from packaging.requirements import Requirement as PackagingRequirement
 from packaging.specifiers import Specifier, SpecifierSet, LegacySpecifier, InvalidSpecifier
 from packaging.utils import canonicalize_name
 from six.moves.urllib import parse as urllib_parse
-from six.moves.urllib.parse import unquote
+from six.moves.urllib.parse import unquote, SplitResult
 from vistir.compat import FileNotFoundError, Path
 from vistir.misc import dedup
 from vistir.path import (
@@ -175,7 +175,7 @@ class FileRequirement(object):
     #: A :class:`~pkg_resources.Requirement` isntance
     req = attr.ib()  # type: Optional[PackagingRequirement]
     #: Setup metadata e.g. dependencies
-    setup_info = attr.ib(default=None)  # type: Dict[str, Any]
+    setup_info = attr.ib(default=None)  # type: SetupInfo
 
     @classmethod
     def get_link_from_line(cls, line):
@@ -213,15 +213,16 @@ class FileRequirement(object):
 
         # Git allows `git@github.com...` lines that are not really URIs.
         # Add "ssh://" so we can parse correctly, and restore afterwards.
-        fixed_line = add_ssh_scheme_to_git_uri(line)
-        added_ssh_scheme = fixed_line != line
+        fixed_line = add_ssh_scheme_to_git_uri(line)  # type: str
+        added_ssh_scheme = fixed_line != line  # type: bool
 
         # We can assume a lot of things if this is a local filesystem path.
         if "://" not in fixed_line:
-            p = Path(fixed_line).absolute()
-            path = p.as_posix()
-            uri = p.as_uri()
-            link = create_link(uri)
+            p = Path(fixed_line).absolute()  # type: Path
+            path = p.as_posix()  # type: Optional[str]
+            uri = p.as_uri()  # type: str
+            link = create_link(uri)  # type: Link
+            relpath = None  # type: Optional[str]
             try:
                 relpath = get_converted_relative_path(path)
             except ValueError:
@@ -230,19 +231,23 @@ class FileRequirement(object):
 
         # This is an URI. We'll need to perform some elaborated parsing.
 
-        parsed_url = urllib_parse.urlsplit(fixed_line)
-        original_url = parsed_url._replace()
+        parsed_url = urllib_parse.urlsplit(fixed_line)  # type: SplitResult
+        original_url = parsed_url._replace()  # type: SplitResult
         if added_ssh_scheme and ":" in parsed_url.netloc:
+            original_netloc = parsed_url.netloc  # type: str
+            original_path_start = None  # type: Optional[str]
             original_netloc, original_path_start = parsed_url.netloc.rsplit(":", 1)
-            uri_path = "/{0}{1}".format(original_path_start, parsed_url.path)
+            uri_path = "/{0}{1}".format(original_path_start, parsed_url.path)  # type: str
             parsed_url = original_url._replace(netloc=original_netloc, path=uri_path)
 
         # Split the VCS part out if needed.
-        original_scheme = parsed_url.scheme
+        original_scheme = parsed_url.scheme  # type: str
+        vcs_type = None  # type: Optional[str]
         if "+" in original_scheme:
-            vcs_type, scheme = original_scheme.split("+", 1)
+            scheme = None  # type: Optional[str]
+            vcs_type, _, scheme = original_scheme.partition("+")
             parsed_url = parsed_url._replace(scheme=scheme)
-            prefer = "uri"
+            prefer = "uri"  # type: str
         else:
             vcs_type = None
             prefer = "file"
@@ -282,14 +287,17 @@ class FileRequirement(object):
 
     @property
     def setup_py_dir(self):
+        # type: () -> Optional[str]
         if self.setup_path:
             return os.path.dirname(os.path.abspath(self.setup_path))
+        return
 
     @property
     def dependencies(self):
-        build_deps = []
-        setup_deps = []
-        deps = {}
+        # type: () -> Tuple[Dict[str, PackagingRequirement], List[Union[str, PackagingRequirement]], List[str]]
+        build_deps = []  # type: List[Union[str, PackagingRequirement]]
+        setup_deps = []  # type: List[str]
+        deps = {}  # type: Dict[str, PackagingRequirement]
         if self.setup_info:
             setup_info = self.setup_info.as_dict()
             deps.update(setup_info.get("requires", {}))
@@ -297,8 +305,9 @@ class FileRequirement(object):
             build_deps.extend(setup_info.get("build_requires", []))
         if self.pyproject_requires:
             build_deps.extend(self.pyproject_requires)
+        setup_deps = list(set(setup_deps))
+        build_deps = list(set(build_deps))
         return deps, setup_deps, build_deps
-
 
     @uri.default
     def get_uri(self):
@@ -397,6 +406,12 @@ class FileRequirement(object):
             req.editable = True
         req.link = self.link
         return req
+
+    @property
+    def is_local(self):
+        if is_file_url(self.uri):
+            return True
+        return False
 
     @property
     def is_remote_artifact(self):
@@ -801,12 +816,6 @@ class VCSRequirement(FileRequirement):
         return req
 
     @property
-    def is_local(self):
-        if is_file_url(self.uri):
-            return True
-        return False
-
-    @property
     def repo(self):
         if self._repo is None:
             self._repo = self.get_vcs_repo()
@@ -1207,6 +1216,7 @@ class Requirement(object):
         if hashes:
             args["hashes"] = hashes
         cls_inst = cls(**args)
+        old_name = cls_inst.req.req.name or cls_inst.req.name
         if not cls_inst.is_named and not cls_inst.editable and not name:
             if cls_inst.is_vcs:
                 ireq = pip_shims.shims.install_req_from_req(cls_inst.as_line(include_hashes=False))
@@ -1423,7 +1433,12 @@ class Requirement(object):
         return {name: base_dict}
 
     def as_ireq(self):
-        ireq_line = self.as_line(include_hashes=False)
+        kwargs = {
+            "include_hashes": False,
+        }
+        if (self.is_file_or_url and self.req.is_local) or self.is_vcs:
+            kwargs["include_markers"] = False
+        ireq_line = self.as_line(**kwargs)
         if self.editable or self.req.editable:
             if ireq_line.startswith("-e "):
                 ireq_line = ireq_line[len("-e ") :]
@@ -1433,9 +1448,13 @@ class Requirement(object):
             ireq = pip_shims.shims.install_req_from_line(ireq_line)
         if not getattr(ireq, "req", None):
             ireq.req = self.req.req
+            if (self.is_file_or_url and self.req.is_local) or self.is_vcs:
+                if getattr(ireq, "req", None) and getattr(ireq.req, "marker", None):
+                    ireq.req.marker = None
         else:
             ireq.req.extras = self.req.req.extras
-            ireq.req.marker = self.req.req.marker
+            if not ((self.is_file_or_url and self.req.is_local) or self.is_vcs):
+                ireq.req.marker = self.req.req.marker
         return ireq
 
     @property
