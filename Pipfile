@@ -6,16 +6,17 @@ name = "pypi"
 [packages]
 
 [dev-packages]
-black = {version = "*", markers = "python_version>='3.6'"}
-"flake8" = "*"
+black = {version = "*",markers = "python_version>='3.6'"}
 pytest = "*"
 sphinx = "*"
 twine = "*"
 invoke = "*"
-requirementslib = {path = ".", editable = true,extras = ["tests"]}
+requirementslib = {path = ".",editable = true,extras = ["tests"]}
 sphinx_rtd_theme = "*"
 pip_shims = "*"
-vistir = {version = ">=0.2.5", extras = ["spinner"]}
+vistir = {version = ">=0.2.5",extras = ["spinner"]}
+flake8 = "*"
+# prospector = {version = "*", extras = ["with_vulture"]}
 rope = "*"
 towncrier = "*"
 parver = "*"
@@ -25,6 +26,11 @@ mypy = "*"
 mypy-extensions = "*"
 lxml = "*"
 mypytools = "*"
+pytest-annotate = "*"
+monkeytype = "*"
+pytype = "*"
+pyannotate = "*"
+vulture = "*"
 
 [scripts]
 black = 'black src/requirementslib/ --exclude "/(\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist)/"'

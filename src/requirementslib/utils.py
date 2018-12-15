@@ -8,6 +8,7 @@ import os
 import six
 import sys
 import tomlkit
+import vistir
 
 six.add_move(six.MovedAttribute("Mapping", "collections", "collections.abc"))
 six.add_move(six.MovedAttribute("Sequence", "collections", "collections.abc"))
@@ -113,6 +114,8 @@ def is_vcs(pipfile_entry):
 def is_editable(pipfile_entry):
     if isinstance(pipfile_entry, Mapping):
         return pipfile_entry.get("editable", False) is True
+    if isinstance(pipfile_entry, six.string_types):
+        return pipfile_entry.startswith("-e ")
     return False
 
 
@@ -129,16 +132,30 @@ def is_star(val):
     )
 
 
+def convert_entry_to_path(path):
+    # type: (Dict[str, Any]) -> str
+    """Convert a pipfile entry to a string"""
+
+    if not isinstance(path, Mapping):
+        raise TypeError("expecting a mapping, received {0!r}".format(path))
+
+    if not any(key in path for key in ["file", "path"]):
+        raise ValueError("missing path-like entry in supplied mapping {0!r}".format(path))
+
+    if "file" in path:
+        path = vistir.path.url_to_path(path["file"])
+
+    elif "path" in path:
+        path = path["path"]
+    return path
+
+
 def is_installable_file(path):
     """Determine if a path can potentially be installed"""
     from packaging import specifiers
 
-    if hasattr(path, "keys") and any(
-        key for key in path.keys() if key in ["file", "path"]
-    ):
-        path = urlparse(path["file"]).path if "file" in path else path["path"]
-    if not isinstance(path, six.string_types) or path == "*":
-        return False
+    if isinstance(path, Mapping):
+        path = convert_entry_to_path(path)
 
     # If the string starts with a valid specifier operator, test if it is a valid
     # specifier set before making a path object (to avoid breaking windows)
@@ -152,18 +169,17 @@ def is_installable_file(path):
             return False
 
     parsed = urlparse(path)
-    if parsed.scheme == "file":
-        path = parsed.path
-
-    if not os.path.exists(os.path.abspath(path)):
+    is_local = (not parsed.scheme or parsed.scheme == "file")
+    if parsed.scheme and parsed.scheme == "file":
+        path = vistir.path.url_to_path(path)
+    normalized_path = vistir.path.normalize_path(path)
+    if is_local and not os.path.exists(normalized_path):
         return False
 
-    lookup_path = Path(path)
-    absolute_path = "{0}".format(lookup_path.absolute())
-    if lookup_path.is_dir() and is_installable_dir(absolute_path):
+    if is_local and os.path.isdir(normalized_path) and (is_installable_dir(normalized_path) or pip_shims.shims.is_archive_file(normalized_path)):
         return True
 
-    elif lookup_path.is_file() and pip_shims.shims.is_archive_file(absolute_path):
+    if not is_local and pip_shims.shims.is_archive_file(parsed.path):
         return True
 
     return False

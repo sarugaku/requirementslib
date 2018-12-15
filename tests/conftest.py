@@ -80,4 +80,3 @@ def test_artifact(artifact_dir, pathlib_tmpdir, request):
                 target_path = pathlib_tmpdir.joinpath(installable.name)
                 shutil.copytree(installable.as_posix(), target_path.as_posix())
                 yield target_path
-
