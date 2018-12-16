@@ -176,7 +176,9 @@ def is_installable_file(path):
     if is_local and not os.path.exists(normalized_path):
         return False
 
-    if is_local and os.path.isdir(normalized_path) and (is_installable_dir(normalized_path) or pip_shims.shims.is_archive_file(normalized_path)):
+    is_archive = pip_shims.shims.is_archive_file(normalized_path)
+    is_local_project = os.path.isdir(normalized_path) and is_installable_dir(normalized_path)
+    if is_local and is_local_project or is_archive:
         return True
 
     if not is_local and pip_shims.shims.is_archive_file(parsed.path):

@@ -28,7 +28,7 @@ def pytest_runtest_setup(item):
 
 
 @pytest.fixture
-def pathlib_tmpdir(request, tmpdir):
+def pathlib_tmpdir(tmpdir):
     yield vistir.compat.Path(str(tmpdir))
     try:
         tmpdir.remove(ignore_errors=True)
@@ -60,16 +60,21 @@ def test_artifact(artifact_dir, pathlib_tmpdir, request):
     target = artifact_dir.joinpath(name)
     if target.exists():
         if as_artifact:
-            installable = next(iter(sorted((
-                path for path in target.iterdir()
-                if requirementslib.utils.is_installable_file(path.as_posix())
-                and not path.is_dir()
-            ), reverse=True)), None)
+            files = [path for path in target.iterdir() if path.is_file()]
+            files = sorted(files, reverse=True)
+            installable = next(iter(
+                f for f in files if requirementslib.utils.is_installable_file(f.as_posix())
+            ), None)
             if installable:
                 target_path = pathlib_tmpdir.joinpath(installable.name)
                 shutil.copy(installable.as_posix(), target_path.as_posix())
                 yield target_path
                 target_path.unlink()
+            else:
+                raise RuntimeError(
+                    "failed to find installable artifact: %s (as_artifact: %s)\n"
+                    "files: %s" % (name, as_artifact, files)
+                )
         else:
             installable = next(iter(sorted((
                 path for path in target.iterdir()
@@ -80,3 +85,8 @@ def test_artifact(artifact_dir, pathlib_tmpdir, request):
                 target_path = pathlib_tmpdir.joinpath(installable.name)
                 shutil.copytree(installable.as_posix(), target_path.as_posix())
                 yield target_path
+            else:
+                raise RuntimeError(
+                    "failed to find installable artifact: %s (as_artifact: %s)\n"
+                    "files: %s" % (name, as_artifact, files)
+                )
