@@ -67,7 +67,7 @@ def _suppress_distutils_logs():
 
 
 @ensure_mkdir_p(mode=0o775)
-def _get_src_dir():
+def _get_src_dir(root):
     # type: () -> str
     src = os.environ.get("PIP_SRC")
     if src:
@@ -75,7 +75,9 @@ def _get_src_dir():
     virtual_env = os.environ.get("VIRTUAL_ENV")
     if virtual_env:
         return os.path.join(virtual_env, "src")
-    return os.path.join(os.getcwd(), "src")  # Match pip's behavior.
+    if not root:
+        root = os.getcwd()
+    return os.path.join(root, "src")  # Match pip's behavior.
 
 
 def ensure_reqs(reqs):
@@ -93,25 +95,27 @@ def ensure_reqs(reqs):
     return new_reqs
 
 
-def _prepare_wheel_building_kwargs(ireq):
-    # type: (InstallRequirement) -> Dict[str, str]
+def _prepare_wheel_building_kwargs(ireq=None, src_root=None, editable=False):
+    # type: (Optional[InstallRequirement], Optional[str]) -> Dict[str, str]
     download_dir = os.path.join(CACHE_DIR, "pkgs")
     mkdir_p(download_dir)
 
     wheel_download_dir = os.path.join(CACHE_DIR, "wheels")
     mkdir_p(wheel_download_dir)
 
-    if ireq.source_dir is not None:
+    if ireq is None:
+        src_dir = _get_src_dir(root=src_root)
+    elif ireq.source_dir is not None:
         src_dir = ireq.source_dir
     elif ireq.editable:
-        src_dir = _get_src_dir()
+        src_dir = _get_src_dir(root=src_root)
     else:
         src_dir = create_tracked_tempdir(prefix="reqlib-src")
 
     # This logic matches pip's behavior, although I don't fully understand the
     # intention. I guess the idea is to build editables in-place, otherwise out
     # of the source tree?
-    if ireq.editable:
+    if (ireq is None and editable) or ireq.editable:
         build_dir = src_dir
     else:
         build_dir = create_tracked_tempdir(prefix="reqlib-build")
@@ -266,7 +270,7 @@ class SetupInfo(object):
                         if section not in ["options", "metadata"]
                     }
                 )
-                if self.ireq.extras:
+                if self.ireq is not None and self.ireq.extras:
                     self.requires.update({
                         extra: self.extras[extra]
                         for extra in self.ireq.extras if extra in self.extras
@@ -331,7 +335,6 @@ class SetupInfo(object):
 
     def get_egg_metadata(self):
         if self.setup_py is not None and self.setup_py.exists():
-            name = self.name if self.name is not None else None
             metadata = get_metadata(self.setup_py.parent.as_posix(), pkg_name=self.name)
             if metadata:
                 if not self.name:
@@ -432,7 +435,7 @@ class SetupInfo(object):
             path = pip_shims.shims.url_to_path(unquote(ireq.link.url_without_fragment))
             if pip_shims.shims.is_installable_dir(path):
                 ireq_src_dir = path
-        if not ireq.editable and not (pip_shims.is_file_url(ireq.link) and ireq_src_dir):
+        if not ireq.editable:
             pip_shims.shims.unpack_url(
                 ireq.link,
                 ireq.source_dir,

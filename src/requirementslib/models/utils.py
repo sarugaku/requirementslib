@@ -587,3 +587,12 @@ def get_name_variants(pkg):
     from packaging.utils import canonicalize_name
     names = {safe_name(pkg), canonicalize_name(pkg)}
     return names
+
+
+SETUPTOOLS_SHIM = (
+    "import setuptools, tokenize;__file__=%r;"
+    "f=getattr(tokenize, 'open', open)(__file__);"
+    "code=f.read().replace('\\r\\n', '\\n');"
+    "f.close();"
+    "exec(compile(code, __file__, 'exec'))"
+)
