@@ -377,6 +377,7 @@ class Line(object):
         return os.path.join(self.wheel_kwargs["build_dir"])
 
     def _build_sdist(self):
+        # type: () -> Optional[str]
         if not (self.is_file and self.is_installable and os.path.isdir(self.path)):
             return
 
@@ -395,6 +396,7 @@ class Line(object):
         return sdist
 
     def _build_wheel(self):
+        # type: () -> Optional[str]
         dist_dir = os.path.join(self.wheel_kwargs["build_dir"], "dist")
         c = run(["python", "setup.py", "bdist_wheel", "--dist-dir", dist_dir], cwd=self.path)
         if c.returncode == 1:
@@ -405,6 +407,7 @@ class Line(object):
         return wheel
 
     def _get_vcsrepo(self):
+        # type: () -> Optional[VCSRepository]
         from .vcs import VCSRepository
         checkout_directory = os.path.join(self.wheel_kwargs["src_dir"])
         if self.name is not None:
@@ -423,11 +426,14 @@ class Line(object):
 
     @property
     def vcsrepo(self):
+        # type: () -> Optional[VCSRepository]
         if self._vcsrepo is None:
             self._vcsrepo = self._get_vcsrepo()
         return self._vcsrepo
 
     def unpack_source(self):
+        # type: () -> Optional[str]
+        base_dir = None
         if self.is_file and self.is_installable and not self.is_artifact and not self.is_vcs:
             if os.path.isdir(self.path) and not self.editable:
                 sdist = self._build_sdist()
@@ -534,6 +540,7 @@ class Line(object):
                 self.name = name
 
     def _parse_requirement_from_vcs(self):
+        # type: () -> Optional[PackagingRequirement]
         name = self.name or self.link.egg_fragment
         url = self.url
         if not name:
@@ -562,6 +569,7 @@ class Line(object):
         return req
 
     def parse_requirement(self):
+        # type: () -> Optional[PackagingRequirement]
         if self.name is None:
             self.parse_name()
         if self.is_named:
@@ -604,6 +612,7 @@ class Line(object):
             self.parsed_marker = markers
 
     def parse(self):
+        # type: () -> None
         self.parse_hashes()
         self.line, self.markers = split_markers_from_line(self.line)
         self.parse_extras()

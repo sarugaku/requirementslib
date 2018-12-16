@@ -61,32 +61,23 @@ def test_artifact(artifact_dir, pathlib_tmpdir, request):
     if target.exists():
         if as_artifact:
             files = [path for path in target.iterdir() if path.is_file()]
-            files = sorted(files, reverse=True)
-            installable = next(iter(
-                f for f in files if requirementslib.utils.is_installable_file(f.as_posix())
-            ), None)
-            if installable:
-                target_path = pathlib_tmpdir.joinpath(installable.name)
-                shutil.copy(installable.as_posix(), target_path.as_posix())
-                yield target_path
-                target_path.unlink()
-            else:
-                raise RuntimeError(
-                    "failed to find installable artifact: %s (as_artifact: %s)\n"
-                    "files: %s" % (name, as_artifact, files)
-                )
         else:
-            installable = next(iter(sorted((
-                path for path in target.iterdir()
-                if requirementslib.utils.is_installable_file(path.as_posix())
-                and path.is_dir()
-            ), reverse=True)), None)
-            if installable:
-                target_path = pathlib_tmpdir.joinpath(installable.name)
-                shutil.copytree(installable.as_posix(), target_path.as_posix())
-                yield target_path
+            files = [path for path in target.iterdir() if path.is_dir()]
+        files = sorted(files, reverse=True)
+        installable = next(iter(
+            f for f in files if requirementslib.utils.is_installable_file(f.as_posix())
+        ), None)
+        if installable:
+            target_path = pathlib_tmpdir.joinpath(installable.name)
+            if as_artifact:
+                shutil.copy(installable.as_posix(), target_path.as_posix())
             else:
-                raise RuntimeError(
-                    "failed to find installable artifact: %s (as_artifact: %s)\n"
-                    "files: %s" % (name, as_artifact, files)
-                )
+                shutil.copytree(installable.as_posix(), target_path.as_posix())
+            yield target_path
+            if as_artifact:
+                target_path.unlink()
+        else:
+            raise RuntimeError(
+                "failed to find installable artifact: %s (as_artifact: %s)\n"
+                "files: %s" % (name, as_artifact, files)
+            )
