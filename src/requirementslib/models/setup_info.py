@@ -25,6 +25,7 @@ from vistir.misc import run
 from vistir.path import create_tracked_tempdir, ensure_mkdir_p, mkdir_p
 
 from .utils import init_requirement, get_pyproject
+from ..exceptions import RequirementError
 
 try:
     from os import scandir
@@ -150,7 +151,7 @@ def get_metadata(path, pkg_name=None):
         if dist:
             try:
                 requires = dist.requires()
-            except exception:
+            except Exception:
                 requires = []
             try:
                 dep_map = dist._build_dep_map()
@@ -414,6 +415,11 @@ class SetupInfo(object):
             path = pip_shims.shims.url_to_path(unquote(ireq.link.url_without_fragment))
             if pip_shims.shims.is_installable_dir(path):
                 ireq_src_dir = path
+            elif os.path.isdir(path):
+                raise RequirementError(
+                    "The file URL points to a directory not installable: {}"
+                    .format(ireq.link)
+                )
         if not ireq.editable or not (pip_shims.is_file_url(ireq.link) and ireq_src_dir):
             pip_shims.shims.unpack_url(
                 ireq.link,
