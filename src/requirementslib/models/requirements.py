@@ -1303,20 +1303,20 @@ class FileRequirement(object):
             creation_req_line = getattr(creation_req, "line", None)
             if creation_req_line is None and line is not None:
                 creation_kwargs["req"].line = line  # type: ignore
-        # if name:
-        #     creation_kwargs["name"] = name
+        if name:
+            creation_kwargs["name"] = name
         cls_inst = cls(**creation_kwargs)  # type: ignore
-        # if not _line:
-        #     if editable and uri_scheme == "path":
-        #         _line = relpath if relpath else path
-        #     else:
-        #         instance_link = getattr(cls_inst, "link", None)
-        #         if instance_link is not None:
-        #             _line = unquote(instance_link.url_without_fragment) or cls_inst.uri
-        #             if not cls_inst._has_hashed_name:
-        #                 _line = "{0}#egg={1}".format(line, cls_inst.name)
-        # if cls_inst.req is not None:
-        #     cls_inst.req.line = line if line else _line
+        if not _line:
+            if editable and uri_scheme == "path":
+                _line = relpath if relpath else path
+            else:
+                instance_link = getattr(cls_inst, "link", None)
+                if instance_link is not None:
+                    _line = unquote(instance_link.url_without_fragment) or cls_inst.uri
+                    if not cls_inst._has_hashed_name:
+                        _line = "{0}#egg={1}".format(line, cls_inst.name)
+        if cls_inst.req is not None:
+            cls_inst.req.line = line if line else _line
         return cls_inst
 
     @classmethod
