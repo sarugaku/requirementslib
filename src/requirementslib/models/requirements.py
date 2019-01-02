@@ -2020,7 +2020,14 @@ class Requirement(object):
         cls_inst = cls(**args)
         # if cls_inst.is_named:
         #     cls_inst.req.req.line = cls_inst.as_line()
-        old_name = cls_inst.req.req.name or cls_inst.req.name
+        old_name = ""
+        if cls_inst.req is not None:
+            if cls_inst.req.req is not None:
+                old_name = cls_inst.req.req.name
+            elif cls_inst.req.parsed_line and cls_inst.req.parsed_line.name is not None:
+                old_name = cls_inst.req.parsed_line.name
+            else:
+                old_name = cls_inst.req.name
         if not cls_inst.is_named and not cls_inst.editable and not name:
             if cls_inst.is_vcs:
                 ireq = pip_shims.shims.install_req_from_req(cls_inst.as_line(include_hashes=False))
