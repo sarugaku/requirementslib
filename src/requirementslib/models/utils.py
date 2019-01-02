@@ -134,6 +134,15 @@ def get_version(pipfile_entry):
 
 
 def get_pyproject(path):
+    """
+    Given a base path, look for the corresponding ``pyproject.toml`` file and return its
+    build_requires and build_backend.
+
+    :param str path: The root path of the project, should be a directory (will be truncated)
+    :return: A 2 tuple of build requirements and the build backend
+    :rtype: Tuple[List[str], str]
+    """
+
     from vistir.compat import Path
     if not path:
         return
@@ -165,7 +174,7 @@ def get_pyproject(path):
             pyproject_data["build_system"] = build_system
         else:
             requires = build_system.get("requires")
-            backend = build_system.get("build-backend")
+            backend = build_system.get("build-backend", "setuptools.build_meta")
         return (requires, backend)
 
 

@@ -187,6 +187,47 @@ def is_installable_file(path):
     return False
 
 
+def get_dist_metadata(dist):
+    import pkg_resources
+    from email.parser import FeedParser
+    if (isinstance(dist, pkg_resources.DistInfoDistribution) and
+            dist.has_metadata('METADATA')):
+        metadata = dist.get_metadata('METADATA')
+    elif dist.has_metadata('PKG-INFO'):
+        metadata = dist.get_metadata('PKG-INFO')
+    else:
+        metadata = ""
+
+    feed_parser = FeedParser()
+    feed_parser.feed(metadata)
+    return feed_parser.close()
+
+
+def get_setup_paths(base_path, subdirectory=None):
+    # type: (str, Optional[str]) -> Dict[str, Optional[str]]
+    if base_path is None:
+        raise TypeError("must provide a path to derive setup paths from")
+    setup_py = os.path.join(base_path, "setup.py")
+    setup_cfg = os.path.join(base_path, "setup.cfg")
+    pyproject_toml = os.path.join(base_path, "pyproject.toml")
+    if subdirectory is not None:
+        base_path = os.path.join(base_path, subdirectory)
+        subdir_setup_py = os.path.join(subdirectory, "setup.py")
+        subdir_setup_cfg = os.path.join(subdirectory, "setup.cfg")
+        subdir_pyproject_toml = os.path.join(subdirectory, "pyproject.toml")
+    if subdirectory and os.path.exists(subdir_setup_py):
+        setup_py = subdir_setup_py
+    if subdirectory and os.path.exists(subdir_setup_cfg):
+        setup_cfg = subdir_setup_cfg
+    if subdirectory and os.path.exists(subdir_pyproject_toml):
+        pyproject_toml = subdir_pyproject_toml
+    return {
+        "setup_py": setup_py if os.path.exists(setup_py) else None,
+        "setup_cfg": setup_cfg if os.path.exists(setup_cfg) else None,
+        "pyproject_toml": pyproject_toml if os.path.exists(pyproject_toml) else None
+    }
+
+
 def prepare_pip_source_args(sources, pip_args=None):
     if pip_args is None:
         pip_args = []
