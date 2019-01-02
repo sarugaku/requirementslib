@@ -50,7 +50,9 @@ def pip_src_dir(request, pathlib_tmpdir):
 
 @pytest.fixture(scope="session")
 def artifact_dir():
-    return vistir.compat.Path(__file__).absolute().parent.joinpath("artifacts")
+    return vistir.compat.Path(
+        requirementslib.utils.__file__
+    ).absolute().parent.parent.parent.joinpath("tests/artifacts")
 
 
 @pytest.fixture
@@ -65,7 +67,11 @@ def test_artifact(artifact_dir, pathlib_tmpdir, request):
             files = [path for path in target.iterdir() if path.is_dir()]
         files = sorted(files, reverse=True)
         installable = next(iter(
-            f for f in files if requirementslib.utils.is_installable_file(f.as_posix())
+            f for f in files
+            if requirementslib.utils.is_installable_file(f.as_posix())
+            or f.joinpath("setup.py").exists()
+            or f.joinpath("pyproject.toml").exists()
+            or f.joinpath("setup.cfg").exists()
         ), None)
         if installable:
             target_path = pathlib_tmpdir.joinpath(installable.name)
@@ -79,5 +85,5 @@ def test_artifact(artifact_dir, pathlib_tmpdir, request):
         else:
             raise RuntimeError(
                 "failed to find installable artifact: %s (as_artifact: %s)\n"
-                "files: %s" % (name, as_artifact, files)
+                "files: %s\nInstallable: %s" % (name, as_artifact, files, installable)
             )

@@ -363,8 +363,6 @@ class Line(object):
     def setup_info(self):
         # type: () -> SetupInfo
         if self._setup_info is None:
-            current_dir = os.path.abspath(os.curdir)
-            print("current dir: %s" % current_dir)
             base_dir = self.unpack_source()
             self._setup_info = SetupInfo.create(
                 base_dir,
@@ -372,7 +370,6 @@ class Line(object):
                 kwargs=self.wheel_kwargs,
                 ireq=self.ireq
             )
-            print("current dir: %s" % os.path.abspath(os.curdir))
         return self._setup_info
 
     @property
