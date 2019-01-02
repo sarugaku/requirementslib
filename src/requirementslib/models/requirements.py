@@ -2020,21 +2020,21 @@ class Requirement(object):
         cls_inst = cls(**args)
         # if cls_inst.is_named:
         #     cls_inst.req.req.line = cls_inst.as_line()
-        # old_name = cls_inst.req.req.name or cls_inst.req.name
-        # if not cls_inst.is_named and not cls_inst.editable and not name:
-        #     if cls_inst.is_vcs:
-        #         ireq = pip_shims.shims.install_req_from_req(cls_inst.as_line(include_hashes=False))
-        #         info = SetupInfo.from_ireq(ireq)
-        #         if info is not None:
-        #             info_dict = info.as_dict()
-        #             cls_inst.req.setup_info = info
-        #         else:
-        #             info_dict = {}
-        #     else:
-        #         info_dict = cls_inst.run_requires()
-        #     found_name = info_dict.get("name", old_name)
-        #     if old_name != found_name:
-        #         cls_inst.req.req.line.replace(old_name, found_name)
+        old_name = cls_inst.req.req.name or cls_inst.req.name
+        if not cls_inst.is_named and not cls_inst.editable and not name:
+            if cls_inst.is_vcs:
+                ireq = pip_shims.shims.install_req_from_req(cls_inst.as_line(include_hashes=False))
+                info = SetupInfo.from_ireq(ireq)
+                if info is not None:
+                    info_dict = info.as_dict()
+                    cls_inst.req.setup_info = info
+                else:
+                    info_dict = {}
+            else:
+                info_dict = cls_inst.run_requires()
+            found_name = info_dict.get("name", old_name)
+            if old_name != found_name:
+                cls_inst.req.req.line.replace(old_name, found_name)
         return cls_inst
 
     def as_line(

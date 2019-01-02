@@ -49,6 +49,7 @@ def test_without_extras(pathlib_tmpdir):
     """Tests a setup.py or setup.cfg parse when extras returns None for some files"""
     setup_dir = pathlib_tmpdir.joinpath("sanitized-package")
     setup_dir.mkdir()
+    assert setup_dir.is_dir()
     setup_py = setup_dir.joinpath("setup.py")
     setup_py.write_text(u"""
 # -*- coding: utf-8 -*-
