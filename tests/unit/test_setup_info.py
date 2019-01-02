@@ -68,7 +68,7 @@ setup(
         r = Requirement.from_pipfile("e1839a8", pipfile_entry)
         r.run_requires()
         setup_dict = r.req.setup_info.as_dict()
-    assert sorted(list(setup_dict.get("requires").keys())) == ["raven"]
+        assert sorted(list(setup_dict.get("requires").keys())) == ["raven"]
 
 
 def test_extras(pathlib_tmpdir):
