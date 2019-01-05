@@ -68,7 +68,7 @@ setup(
     with vistir.contextmanagers.cd(setup_dir.as_posix()):
         pipfile_entry = {"path": os.path.abspath(os.curdir), "editable": True, "extras": ["socks"]}
         r = Requirement.from_pipfile("e1839a8", pipfile_entry)
-        r.run_requires()
+        # r.run_requires()
         setup_dict = r.req.setup_info.as_dict()
         assert sorted(list(setup_dict.get("requires").keys())) == ["raven"]
 
