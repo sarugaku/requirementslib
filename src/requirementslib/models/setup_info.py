@@ -378,7 +378,6 @@ class SetupInfo(object):
 
     def get_info(self):
         initial_path = os.path.abspath(os.curdir)
-        print("current dir: %s" % initial_path)
         if self.setup_cfg and self.setup_cfg.exists():
             try:
                 self.parse_setup_cfg()

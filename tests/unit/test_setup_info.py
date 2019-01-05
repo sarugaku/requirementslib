@@ -56,13 +56,14 @@ def test_without_extras(pathlib_tmpdir):
 from setuptools import setup
 
 setup(
-  name="sanitized-package",
-  version="0.0.1",
-  install_requires=["raven==5.32.0"],
-  extras_require={
-    'PDF': ["socks"]
-  }
-) """.strip())
+    name="sanitized-package",
+    version="0.0.1",
+    install_requires=["raven==5.32.0"],
+    extras_require={
+        'PDF': ["socks"]
+    }
+)
+    """.strip())
     setup_dict = None
     with vistir.contextmanagers.cd(setup_dir.as_posix()):
         pipfile_entry = {"path": os.path.abspath(os.curdir), "editable": True, "extras": ["socks"]}
@@ -106,7 +107,8 @@ setup(
     packages=['test_package'],
     include_package_data=True,
     zip_safe=False,
-) """.strip())
+)
+    """.strip())
     src_dir = setup_dir.joinpath("src")
     src_dir.mkdir()
     pkg_dir = src_dir.joinpath("test_package")

@@ -1306,17 +1306,17 @@ class FileRequirement(object):
         if name:
             creation_kwargs["name"] = name
         cls_inst = cls(**creation_kwargs)  # type: ignore
-        if not _line:
-            if editable and uri_scheme == "path":
-                _line = relpath if relpath else path
-            else:
-                instance_link = getattr(cls_inst, "link", None)
-                if instance_link is not None:
-                    _line = unquote(instance_link.url_without_fragment) or cls_inst.uri
-                    if not cls_inst._has_hashed_name:
-                        _line = "{0}#egg={1}".format(line, cls_inst.name)
-        if cls_inst.req is not None:
-            cls_inst.req.line = line if line else _line
+        # if not _line:
+        #     if editable and uri_scheme == "path":
+        #         _line = relpath if relpath else path
+        #     else:
+        #         instance_link = getattr(cls_inst, "link", None)
+        #         if instance_link is not None:
+        #             _line = unquote(instance_link.url_without_fragment) or cls_inst.uri
+        #             if not cls_inst._has_hashed_name:
+        #                 _line = "{0}#egg={1}".format(line, cls_inst.name)
+        # if cls_inst.req is not None:
+        #     cls_inst.req.line = line if line else _line
         return cls_inst
 
     @classmethod
@@ -1951,21 +1951,21 @@ class Requirement(object):
         if parsed_line.hashes:
             args["hashes"] = parsed_line.hashes  # type: ignore
         cls_inst = cls(**args)
-        old_name = cls_inst.req.req.name if getattr(cls_inst.req, "req", None) else cls_inst.req.name
-        if not cls_inst.is_named and not cls_inst.editable and not name:
-            if cls_inst.is_vcs:
-                ireq = pip_shims.shims.install_req_from_req(cls_inst.as_line(include_hashes=False))
-                info = SetupInfo.from_ireq(ireq)
-                if info is not None:
-                    info_dict = info.as_dict()
-                    cls_inst.req.setup_info = info
-                else:
-                    info_dict = {}
-            else:
-                info_dict = cls_inst.run_requires()
-            found_name = info_dict.get("name", old_name)
-            if old_name != found_name:
-                cls_inst.req.req.line.replace(old_name, found_name)
+        # old_name = cls_inst.req.req.name if getattr(cls_inst.req, "req", None) else cls_inst.req.name
+        # if not cls_inst.is_named and not cls_inst.editable and not name:
+        #     if cls_inst.is_vcs:
+        #         ireq = pip_shims.shims.install_req_from_req(cls_inst.as_line(include_hashes=False))
+        #         info = SetupInfo.from_ireq(ireq)
+        #         if info is not None:
+        #             info_dict = info.as_dict()
+        #             cls_inst.req.setup_info = info
+        #         else:
+        #             info_dict = {}
+        #     else:
+        #         info_dict = cls_inst.run_requires()
+        #     found_name = info_dict.get("name", old_name)
+        #     if old_name != found_name:
+        #         cls_inst.req.req.line.replace(old_name, found_name)
         return cls_inst
 
     @classmethod
