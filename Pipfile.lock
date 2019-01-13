@@ -492,7 +492,8 @@
                 "sha256:dd2e520a3e2ed08cdbfab7f530b04c3f1a029ed689e114709a1ed36818f05472"
             ],
             "index": "pypi",
-            "version": "==18.8.0"
+            "version": "==18.8.0",
+            "markers": "python_version >= 3.6"
         },
         "more-itertools": {
             "hashes": [
