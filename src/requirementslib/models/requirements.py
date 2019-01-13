@@ -407,9 +407,12 @@ class Line(object):
                     # line = pip_shims.shims.path_to_url(line)
             else:
                 if self.link is not None:
-                    line = pip_shims.shims.path_to_url(self.link.url_without_fragment)
+                    line = self.link.url_without_fragment
                 else:
-                    line = pip_shims.shims.path_to_url(self.uri)
+                    if self.uri is not None:
+                        line = self.uri
+                    else:
+                        line = self.path
             if self.extras:
                 line = "{0}[{1}]".format(line, ",".join(sorted(set(self.extras))))
             if self.editable:
@@ -531,7 +534,6 @@ class Line(object):
         # type: () -> None
         if self.name is None:
             self.parse_name()
-            print("**** NAME IS {self.name}".format(self=self))
         if self.is_named:
             self.requirement = init_requirement(self.line)
         elif self.is_vcs:

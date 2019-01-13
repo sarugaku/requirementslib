@@ -584,6 +584,7 @@
                 "sha256:72d056b8f8883ac90eef5554a9c8a47fac39d3b66479f3d2c8d5bc21b849cdba"
             ],
             "index": "pypi",
+            "version": "==0.2.1"
         },
         "pathlib2": {
             "hashes": [

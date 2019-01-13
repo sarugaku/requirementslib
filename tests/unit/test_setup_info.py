@@ -38,7 +38,7 @@ def test_remote_req(url_line, name, requires):
 
 def test_no_duplicate_egg_info():
     """When the package has 'src' directory, do not write egg-info in base dir."""
-    base_dir = os.path.abspath(os.getcwd())
+    base_dir = vistir.compat.Path(os.path.abspath(os.getcwd())).as_posix()
     r = Requirement.from_line("-e {}".format(base_dir))
     egg_info_name = "{}.egg-info".format(r.name.replace("-", "_"))
     assert os.path.isdir(os.path.join(base_dir, "src", egg_info_name))
