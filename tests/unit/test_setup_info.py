@@ -49,21 +49,24 @@ def test_without_extras(pathlib_tmpdir):
     """Tests a setup.py or setup.cfg parse when extras returns None for some files"""
     setup_dir = pathlib_tmpdir.joinpath("sanitized-package")
     setup_dir.mkdir()
+    assert setup_dir.is_dir()
     setup_py = setup_dir.joinpath("setup.py")
     setup_py.write_text(u"""
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
 setup(
-  name="sanitized-package",
-  version="0.0.1",
-  install_requires=["raven==5.32.0"],
-  extras_require={
-    'PDF': ["socks"]
-  }
-) """.strip())
-    pipfile_entry = {"path": ".", "editable": True, "extras": ["socks"]}
+    name="sanitized-package",
+    version="0.0.1",
+    install_requires=["raven==5.32.0"],
+    extras_require={
+        'PDF': ["socks"]
+    }
+)
+    """.strip())
+    setup_dict = None
     with vistir.contextmanagers.cd(setup_dir.as_posix()):
+        pipfile_entry = {"path": os.path.abspath(os.curdir), "editable": True, "extras": ["socks"]}
         r = Requirement.from_pipfile("e1839a8", pipfile_entry)
         r.run_requires()
         setup_dict = r.req.setup_info.as_dict()
@@ -74,6 +77,7 @@ def test_extras(pathlib_tmpdir):
     """Test named extras as a dependency"""
     setup_dir = pathlib_tmpdir.joinpath("test_package")
     setup_dir.mkdir()
+    assert setup_dir.is_dir()
     setup_py = setup_dir.joinpath("setup.py")
     setup_py.write_text(u"""
 import os
@@ -103,14 +107,15 @@ setup(
     packages=['test_package'],
     include_package_data=True,
     zip_safe=False,
-) """.strip())
+)
+    """.strip())
     src_dir = setup_dir.joinpath("src")
     src_dir.mkdir()
     pkg_dir = src_dir.joinpath("test_package")
     pkg_dir.mkdir()
     pkg_dir.joinpath("__init__.py").write_text(u"")
     pipfile_entry = {"path": "./{0}".format(setup_dir.name), "extras": ["testing"], "editable": True}
-
+    setup_dict = None
     with vistir.contextmanagers.cd(pathlib_tmpdir.as_posix()):
         r = Requirement.from_pipfile("test-package", pipfile_entry)
         assert r.name == "test-package"
