@@ -169,7 +169,7 @@ def is_installable_file(path):
             return False
 
     parsed = urlparse(path)
-    is_local = (not parsed.scheme or parsed.scheme == "file")
+    is_local = (not parsed.scheme or parsed.scheme == "file" or (len(parsed.scheme) == 1 and os.name == "nt"))
     if parsed.scheme and parsed.scheme == "file":
         path = vistir.path.url_to_path(path)
     normalized_path = vistir.path.normalize_path(path)
