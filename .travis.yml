@@ -8,8 +8,7 @@ matrix:
 
 install:
   - "python -m pip install --upgrade pip pytest-timeout coverage"
-  - "python -m pip install -e .[tests]"
-  - "python -m pip install -e git+https://github.com/sarugaku/vistir.git#egg=vistir"
+  - "python -m pip install -e .[tests,typing]"
 script:
     - "pytest -ra tests/"
 
