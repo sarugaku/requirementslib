@@ -26,6 +26,7 @@ from vistir.path import create_tracked_tempdir, ensure_mkdir_p, mkdir_p
 
 from .utils import init_requirement, get_pyproject, get_name_variants
 from ..environment import MYPY_RUNNING
+from ..exceptions import RequirementError
 
 try:
     from os import scandir
@@ -459,6 +460,11 @@ class SetupInfo(object):
             path = pip_shims.shims.url_to_path(unquote(ireq.link.url_without_fragment))
             if pip_shims.shims.is_installable_dir(path):
                 ireq_src_dir = path
+            elif os.path.isdir(path):
+                raise RequirementError(
+                    "The file URL points to a directory not installable: {}"
+                    .format(ireq.link)
+                )
         if not ireq.editable:
             pip_shims.shims.unpack_url(
                 ireq.link,

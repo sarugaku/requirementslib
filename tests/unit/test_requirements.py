@@ -3,6 +3,7 @@ import os
 import pytest
 from first import first
 from requirementslib import Requirement
+from requirementslib.exceptions import RequirementError
 from vistir.compat import Path
 
 
@@ -161,6 +162,16 @@ def test_convert_from_pip_fail_if_no_egg():
     with pytest.raises(ValueError) as e:
         dep = Requirement.from_line(dep).as_pipfile()
         assert 'pipenv requires an #egg fragment for vcs' in str(e)
+
+
+@pytest.mark.requirements
+def test_convert_non_installable_dir_fail(pathlib_tmpdir):
+    """Convert a non-installable directory link should fail
+    without deleting the directory."""
+    dep = '-e file://{}'.format(pathlib_tmpdir.as_posix())
+    with pytest.raises(RequirementError):
+        req = Requirement.from_line(dep)
+    assert pathlib_tmpdir.exists()
 
 
 @pytest.mark.editable
