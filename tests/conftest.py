@@ -28,7 +28,7 @@ def pytest_runtest_setup(item):
 
 
 @pytest.fixture
-def pathlib_tmpdir(request, tmpdir):
+def pathlib_tmpdir(tmpdir):
     yield vistir.compat.Path(str(tmpdir))
     try:
         tmpdir.remove(ignore_errors=True)
@@ -50,7 +50,9 @@ def pip_src_dir(request, pathlib_tmpdir):
 
 @pytest.fixture(scope="session")
 def artifact_dir():
-    return vistir.compat.Path(__file__).absolute().parent.joinpath("artifacts")
+    return vistir.compat.Path(
+        requirementslib.utils.__file__
+    ).absolute().parent.parent.parent.joinpath("tests/artifacts")
 
 
 @pytest.fixture
@@ -60,24 +62,28 @@ def test_artifact(artifact_dir, pathlib_tmpdir, request):
     target = artifact_dir.joinpath(name)
     if target.exists():
         if as_artifact:
-            installable = next(iter(sorted((
-                path for path in target.iterdir()
-                if requirementslib.utils.is_installable_file(path.as_posix())
-                and not path.is_dir()
-            ), reverse=True)), None)
-            if installable:
-                target_path = pathlib_tmpdir.joinpath(installable.name)
+            files = [path for path in target.iterdir() if path.is_file()]
+        else:
+            files = [path for path in target.iterdir() if path.is_dir()]
+        files = sorted(files, reverse=True)
+        installable_files = [
+            f for f in files if requirementslib.utils.is_installable_file(f.as_posix()) or
+            f.joinpath("setup.py").exists() or
+            f.joinpath("pyproject.toml").exists() or
+            f.joinpath("setup.cfg").exists()
+        ]
+        installable = next(iter(f for f in installable_files), None)
+        if installable:
+            target_path = pathlib_tmpdir.joinpath(installable.name)
+            if as_artifact:
                 shutil.copy(installable.as_posix(), target_path.as_posix())
-                yield target_path
+            else:
+                shutil.copytree(installable.as_posix(), target_path.as_posix())
+            yield target_path
+            if as_artifact:
                 target_path.unlink()
         else:
-            installable = next(iter(sorted((
-                path for path in target.iterdir()
-                if requirementslib.utils.is_installable_file(path.as_posix())
-                and path.is_dir()
-            ), reverse=True)), None)
-            if installable:
-                target_path = pathlib_tmpdir.joinpath(installable.name)
-                shutil.copytree(installable.as_posix(), target_path.as_posix())
-                yield target_path
-
+            raise RuntimeError(
+                "failed to find installable artifact: %s (as_artifact: %s)\n"
+                "files: %s\nInstallable: %s" % (name, as_artifact, files, installable)
+            )

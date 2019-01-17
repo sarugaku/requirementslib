@@ -7,9 +7,9 @@ matrix:
   fast_finish: true
 
 install:
-  - "python -m pip install --upgrade pip pytest-timeout coverage"
-  - "python -m pip install -e .[tests]"
-  - "python -m pip install -e git+https://github.com/sarugaku/vistir.git#egg=vistir"
+  - "python -m pip install --upgrade pip pytest-timeout coverage pipenv"
+  - "python -m pip install -e .[tests,typing]"
+  - "pipenv install --dev --deploy --system"
 script:
     - "pytest -ra tests/"
 
@@ -33,8 +33,8 @@ jobs:
     - stage: coverage
       python: "3.6"
       install:
-        - "pip install --upgrade pip pytest-timeout pytest-cov coverage"
-        - "pip install --upgrade -e .[tests]"
-        - "python -m pip install -e git+https://github.com/sarugaku/vistir.git#egg=vistir"
+        - "pip install --upgrade pip pytest pytest-timeout pytest-cov coverage pipenv"
+        - "pip install --upgrade -e .[tests,typing]"
+        - "pipenv install --dev --deploy --system"
       script:
         - "pytest -n auto --timeout 300 --cov=requirementslib --cov-report=term-missing --cov-report=xml --cov-report=html tests"
