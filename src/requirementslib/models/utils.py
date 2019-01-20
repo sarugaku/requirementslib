@@ -100,13 +100,12 @@ def specs_to_string(specs):
     return ""
 
 
-def build_vcs_link(vcs, uri, name=None, ref=None, subdirectory=None, extras=None):
+def build_vcs_uri(vcs, uri, name=None, ref=None, subdirectory=None, extras=None):
     if extras is None:
         extras = []
     vcs_start = "{0}+".format(vcs)
     if not uri.startswith(vcs_start):
         uri = "{0}{1}".format(vcs_start, uri)
-    uri = add_ssh_scheme_to_git_uri(uri)
     if ref:
         uri = "{0}@{1}".format(uri, ref)
     if name:
@@ -116,7 +115,7 @@ def build_vcs_link(vcs, uri, name=None, ref=None, subdirectory=None, extras=None
             uri = "{0}{1}".format(uri, extras)
     if subdirectory:
         uri = "{0}&subdirectory={1}".format(uri, subdirectory)
-    return create_link(uri)
+    return uri
 
 
 def get_version(pipfile_entry):
