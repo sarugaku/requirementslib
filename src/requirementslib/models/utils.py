@@ -106,7 +106,6 @@ def build_vcs_uri(vcs, uri, name=None, ref=None, subdirectory=None, extras=None)
     vcs_start = "{0}+".format(vcs)
     if not uri.startswith(vcs_start):
         uri = "{0}{1}".format(vcs_start, uri)
-    uri = add_ssh_scheme_to_git_uri(uri)
     if ref:
         uri = "{0}@{1}".format(uri, ref)
     if name:
