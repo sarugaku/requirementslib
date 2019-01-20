@@ -47,7 +47,7 @@ from ..utils import (
 from .setup_info import SetupInfo, _prepare_wheel_building_kwargs
 from .utils import (
     HASH_STRING,
-    build_vcs_link,
+    build_vcs_uri,
     extras_to_string,
     filter_none,
     format_requirement,
@@ -1347,7 +1347,7 @@ class VCSRequirement(FileRequirement):
     @link.default
     def get_link(self):
         uri = self.uri if self.uri else pip_shims.shims.path_to_url(self.path)
-        return build_vcs_link(
+        vcs_uri = build_vcs_uri(
             self.vcs,
             add_ssh_scheme_to_git_uri(uri),
             name=self.name,
@@ -1355,6 +1355,7 @@ class VCSRequirement(FileRequirement):
             subdirectory=self.subdirectory,
             extras=self.extras,
         )
+        return self.get_link_from_line(vcs_uri)[-1]
 
     @name.default
     def get_name(self):
@@ -1433,16 +1434,8 @@ class VCSRequirement(FileRequirement):
         from .vcs import VCSRepository
 
         checkout_dir = self.get_checkout_dir(src_dir=src_dir)
-        link = build_vcs_link(
-            self.vcs,
-            self.uri,
-            name=self.name,
-            ref=self.ref,
-            subdirectory=self.subdirectory,
-            extras=self.extras,
-        )
         vcsrepo = VCSRepository(
-            url=link.url,
+            url=self.link.url,
             name=self.name,
             ref=self.ref if self.ref else None,
             checkout_directory=checkout_dir,
