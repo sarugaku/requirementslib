@@ -216,7 +216,7 @@ class Line(object):
         return self._pyproject_backend
 
     def parse_hashes(self):
-        # type: () -> NoReturn
+        # type: () -> None
         """
         Parse hashes from *self.line* and set them on the current object.
         :returns: Nothing
@@ -228,7 +228,7 @@ class Line(object):
         self.line = line
 
     def parse_extras(self):
-        # type: () -> NoReturn
+        # type: () -> None
         """
         Parse extras from *self.line* and set them on the current object
         :returns: Nothing
@@ -1355,7 +1355,7 @@ class VCSRequirement(FileRequirement):
             subdirectory=self.subdirectory,
             extras=self.extras,
         )
-        return self.get_link_from_line(vcs_uri)[-1]
+        return self.get_link_from_line(vcs_uri).uri
 
     @name.default
     def get_name(self):
