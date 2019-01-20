@@ -1355,7 +1355,7 @@ class VCSRequirement(FileRequirement):
             subdirectory=self.subdirectory,
             extras=self.extras,
         )
-        return self.get_link_from_line(vcs_uri).uri
+        return self.get_link_from_line(vcs_uri).link
 
     @name.default
     def get_name(self):
