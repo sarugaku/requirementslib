@@ -30,7 +30,8 @@ from vistir.path import (
     get_converted_relative_path,
     is_file_url,
     is_valid_url,
-    normalize_path
+    normalize_path,
+    mkdir_p
 )
 
 from ..exceptions import RequirementError
@@ -1405,11 +1406,13 @@ class VCSRequirement(FileRequirement):
 
     @property
     def repo(self):
+        # type: () -> VCSRepository
         if self._repo is None:
             self._repo = self.get_vcs_repo()
         return self._repo
 
     def get_checkout_dir(self, src_dir=None):
+        # type: (Optional[str]) -> str
         src_dir = os.environ.get("PIP_SRC", None) if not src_dir else src_dir
         checkout_dir = None
         if self.is_local:
@@ -1419,9 +1422,14 @@ class VCSRequirement(FileRequirement):
             if path and os.path.exists(path):
                 checkout_dir = os.path.abspath(path)
                 return checkout_dir
+        if src_dir is not None:
+            checkout_dir = os.path.join(os.path.abspath(src_dir), self.name)
+            mkdir_p(src_dir)
+            return checkout_dir
         return os.path.join(create_tracked_tempdir(prefix="requirementslib"), self.name)
 
     def get_vcs_repo(self, src_dir=None):
+        # type: (Optional[str]) -> VCSRepository
         from .vcs import VCSRepository
 
         checkout_dir = self.get_checkout_dir(src_dir=src_dir)
@@ -1976,7 +1984,7 @@ class Requirement(object):
         base_dict = {
             k: v
             for k, v in self.req.pipfile_part[name].items()
-            if k not in ["req", "link"]
+            if k not in ["req", "link", "setup_info"]
         }
         base_dict.update(req_dict)
         conflicting_keys = ("file", "path", "uri")
