@@ -160,7 +160,10 @@ def test_convert_from_pipfile_vcs():
     pkg_name = "shellingham"
     pkg_pipfile = {"editable": True, "git": "git@github.com:sarugaku/shellingham.git"}
     req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
-    assert req.req.link.url == "git+ssh://github.com/sarugaku/shellingham.git"
+    assert (
+        req.req.link.url ==
+        "git+ssh://git@github.com/sarugaku/shellingham.git#egg=shellingham"
+    )
 
 
 @pytest.mark.utils
