@@ -31,9 +31,9 @@ def test_extras_to_string():
     assert utils.extras_to_string(["security"]) == "[security]"
 
 
-def test_build_vcs_link():
-    link = utils.build_vcs_link("git", "https://github.com/sarugaku/plette.git", name="passa", ref="master", subdirectory="subdir", extras="validation")
-    assert link.url == "git+https://github.com/sarugaku/plette.git@master#egg=passa[validation]&subdirectory=subdir"
+def test_build_vcs_uri():
+    uri = utils.build_vcs_uri("git", "https://github.com/sarugaku/plette.git", name="passa", ref="master", subdirectory="subdir", extras="validation")
+    assert uri == "git+https://github.com/sarugaku/plette.git@master#egg=passa[validation]&subdirectory=subdir"
 
 
 def test_strip_ssh_from_git_url():

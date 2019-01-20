@@ -154,6 +154,18 @@ def test_convert_from_pipfile(requirement, expected):
     assert req.as_line() == expected.lower() if '://' not in expected else expected
 
 
+@pytest.mark.requirements
+def test_convert_from_pipfile_vcs():
+    """ssh VCS links should be converted correctly"""
+    pkg_name = "shellingham"
+    pkg_pipfile = {"editable": True, "git": "git@github.com:sarugaku/shellingham.git"}
+    req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
+    assert (
+        req.req.link.url ==
+        "git+ssh://git@github.com/sarugaku/shellingham.git#egg=shellingham"
+    )
+
+
 @pytest.mark.utils
 def test_convert_from_pip_fail_if_no_egg():
     """Parsing should fail without `#egg=`.
