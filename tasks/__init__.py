@@ -99,13 +99,13 @@ def _bump_release(version, type_):
     if type_ not in REL_TYPES:
         raise ValueError(f'{type_} not in {REL_TYPES}')
     index = REL_TYPES.index(type_)
-    next_version = version.base_version().bump_release(index)
+    next_version = version.base_version().bump_release(index=index)
     print(f'[bump] {version} -> {next_version}')
     return next_version
 
 
 def _prebump(version, prebump):
-    next_version = version.bump_release(prebump).bump_dev()
+    next_version = version.bump_release(index=prebump).bump_dev()
     print(f'[bump] {version} -> {next_version}')
     return next_version
 

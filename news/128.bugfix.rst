@@ -1,1 +1,0 @@
-Fixed a bug which caused local file and VCS requirements to be discovered in a depth-first, inexact search, which sometimes caused incorrect matches to be returned.

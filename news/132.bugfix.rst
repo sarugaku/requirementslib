@@ -1,1 +1,0 @@
-Fixed a bug with link generation on VCS requirements without URI schemes.
