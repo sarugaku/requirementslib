@@ -252,7 +252,7 @@ def test_get_requirements():
     git_reformat = Requirement.from_line(
         '-e git+git@github.com:pypa/pipenv.git#egg=pipenv'
     ).requirement
-    assert git_reformat.url == 'git+git@github.com:pypa/pipenv.git'
+    assert git_reformat.url == 'git+ssh://git@github.com/pypa/pipenv.git'
     assert git_reformat.name == 'pipenv'
     assert git_reformat.editable
     # Previously VCS uris were being treated as local files, so make sure these are not handled that way
