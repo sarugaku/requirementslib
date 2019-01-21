@@ -38,7 +38,7 @@ def test_build_vcs_uri():
 
 def test_strip_ssh_from_git_url():
     url = "git+ssh://git@github.com/sarugaku/passa.git"
-    url_no_ssh = "git+git@github.com/sarugaku/passa.git"
+    url_no_ssh = "git+git@github.com:sarugaku/passa.git"
     assert base_utils.strip_ssh_from_git_uri(url) == url_no_ssh
     assert base_utils.add_ssh_scheme_to_git_uri(url_no_ssh) == url
 

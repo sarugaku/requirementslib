@@ -23,20 +23,20 @@ RequirementsLib: Requirement Management Library for Pip and Pipenv
     :target: http://requirementslib.readthedocs.io/en/master/?badge=master
     :alt: Documentation Status
 
-Installation
-*************
+🐉 Installation
+===============
 
 Install from `PyPI`_:
 
   ::
 
-    $ pipenv install --pre requirementslib
+    $ pipenv install requirementslib
 
 Install from `Github`_:
 
   ::
 
-    $ pipenv install -e git+https://github.com/techalchemy/requirementslib.git#egg=requirementslib
+    $ pipenv install -e git+https://github.com/sarugaku/requirementslib.git#egg=requirementslib
 
 
 .. _PyPI: https://www.pypi.org/project/requirementslib
@@ -45,8 +45,8 @@ Install from `Github`_:
 
 .. _`Summary`:
 
-Summary
-********
+🐉 Summary
+==========
 
 RequirementsLib provides a simple layer for building and interacting with
 requirements in both the `Pipfile <https://github.com/pypa/pipfile/>`_ format
@@ -55,16 +55,16 @@ was originally built for converting between these formats in `Pipenv <https://gi
 
 .. _`Usage`:
 
-Usage
-******
+🐉 Usage
+========
 
 Importing a lockfile into your *setup.py* file
-//////////////////////////////////////////////
+----------------------------------------------
 
 You can use RequirementsLib to import your lockfile into your setup file for including your
 **install_requires** dependencies:
 
-  ::
+.. code-block:: pycon
 
     from requirementslib import Lockfile
     lockfile = Lockfile.create('/path/to/project/dir')
@@ -72,11 +72,11 @@ You can use RequirementsLib to import your lockfile into your setup file for inc
 
 
 Interacting with a *Pipfile* directly
-//////////////////////////////////////
+-------------------------------------
 
 You can also interact directly with a Pipfile:
 
-  ::
+.. code-block:: pycon
 
     >>> from requirementslib import Pipfile
     >>> pf = Pipfile.load('/home/hawk/git/pypa-pipenv')
@@ -86,7 +86,7 @@ You can also interact directly with a Pipfile:
 
 And you can even write it back out into Pipfile's native format:
 
-  ::
+.. code-block:: pycon
 
     >>> print(pf.dump(to_dict=False))
     [packages]
@@ -105,9 +105,9 @@ And you can even write it back out into Pipfile's native format:
 
 
 Create a requirement object from *requirements.txt* format
-///////////////////////////////////////////////////////////
+-----------------------------------------------------------
 
-  ::
+.. code-block:: pycon
 
     >>> from requirementslib import Requirement
     >>> r = Requirement.from_line('-e git+https://github.com/pypa/pipenv.git@master#egg=pipenv')
@@ -120,15 +120,42 @@ Create a requirement object from *requirements.txt* format
 
 Or move from *Pipfile* format to *requirements.txt*:
 
-  ::
+.. code-block:: pycon
 
     >>> r = Requirement.from_pipfile(name='pythonfinder', indexes=[], pipfile={'path': '../pythonfinder', 'editable': True})
     >>> r.as_line()
     '-e ../pythonfinder'
 
 
-Integrations
-*************
+Resolving Editable Package Dependencies
+----------------------------------------
+
+Requirementslib also can resolve the dependencies of editable packages by calling the ``run_requires`` method.
+This method returns a detailed dictionary containing metadata parsed from the package built in
+a transient folder (unless it is already on the system or the call is run in a virtualenv).
+
+The output of ``run_requires`` is very detailed and in most cases will be sufficient.
+
+.. code-block:: pycon
+
+    >>> from requirementslib.models.requirements import Requirement
+    >>> r = Requirement.from_line("-e git+git@github.com:sarugaku/vistir.git#egg=vistir[spinner]")
+    >>> r.run_requires
+    >>> r.run_requires()
+    {'name': 'vistir', 'base_dir': '/tmp/requirementslib-en7nlmmo-src/src/vistir', 'ireq': <InstallRequirement object: vistir[spinner] from git+ssh://git@github.com/sarugaku/vistir.git#egg=vistir[spinner] editable=True>, 'build_backend': 'setuptools.build_meta', 'build_requires': ['setuptools>=36.2.2', 'wheel>=0.28.0'], 'requires': {'colorama': Requirement.parse('colorama'), 'backports.functools_lru_cache;python_version<="3.4"': Requirement.parse('backports.functools_lru_cache; python_version <= "3.4"'), 'backports.shutil_get_terminal_size;python_version<"3.3"': Requirement.parse('backports.shutil_get_terminal_size; python_version < "3.3"'), 'backports.weakref;python_version<"3.3"': Requirement.parse('backports.weakref; python_version < "3.3"'), 'pathlib2;python_version<"3.5"': Requirement.parse('pathlib2; python_version < "3.5"'), 'requests': Requirement.parse('requests'), 'six': Requirement.parse('six'), 'spinner': [Requirement.parse('cursor'), Requirement.parse('yaspin')]}, 'python_requires': '>=2.6,!=3.0,!=3.1,!=3.2,!=3.3', 'extras': {'spinner': [Requirement.parse('cursor'), Requirement.parse('yaspin')], 'tests': [Requirement.parse('pytest'), Requirement.parse('pytest-xdist'), Requirement.parse('pytest-cov'), Requirement.parse('pytest-timeout'), Requirement.parse('hypothesis-fspaths'), Requirement.parse('hypothesis')]}, 'extra_kwargs': {'build_dir': '/tmp/requirementslib-en7nlmmo-src/src', 'src_dir': '/tmp/requirementslib-en7nlmmo-src/src', 'download_dir': '/home/hawk/.cache/pipenv/pkgs', 'wheel_download_dir': '/home/hawk/.cache/pipenv/wheels'}, 'setup_cfg': PosixPath('/tmp/requirementslib-en7nlmmo-src/src/vistir/setup.cfg'), 'setup_py': PosixPath('/tmp/requirementslib-en7nlmmo-src/src/vistir/setup.py'), 'pyproject': PosixPath('/tmp/requirementslib-en7nlmmo-src/src/vistir/pyproject.toml')}
+
+
+As a side-effect of calls to ``run_requires``, new metadata is made available on the
+requirement itself via the property ``requirement.req.dependencies``:
+
+.. code-block:: pycon
+
+    >>> r.req.dependencies
+    ({'colorama': Requirement.parse('colorama'), 'backports.functools_lru_cache;python_version<="3.4"': Requirement.parse('backports.functools_lru_cache; python_version <= "3.4"'), 'backports.shutil_get_terminal_size;python_version<"3.3"': Requirement.parse('backports.shutil_get_terminal_size; python_version < "3.3"'), 'backports.weakref;python_version<"3.3"': Requirement.parse('backports.weakref; python_version < "3.3"'), 'pathlib2;python_version<"3.5"': Requirement.parse('pathlib2; python_version < "3.5"'), 'requests': Requirement.parse('requests'), 'six': Requirement.parse('six'), 'spinner': [Requirement.parse('cursor'), Requirement.parse('yaspin')]}, [], ['setuptools>=36.2.2', 'wheel>=0.28.0'])
+
+
+🐉 Integrations
+================
 
 * `Pip <https://github.com/pypa/pip>`_
 * `Pipenv <https://github.com/pypa/pipenv>`_

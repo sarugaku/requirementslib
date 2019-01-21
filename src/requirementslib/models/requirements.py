@@ -548,8 +548,6 @@ class Line(object):
         if self.requirement:
             if self.parsed_marker is not None:
                 self.requirement.marker = self.parsed_marker
-            if self.extras and not self.requirement.extras:
-                self.requirement.extras = set(self.extras)
             if self.is_url or self.is_file and (self.link or self.url) and not self.is_vcs:
                 if self.uri:
                     self.requirement.url = self.uri
@@ -557,6 +555,8 @@ class Line(object):
                     self.requirement.url = unquote(self.link.url_without_fragment)
                 else:
                     self.requirement.url = self.url
+            if self.extras and not self.requirement.extras:
+                self.requirement.extras = set(self.extras)
 
     def parse_link(self):
         # type: () -> None
@@ -759,12 +759,6 @@ class FileRequirement(object):
 
         parsed_url = urllib_parse.urlsplit(fixed_line)  # type: SplitResult
         original_url = parsed_url._replace()  # type: SplitResult
-        if added_ssh_scheme and ":" in parsed_url.netloc:
-            original_netloc = parsed_url.netloc  # type: str
-            original_path_start = None  # type: Optional[str]
-            original_netloc, original_path_start = parsed_url.netloc.rsplit(":", 1)
-            uri_path = "/{0}{1}".format(original_path_start, parsed_url.path)  # type: str
-            parsed_url = original_url._replace(netloc=original_netloc, path=uri_path)
 
         # Split the VCS part out if needed.
         original_scheme = parsed_url.scheme  # type: str
@@ -1030,7 +1024,7 @@ class FileRequirement(object):
         if path and not uri:
             uri = unquote(pip_shims.shims.path_to_url(os.path.abspath(path)))
         if not link:
-            link = create_link(uri)
+            link = cls.get_link_from_line(uri).link
         if not uri:
             uri = unquote(link.url_without_fragment)
         if not extras:
@@ -1063,7 +1057,7 @@ class FileRequirement(object):
             "path": path or relpath,
         }
         if vcs_type:
-            creation_kwargs["vcs_type"] = vcs_type
+            creation_kwargs["vcs"] = vcs_type
         if name:
             creation_kwargs["name"] = name
         _line = None
@@ -1212,7 +1206,7 @@ class FileRequirement(object):
 
         if not uri:
             uri = pip_shims.shims.path_to_url(path)
-        link = create_link(uri)
+        link = cls.get_link_from_line(uri).link
         arg_dict = {
             "name": name,
             "path": path,
@@ -1263,7 +1257,7 @@ class FileRequirement(object):
     def pipfile_part(self):
         # type: () -> Dict[str, Dict[str, Any]]
         excludes = [
-            "_base_line", "_has_hashed_name", "setup_path", "pyproject_path",
+            "_base_line", "_has_hashed_name", "setup_path", "pyproject_path", "_uri_scheme",
             "pyproject_requires", "pyproject_backend", "setup_info", "_parsed_line"
         ]
         filter_func = lambda k, v: bool(v) is True and k.name not in excludes  # noqa
@@ -1375,7 +1369,11 @@ class VCSRequirement(FileRequirement):
     @req.default
     def get_requirement(self):
         name = self.name or self.link.egg_fragment
-        url = self.uri or self.link.url_without_fragment
+        url = None
+        if self.uri:
+            url = self.uri
+        elif self.link is not None:
+            url = self.link.url_without_fragment
         if not name:
             raise ValueError(
                 "pipenv requires an #egg fragment for version controlled "
@@ -1384,8 +1382,11 @@ class VCSRequirement(FileRequirement):
             )
         req = init_requirement(canonicalize_name(self.name))
         req.editable = self.editable
-        if not getattr(req, "url") and self.uri:
-            req.url = self.uri
+        if not getattr(req, "url"):
+            if url is not None:
+                req.url = add_ssh_scheme_to_git_uri(url)
+            elif self.uri is not None:
+                req.url = self.parse_link_from_line(self.uri).link.url_without_fragment
         req.line = self.link.url
         if self.ref:
             req.revision = self.ref
@@ -1402,7 +1403,7 @@ class VCSRequirement(FileRequirement):
             and "git+git@" in self.uri
         ):
             req.line = self.uri
-            req.url = self.uri
+            req.url = self.link.url_without_fragment
         return req
 
     @property
@@ -1559,6 +1560,20 @@ class VCSRequirement(FileRequirement):
             uri, _, ref = uri.rpartition("@")
         if relpath and "@" in relpath:
             relpath, ref = relpath.rsplit("@", 1)
+        creation_args = {
+            "name": name,
+            "path": relpath or path,
+            "editable": editable,
+            "extras": extras,
+            "link": link,
+            "vcs_type": vcs_type,
+            "line": line,
+            "uri": uri,
+            "uri_scheme": prefer
+        }
+        if relpath:
+            creation_args["relpath"] = relpath
+        # return cls.create(**creation_args)
         return cls(
             name=name,
             ref=ref,
@@ -2005,13 +2020,7 @@ class Requirement(object):
         if (self.is_file_or_url and self.req.is_local) or self.is_vcs:
             kwargs["include_markers"] = False
         ireq_line = self.as_line(**kwargs)
-        if self.editable or self.req.editable:
-            if ireq_line.startswith("-e "):
-                ireq_line = ireq_line[len("-e ") :]
-            with ensure_setup_py(self.req.setup_path):
-                ireq = pip_shims.shims.install_req_from_editable(ireq_line)
-        else:
-            ireq = pip_shims.shims.install_req_from_line(ireq_line)
+        ireq = Line(ireq_line).ireq
         if not getattr(ireq, "req", None):
             ireq.req = self.req.req
             if (self.is_file_or_url and self.req.is_local) or self.is_vcs:

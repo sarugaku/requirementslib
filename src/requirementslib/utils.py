@@ -15,7 +15,7 @@ six.add_move(six.MovedAttribute("Sequence", "collections", "collections.abc"))
 six.add_move(six.MovedAttribute("Set", "collections", "collections.abc"))
 six.add_move(six.MovedAttribute("ItemsView", "collections", "collections.abc"))
 from six.moves import Mapping, Sequence, Set, ItemsView
-from six.moves.urllib.parse import urlparse, urlsplit
+from six.moves.urllib.parse import urlparse, urlsplit, urlunparse
 
 import pip_shims.shims
 from vistir.compat import Path
@@ -82,18 +82,34 @@ def is_installable_dir(path):
 
 
 def strip_ssh_from_git_uri(uri):
+    # type: (str) -> str
     """Return git+ssh:// formatted URI to git+git@ format"""
     if isinstance(uri, six.string_types):
-        uri = uri.replace("git+ssh://", "git+", 1)
+        if "git+ssh://" in uri:
+            parsed = urlparse(uri)
+            # split the path on the first separating / so we can put the first segment
+            # into the 'netloc' section with a : separator
+            path_part, _, path = parsed.path.lstrip("/").partition("/")
+            path = "/{0}".format(path)
+            parsed = parsed._replace(
+                netloc="{0}:{1}".format(parsed.netloc, path_part), path=path
+            )
+            uri = urlunparse(parsed).replace("git+ssh://", "git+", 1)
     return uri
 
 
 def add_ssh_scheme_to_git_uri(uri):
+    # type: (str) -> str
     """Cleans VCS uris from pip format"""
     if isinstance(uri, six.string_types):
         # Add scheme for parsing purposes, this is also what pip does
         if uri.startswith("git+") and "://" not in uri:
             uri = uri.replace("git+", "git+ssh://", 1)
+            parsed = urlparse(uri)
+            if ":" in parsed.netloc:
+                netloc, _, path_start = parsed.netloc.rpartition(":")
+                path = "/{0}{1}".format(path_start, parsed.path)
+                uri = urlunparse(parsed._replace(netloc=netloc, path=path))
     return uri
 
 
