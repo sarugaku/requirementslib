@@ -30,8 +30,6 @@ if sys.argv[-1] == "publish":
     os.system("python setup.py sdist bdist_wheel upload")
     sys.exit()
 
-long_description = read("README.rst")
-
 
 class UploadCommand(Command):
     """Support setup.py publish."""
