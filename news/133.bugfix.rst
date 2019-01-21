@@ -1,1 +1,0 @@
-``VCSRequirement.get_checkout_dir`` will now properly respect the ``src_dir`` argument.

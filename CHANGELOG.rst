@@ -1,3 +1,24 @@
+1.4.0 (2019-01-21)
+==================
+
+Features
+--------
+
+- Added ``is_pep517`` and ``build_backend`` properties to the top level ``Requirement`` object to help determine how to build the requirement.  #125
+  
+
+Bug Fixes
+---------
+
+- Suppressed output written to ``stdout`` by pip during clones of repositories to non-base branches.  #124
+  
+- Fixed a bug which caused local file and VCS requirements to be discovered in a depth-first, inexact search, which sometimes caused incorrect matches to be returned.  #128
+  
+- Fixed a bug with link generation on VCS requirements without URI schemes.  #132
+  
+- ``VCSRequirement.get_checkout_dir`` will now properly respect the ``src_dir`` argument.  #133
+
+
 1.3.3 (2018-11-22)
 ==================
 
