@@ -293,3 +293,9 @@ def test_stdout_is_suppressed(capsys, tmpdir):
     out, err = capsys.readouterr()
     assert out.strip() == "", out
     assert err.strip() == "", err
+
+
+def test_local_editable_ref():
+    path = Path(ARTIFACTS_DIR) / 'git/requests'
+    req = Requirement.from_pipfile("requests", {"editable": True, "git": path.as_uri(), "ref": "2.18.4"})
+    assert req.as_line() == "-e git+{0}@2.18.4#egg=requests".format(path.as_uri())
