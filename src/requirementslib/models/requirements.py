@@ -1570,6 +1570,10 @@ class VCSRequirement(FileRequirement):
         ref = None
         if "@" in link.path and "@" in uri:
             uri, _, ref = uri.rpartition("@")
+        if path is not None and "@" in path:
+            path, _ref = path.rsplit("@", 1)
+            if ref is None:
+                ref = _ref
         if relpath and "@" in relpath:
             relpath, ref = relpath.rsplit("@", 1)
         creation_args = {
