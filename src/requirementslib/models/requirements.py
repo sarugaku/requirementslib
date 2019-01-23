@@ -1784,6 +1784,9 @@ class Requirement(object):
         line_is_vcs = is_vcs(line)
         # check for pep-508 compatible requirements
         name, _, possible_url = line.partition("@")
+        name = name.strip()
+        if possible_url is not None:
+            possible_url = possible_url.strip()
         r = None  # type: Optional[Union[VCSRequirement, FileRequirement, NamedRequirement]]
         if is_installable_file(line) or (
             (is_valid_url(possible_url) or is_file_url(line) or is_valid_url(line)) and
