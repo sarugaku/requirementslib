@@ -104,6 +104,7 @@ class Line(object):
         self.parsed_marker = None  # type: Optional[Marker]
         self.preferred_scheme = None  # type: Optional[str]
         self.requirement = None  # type: Optional[PackagingRequirement]
+        self.is_direct_url = False  # type: bool
         self._parsed_url = None  # type: Optional[urllib_parse.ParseResult]
         self._setup_cfg = None  # type: Optional[str]
         self._setup_py = None  # type: Optional[str]
@@ -253,6 +254,8 @@ class Line(object):
             name, _, url = self.line.partition("@")
             if self.name is None:
                 self.name = name
+                if is_valid_url(url):
+                    self.is_direct_url = True
             line = url.strip()
             parsed = urllib_parse.urlparse(line)
         self._parsed_url = parsed
@@ -395,17 +398,15 @@ class Line(object):
         elif (self.is_file or self.is_url) and not self.is_vcs:
             line = self.line
             scheme = self.preferred_scheme if self.preferred_scheme is not None else "uri"
-            if self.setup_py:
-                line = os.path.dirname(os.path.abspath(self.setup_py))
-            elif self.setup_cfg:
-                line = os.path.dirname(os.path.abspath(self.setup_cfg))
-            elif self.pyproject_toml:
-                line = os.path.dirname(os.path.abspath(self.pyproject_toml))
+            local_line = next(iter([
+                os.path.dirname(os.path.abspath(f)) for f in [
+                    self.setup_py, self.setup_cfg, self.pyproject_toml
+                ] if f is not None
+            ]), None)
+            line = local_line if local_line is not None else self.line
             if scheme == "path":
                 if not line and self.base_path is not None:
                     line = os.path.abspath(self.base_path)
-                # if self.extras:
-                    # line = pip_shims.shims.path_to_url(line)
             else:
                 if self.link is not None:
                     line = self.link.url_without_fragment
@@ -414,8 +415,6 @@ class Line(object):
                         line = self.uri
                     else:
                         line = self.path
-            if self.extras:
-                line = "{0}[{1}]".format(line, ",".join(sorted(set(self.extras))))
             if self.editable:
                 ireq = pip_shims.shims.install_req_from_editable(self.link.url)
             else:
@@ -435,9 +434,9 @@ class Line(object):
         # type: () -> None
         if self._ireq is None:
             self._ireq = self.get_ireq()
-        # if self._ireq is not None:
-        #     if self.requirement is not None and self._ireq.req is None:
-        #         self._ireq.req = self.requirement
+        if self._ireq is not None:
+            if self.requirement is not None and self._ireq.req is None:
+                self._ireq.req = self.requirement
 
     def _parse_wheel(self):
         # type: () -> Optional[str]
@@ -1782,11 +1781,15 @@ class Requirement(object):
         # Installable local files and installable non-vcs urls are handled
         # as files, generally speaking
         line_is_vcs = is_vcs(line)
+        is_direct_url = False
         # check for pep-508 compatible requirements
         name, _, possible_url = line.partition("@")
         name = name.strip()
         if possible_url is not None:
             possible_url = possible_url.strip()
+            is_direct_url = is_valid_url(possible_url)
+            if not is_direct_url and not line_is_vcs:
+                line_is_vcs = is_vcs(possible_url)
         r = None  # type: Optional[Union[VCSRequirement, FileRequirement, NamedRequirement]]
         if is_installable_file(line) or (
             (is_valid_url(possible_url) or is_file_url(line) or is_valid_url(line)) and
@@ -1849,6 +1852,9 @@ class Requirement(object):
         if hashes:
             args["hashes"] = hashes  # type: ignore
         cls_inst = cls(**args)
+        if is_direct_url:
+            setup_info = cls_inst.run_requires()
+            cls_inst.specifiers = "=={0}".format(setup_info.get("version"))
         return cls_inst
 
     @classmethod
