@@ -299,3 +299,14 @@ def test_local_editable_ref():
     path = Path(ARTIFACTS_DIR) / 'git/requests'
     req = Requirement.from_pipfile("requests", {"editable": True, "git": path.as_uri(), "ref": "2.18.4"})
     assert req.as_line() == "-e git+{0}@2.18.4#egg=requests".format(path.as_uri())
+
+
+def test_pep_508():
+    r = Requirement.from_line("tablib@ https://github.com/kennethreitz/tablib/archive/v0.12.1.zip")
+    assert r.specifiers == "==0.12.1"
+    assert r.req.link.url == "https://github.com/kennethreitz/tablib/archive/v0.12.1.zip"
+    assert r.req.req.name == "tablib"
+    assert r.req.req.url == "https://github.com/kennethreitz/tablib/archive/v0.12.1.zip"
+    requires, setup_requires, build_requires = r.req.dependencies
+    assert all(dep in requires for dep in ["openpyxl", "odfpy", "xlrd"])
+    assert r.as_pipfile() == {'tablib': {'file': 'https://github.com/kennethreitz/tablib/archive/v0.12.1.zip'}}
