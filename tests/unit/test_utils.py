@@ -5,6 +5,10 @@ from requirementslib.models import utils
 from requirementslib.models.requirements import Requirement
 
 
+def mock_run_requires(cls):
+    return {}
+
+
 def test_filter_none():
     assert utils.filter_none("abc", "") is False
     assert utils.filter_none("abc", None) is False
@@ -64,9 +68,11 @@ def test_format_requirement():
     assert utils.format_requirement(ireq) == 'test==1.2'
 
 
-def test_format_requirement_editable():
-    ireq = Requirement.from_line('-e git+git://fake.org/x/y.git#egg=y').as_ireq()
-    assert utils.format_requirement(ireq) == '-e git+git://fake.org/x/y.git#egg=y'
+def test_format_requirement_editable(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(Requirement, "run_requires", mock_run_requires)
+        ireq = Requirement.from_line('-e git+git://fake.org/x/y.git#egg=y').as_ireq()
+        assert utils.format_requirement(ireq) == '-e git+git://fake.org/x/y.git#egg=y'
 
 
 def test_format_specifier():

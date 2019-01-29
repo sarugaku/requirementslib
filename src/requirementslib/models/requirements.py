@@ -113,12 +113,19 @@ class Line(object):
         self._pyproject_backend = None  # type: Optional[str]
         self._wheel_kwargs = None  # type: Dict[str, str]
         self._vcsrepo = None  # type: Optional[VCSRepository]
+        self._setup_info = None  # type: Optional[SetupInfo]
         self._ref = None  # type: Optional[str]
         self._ireq = None  # type: Optional[InstallRequirement]
         self._src_root = None  # type: Optional[str]
         self.dist = None  # type: Any
         super(Line, self).__init__()
         self.parse()
+
+    def __hash__(self):
+        return hash((
+            self.editable, self.line, self.markers, tuple(self.extras),
+            tuple(self.hashes), self.vcs, self.ireq)
+        )
 
     @classmethod
     def split_hashes(cls, line):
@@ -200,6 +207,7 @@ class Line(object):
 
     @property
     def pyproject_requires(self):
+        # type: () -> Optional[List[str]]
         if self._pyproject_requires is None and self.pyproject_toml is not None:
             pyproject_requires, pyproject_backend = get_pyproject(self.path)
             self._pyproject_requires = pyproject_requires
@@ -208,6 +216,7 @@ class Line(object):
 
     @property
     def pyproject_backend(self):
+        # type: () -> Optional[str]
         if self._pyproject_requires is None and self.pyproject_toml is not None:
             pyproject_requires, pyproject_backend = get_pyproject(self.path)
             if not pyproject_backend and self.setup_cfg is not None:
@@ -383,6 +392,13 @@ class Line(object):
         if is_installable_file(self.line) or is_installable_file(self.get_url()) or is_installable_file(self.path) or is_installable_file(self.base_path):
             return True
         return False
+
+    @property
+    def setup_info(self):
+        # type: () -> Optional[SetupInfo]
+        if self._setup_info is None:
+            self._setup_info = SetupInfo.from_ireq(self.ireq)
+        return self._setup_info
 
     def _get_vcsrepo(self):
         # type: () -> Optional[VCSRepository]
@@ -594,7 +610,7 @@ class Line(object):
             self.relpath = relpath
             self.path = path
             self.uri = uri
-            if self.is_direct_url and self.name is not None:
+            if self.is_direct_url and self.name is not None and vcs is not None:
                 self._link = create_link(
                     build_vcs_uri(vcs=vcs, uri=uri, ref=ref, extras=self.extras, name=self.name)
                 )
@@ -623,12 +639,12 @@ class Line(object):
         self.parse_ireq()
 
 
-@attr.s(slots=True)
+@attr.s(slots=True, hash=True)
 class NamedRequirement(object):
     name = attr.ib()  # type: str
     version = attr.ib(validator=attr.validators.optional(validate_specifiers))  # type: Optional[str]
     req = attr.ib()  # type: PackagingRequirement
-    extras = attr.ib(default=attr.Factory(list))  # type: List[str]
+    extras = attr.ib(default=attr.Factory(list))  # type: Tuple[str]
     editable = attr.ib(default=False)  # type: bool
 
     @req.default
@@ -654,7 +670,7 @@ class NamedRequirement(object):
         if not name:
             name = getattr(req, "key", line)
             req.name = name
-        extras = None  # type: Optional[List[str]]
+        extras = None  # type: Optional[Tuple[str]]
         if req.extras:
             extras = list(req.extras)
             return cls(name=name, version=specifiers, req=req, extras=extras)
@@ -700,37 +716,38 @@ LinkInfo = collections.namedtuple(
 )
 
 
-@attr.s(slots=True)
+@attr.s(slots=True, hash=True)
 class FileRequirement(object):
     """File requirements for tar.gz installable files or wheels or setup.py
     containing directories."""
 
     #: Path to the relevant `setup.py` location
-    setup_path = attr.ib(default=None)  # type: Optional[str]
+    setup_path = attr.ib(default=None, cmp=True)  # type: Optional[str]
     #: path to hit - without any of the VCS prefixes (like git+ / http+ / etc)
-    path = attr.ib(default=None)  # type: Optional[str]
+    path = attr.ib(default=None, cmp=True)  # type: Optional[str]
     #: Whether the package is editable
-    editable = attr.ib(default=False)  # type: bool
+    editable = attr.ib(default=False, cmp=True)  # type: bool
     #: Extras if applicable
-    extras = attr.ib(default=attr.Factory(list))  # type: List[str]
-    _uri_scheme = attr.ib(default=None)  # type: Optional[str]
+    extras = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Tuple[str]
+    _uri_scheme = attr.ib(default=None, cmp=True)  # type: Optional[str]
     #: URI of the package
-    uri = attr.ib()  # type: Optional[str]
+    uri = attr.ib(cmp=True)  # type: Optional[str]
     #: Link object representing the package to clone
-    link = attr.ib()  # type: Optional[Link]
+    link = attr.ib(cmp=True)  # type: Optional[Link]
     #: PyProject Requirements
-    pyproject_requires = attr.ib(default=attr.Factory(list))  # type: List
+    pyproject_requires = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Tuple
     #: PyProject Build System
-    pyproject_backend = attr.ib(default=None)  # type: Optional[str]
+    pyproject_backend = attr.ib(default=None, cmp=True)  # type: Optional[str]
     #: PyProject Path
-    pyproject_path = attr.ib(default=None)  # type: Optional[str]
+    pyproject_path = attr.ib(default=None, cmp=True)  # type: Optional[str]
     #: Setup metadata e.g. dependencies
-    setup_info = attr.ib(default=None)  # type: SetupInfo
-    _has_hashed_name = attr.ib(default=False)  # type: bool
+    setup_info = attr.ib(default=None, cmp=True, hash=True)  # type: Optional[SetupInfo]
+    _has_hashed_name = attr.ib(default=False, cmp=True)  # type: bool
+    _parsed_line = attr.ib(default=None, hash=True)  # type: Optional[Line]
     #: Package name
-    name = attr.ib()  # type: Optional[str]
+    name = attr.ib(cmp=True)  # type: Optional[str]
     #: A :class:`~pkg_resources.Requirement` isntance
-    req = attr.ib()  # type: Optional[PackagingRequirement]
+    req = attr.ib(cmp=True)  # type: Optional[PackagingRequirement]
 
     @classmethod
     def get_link_from_line(cls, line):
@@ -853,7 +870,7 @@ class FileRequirement(object):
             setup_deps.extend(setup_info.get("setup_requires", []))
             build_deps.extend(setup_info.get("build_requires", []))
         if self.pyproject_requires:
-            build_deps.extend(self.pyproject_requires)
+            build_deps.extend(list(self.pyproject_requires))
         setup_deps = list(set(setup_deps))
         build_deps = list(set(build_deps))
         return deps, setup_deps, build_deps
@@ -911,6 +928,9 @@ class FileRequirement(object):
             setupinfo = None
             if self.setup_info is not None:
                 setupinfo = self.setup_info
+            elif self._parsed_line is not None and self._parsed_line.setup_info is not None:
+                setupinfo = self._parsed_line.setup_info
+                self._setup_info = self._parsed_line.setup_info
             else:
                 setupinfo = SetupInfo.from_ireq(_ireq, subdir=subdir)
             if setupinfo:
@@ -923,7 +943,7 @@ class FileRequirement(object):
                 build_requires = setupinfo_dict.get("build_requires")
                 build_backend = setupinfo_dict.get("build_backend")
                 if build_requires and not self.pyproject_requires:
-                    self.pyproject_requires = build_requires
+                    self.pyproject_requires = tuple(build_requires)
                 if build_backend and not self.pyproject_backend:
                     self.pyproject_backend = build_backend
         if not name or name.lower() == "unknown":
@@ -949,7 +969,12 @@ class FileRequirement(object):
     def get_requirement(self):
         # type: () -> PackagingRequirement
         if self.name is None:
-            raise ValueError("Failed to generate a requirement: missing name for {0!r}".format(self))
+            if self._parsed_line is not None and self._parsed_line.name is not None:
+                self.name = self._parsed_line.name
+            else:
+                raise ValueError(
+                    "Failed to generate a requirement: missing name for {0!r}".format(self)
+                )
         req = init_requirement(normalize_name(self.name))
         req.editable = False
         if self.link is not None:
@@ -1006,6 +1031,8 @@ class FileRequirement(object):
     @property
     def is_direct_url(self):
         # type: () -> bool
+        if self._parsed_line is not None and self._parsed_line.is_direct_url:
+            return True
         return self.is_remote_artifact
 
     @property
@@ -1024,7 +1051,7 @@ class FileRequirement(object):
         path=None,  # type: Optional[str]
         uri=None,  # type: str
         editable=False,  # type: bool
-        extras=None,  # type: Optional[List[str]]
+        extras=None,  # type: Optional[Tuple[str]]
         link=None,  # type: Link
         vcs_type=None,  # type: Optional[Any]
         name=None,  # type: Optional[str]
@@ -1057,14 +1084,15 @@ class FileRequirement(object):
         if not uri:
             uri = unquote(link.url_without_fragment)
         if not extras:
-            extras = []
+            extras = ()
         pyproject_path = None
+        pyproject_requires = None
+        pyproject_backend = None
         if path is not None:
             pyproject_requires = get_pyproject(path)
-        pyproject_backend = None
-        pyproject_requires = None
         if pyproject_requires is not None:
             pyproject_requires, pyproject_backend = pyproject_requires
+            pyproject_requires = tuple(pyproject_requires)
         if path:
             setup_paths = get_setup_paths(path)
             if setup_paths["pyproject_toml"] is not None:
@@ -1084,6 +1112,7 @@ class FileRequirement(object):
             "pyproject_requires": pyproject_requires,
             "pyproject_backend": pyproject_backend,
             "path": path or relpath,
+            "parsed_line": parsed_line
         }
         if vcs_type:
             creation_kwargs["vcs"] = vcs_type
@@ -1130,10 +1159,10 @@ class FileRequirement(object):
                 setup_name = setupinfo_dict.get("name", None)
                 if setup_name:
                     name = setup_name
-                    build_requires = setupinfo_dict.get("build_requires", [])
-                    build_backend = setupinfo_dict.get("build_backend", [])
+                    build_requires = setupinfo_dict.get("build_requires", ())
+                    build_backend = setupinfo_dict.get("build_backend", ())
                     if not creation_kwargs.get("pyproject_requires") and build_requires:
-                        creation_kwargs["pyproject_requires"] = build_requires
+                        creation_kwargs["pyproject_requires"] = tuple(build_requires)
                     if not creation_kwargs.get("pyproject_backend") and build_backend:
                         creation_kwargs["pyproject_backend"] = build_backend
                 creation_kwargs["setup_info"] = setup_info
@@ -1146,17 +1175,23 @@ class FileRequirement(object):
             creation_req_line = getattr(creation_req, "line", None)
             if creation_req_line is None and line is not None:
                 creation_kwargs["req"].line = line  # type: ignore
-        if parsed_line.name:
+        if parsed_line and parsed_line.name:
             if name and len(parsed_line.name) != 7 and len(name) == 7:
                 name = parsed_line.name
+        if parsed_line and parsed_line.setup_info is not None:
+            creation_kwargs["setup_info"] = parsed_line.setup_info
         if name:
             creation_kwargs["name"] = name
         cls_inst = cls(**creation_kwargs)  # type: ignore
+        if parsed_line and not cls_inst._parsed_line:
+            cls_inst._parsed_line = parsed_line
+        if not cls_inst._parsed_line:
+            cls_inst._parsed_line = Line(cls_inst.line_part)
         return cls_inst
 
     @classmethod
     def from_line(cls, line, extras=None):
-        # type: (str, Optional[List[str]]) -> FileRequirement
+        # type: (str, Optional[Tuple[str]]) -> FileRequirement
         line = line.strip('"').strip("'")
         link = None
         path = None
@@ -1166,7 +1201,7 @@ class FileRequirement(object):
         name = None
         req = None
         if not extras:
-            extras = []
+            extras = ()
         if not any([is_installable_file(line), is_valid_url(line), is_file_url(line)]):
             try:
                 req = init_requirement(line)
@@ -1246,7 +1281,7 @@ class FileRequirement(object):
             "extras": pipfile.get("extras", None)
         }
 
-        extras = pipfile.get("extras", [])
+        extras = pipfile.get("extras", ())
         line = ""
         if name:
             if extras:
@@ -1258,6 +1293,7 @@ class FileRequirement(object):
             line = link.url
         if pipfile.get("editable", False):
             line = "-e {0}".format(line)
+        arg_dict["line"] = line
         return cls.create(**arg_dict)
 
     @property
@@ -1333,7 +1369,7 @@ class FileRequirement(object):
         return {name: pipfile_dict}
 
 
-@attr.s(slots=True)
+@attr.s(slots=True, hash=True)
 class VCSRequirement(FileRequirement):
     #: Whether the repository is editable
     editable = attr.ib(default=None)  # type: Optional[bool]
@@ -1349,7 +1385,6 @@ class VCSRequirement(FileRequirement):
     subdirectory = attr.ib(default=None)  # type: Optional[str]
     _repo = attr.ib(default=None)  # type: Optional['VCSRepository']
     _base_line = attr.ib(default=None)  # type: Optional[str]
-    _parsed_line = attr.ib(default=None)  # type: Optional[Line]
     name = attr.ib()
     link = attr.ib()
     req = attr.ib()
@@ -1496,7 +1531,7 @@ class VCSRequirement(FileRequirement):
             pyproject_info = get_pyproject(checkout_dir)
         if pyproject_info is not None:
             pyproject_requires, pyproject_backend = pyproject_info
-            self.pyproject_requires = pyproject_requires
+            self.pyproject_requires = tuple(pyproject_requires)
             self.pyproject_backend = pyproject_backend
         return vcsrepo
 
@@ -1583,6 +1618,7 @@ class VCSRequirement(FileRequirement):
 
     @classmethod
     def from_line(cls, line, editable=None, extras=None):
+        # type: (str, Optional[bool], Optional[Tuple[str]]) -> VCSRequirement
         relpath = None
         parsed_line = Line(line)
         if editable:
@@ -1610,6 +1646,8 @@ class VCSRequirement(FileRequirement):
             extras = parse_extras(extras)
         else:
             line, extras = pip_shims.shims._strip_extras(line)
+        if extras:
+            extras = tuple(extras)
         subdirectory = link.subdirectory_fragment
         ref = None
         if "@" in link.path and "@" in uri:
@@ -1705,19 +1743,23 @@ class VCSRequirement(FileRequirement):
         return {name: pipfile_dict}
 
 
-@attr.s
+@attr.s(cmp=True)
 class Requirement(object):
-    name = attr.ib()  # type: str
-    vcs = attr.ib(default=None, validator=attr.validators.optional(validate_vcs))  # type: Optional[str]
-    req = attr.ib(default=None)
-    markers = attr.ib(default=None)
-    specifiers = attr.ib(validator=attr.validators.optional(validate_specifiers))
+    name = attr.ib(cmp=True)  # type: str
+    vcs = attr.ib(default=None, validator=attr.validators.optional(validate_vcs), cmp=True)  # type: Optional[str]
+    req = attr.ib(default=None, cmp=True)
+    markers = attr.ib(default=None, cmp=True)
+    specifiers = attr.ib(validator=attr.validators.optional(validate_specifiers), cmp=True)
     index = attr.ib(default=None)
-    editable = attr.ib(default=None)
-    hashes = attr.ib(default=attr.Factory(list), converter=list)
-    extras = attr.ib(default=attr.Factory(list))
-    abstract_dep = attr.ib(default=None)
-    _ireq = None
+    editable = attr.ib(default=None, cmp=True)
+    hashes = attr.ib(default=attr.Factory(tuple), converter=tuple, cmp=True)  # type: Optional[Tuple[str]]
+    extras = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Optional[Tuple[str]]
+    abstract_dep = attr.ib(default=None, cmp=False)
+    line_instance = attr.ib(default=None, cmp=True)  # type: Optional[Line]
+    _ireq = attr.ib(default=None)  # type: Optional[pip_shims.InstallRequirement]
+
+    def __hash__(self):
+        return hash(self.as_line())
 
     @name.default
     def get_name(self):
@@ -1818,12 +1860,13 @@ class Requirement(object):
         if "--hash=" in line:
             hashes = line.split(" --hash=")
             line, hashes = hashes[0], hashes[1:]
+        line_instance = Line(line)
         editable = line.startswith("-e ")
         line = line.split(" ", 1)[1] if editable else line
         line, markers = split_markers_from_line(line)
         line, extras = pip_shims.shims._strip_extras(line)
         if extras:
-            extras = parse_extras(extras)
+            extras = tuple(parse_extras(extras))
         line = line.strip('"').strip("'").strip()
         line_with_prefix = "-e {0}".format(line) if editable else line
         vcs = None
@@ -1865,7 +1908,7 @@ class Requirement(object):
             if not extras:
                 name, extras = pip_shims.shims._strip_extras(name)
                 if extras:
-                    extras = parse_extras(extras)
+                    extras = tuple(parse_extras(extras))
             if version:
                 name = "{0}{1}".format(name, version)
             r = NamedRequirement.from_line(line)
@@ -1888,22 +1931,28 @@ class Requirement(object):
             "req": r,
             "markers": markers,
             "editable": editable,
+            "line_instance": line_instance
         }
         if extras:
-            extras = sorted(dedup([extra.lower() for extra in extras]))
+            extras = tuple(sorted(dedup([extra.lower() for extra in extras])))
             args["extras"] = extras
             if r is not None:
                 r.extras = extras
             elif r is not None and r.extras is not None:
-                args["extras"] = sorted(dedup([extra.lower() for extra in r.extras]))  # type: ignore
+                args["extras"] = tuple(sorted(dedup([extra.lower() for extra in r.extras])))  # type: ignore
             if r.req is not None:
                 r.req.extras = args["extras"]
         if hashes:
-            args["hashes"] = hashes  # type: ignore
+            args["hashes"] = tuple(hashes)  # type: ignore
         cls_inst = cls(**args)
-        if is_direct_url:
-            setup_info = cls_inst.run_requires()
-            cls_inst.specifiers = "=={0}".format(setup_info.get("version"))
+        if is_direct_url or cls_inst.is_file_or_url or cls_inst.is_vcs:
+            if not cls_inst.specifiers:
+                setup_info = cls_inst.run_requires()
+                cls_inst.specifiers = "=={0}".format(setup_info.get("version"))
+            if cls_inst.line_instance.ireq:
+                cls_inst.line_instance._ireq.specifiers = SpecifierSet(cls_inst.specifiers)
+            if getattr(cls_inst.req, "_parsed_line", None) and cls_inst.req._parsed_line.ireq:
+                cls_inst.req._parsed_line._ireq.specifiers = SpecifierSet(cls_inst.specifiers)
         return cls_inst
 
     @classmethod
@@ -1942,20 +1991,21 @@ class Requirement(object):
         extras = _pipfile.get("extras")
         r.req.specifier = SpecifierSet(_pipfile["version"])
         r.req.extras = (
-            sorted(dedup([extra.lower() for extra in extras])) if extras else []
+            tuple(sorted(dedup([extra.lower() for extra in extras]))) if extras else ()
         )
         args = {
             "name": r.name,
             "vcs": vcs,
             "req": r,
             "markers": markers,
-            "extras": _pipfile.get("extras"),
+            "extras": tuple(_pipfile.get("extras", [])),
             "editable": _pipfile.get("editable", False),
             "index": _pipfile.get("index"),
         }
         if any(key in _pipfile for key in ["hash", "hashes"]):
             args["hashes"] = _pipfile.get("hashes", [pipfile.get("hash")])
         cls_inst = cls(**args)
+        cls_inst.line_instance = Line(cls_inst.as_line())
         return cls_inst
 
     def as_line(
@@ -2085,11 +2135,17 @@ class Requirement(object):
                 except AttributeError:
                     hashes.append(_hash)
             base_dict["hashes"] = sorted(hashes)
+        if "extras" in base_dict:
+            base_dict["extras"] = list(base_dict["extras"])
         if len(base_dict.keys()) == 1 and "version" in base_dict:
             base_dict = base_dict.get("version")
         return {name: base_dict}
 
     def as_ireq(self):
+        if self.line_instance and self.line_instance.ireq:
+            return self.line_instance.ireq
+        elif getattr(self.req, "_parsed_line", None) and self.req._parsed_line.ireq:
+            return self.req._parsed_line.ireq
         kwargs = {
             "include_hashes": False,
         }
@@ -2189,6 +2245,8 @@ class Requirement(object):
     def run_requires(self, sources=None, finder=None):
         if self.req and self.req.setup_info is not None:
             info_dict = self.req.setup_info.as_dict()
+        elif self.line_instance and self.line_instance.setup_info is not None:
+            info_dict = self.line_instance.setup_info.as_dict()
         else:
             from .setup_info import SetupInfo
             if not finder:
