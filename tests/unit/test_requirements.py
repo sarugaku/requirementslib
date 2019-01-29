@@ -30,16 +30,16 @@ DEP_PIP_PAIRS = [
         'requests[socks]==1.10',
     ),
     (
-        {'pinax': {
-            'git': 'git://github.com/pinax/pinax.git',
-            'ref': '1.4',
+        {'pinax-user-accounts': {
+            'git': 'git://github.com/pinax/pinax-user-accounts.git',
+            'ref': 'v2.1.0',
             'editable': True,
         }},
-        '-e git+git://github.com/pinax/pinax.git@1.4#egg=pinax',
+        '-e git+git://github.com/pinax/pinax-user-accounts.git@v2.1.0#egg=pinax-user-accounts',
     ),
     (
-        {'pinax': {'git': 'git://github.com/pinax/pinax.git', 'ref': '1.4'}},
-        'git+git://github.com/pinax/pinax.git@1.4#egg=pinax',
+        {'pinax-user-accounts': {'git': 'git://github.com/pinax/pinax-user-accounts.git', 'ref': 'v2.1.0'}},
+        'git+git://github.com/pinax/pinax-user-accounts.git@v2.1.0#egg=pinax-user-accounts',
     ),
     (   # Mercurial.
         {'MyProject': {
@@ -130,28 +130,36 @@ DEP_PIP_PAIRS_LEGACY_PIPFILE = [
 ]
 
 
+def mock_run_requires(cls):
+    return {}
+
+
 @pytest.mark.utils
 @pytest.mark.parametrize('expected, requirement', DEP_PIP_PAIRS)
-def test_convert_from_pip(expected, requirement):
-    pkg_name = first(expected.keys())
-    pkg_pipfile = expected[pkg_name]
-    if hasattr(pkg_pipfile, 'keys') and 'editable' in pkg_pipfile and not pkg_pipfile['editable']:
-        del expected[pkg_name]['editable']
-    assert Requirement.from_line(requirement).as_pipfile() == expected
+def test_convert_from_pip(monkeypatch, expected, requirement):
+    with monkeypatch.context() as m:
+        m.setattr(Requirement, "run_requires", mock_run_requires)
+        pkg_name = first(expected.keys())
+        pkg_pipfile = expected[pkg_name]
+        if hasattr(pkg_pipfile, 'keys') and 'editable' in pkg_pipfile and not pkg_pipfile['editable']:
+            del expected[pkg_name]['editable']
+        assert Requirement.from_line(requirement).as_pipfile() == expected
 
 
 @pytest.mark.to_line
 @pytest.mark.parametrize(
     'requirement, expected', DEP_PIP_PAIRS + DEP_PIP_PAIRS_LEGACY_PIPFILE,
 )
-def test_convert_from_pipfile(requirement, expected):
-    pkg_name = first(requirement.keys())
-    pkg_pipfile = requirement[pkg_name]
-    req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
-    if " (" in expected and expected.endswith(")"):
-        # To strip out plette[validation] (>=0.1.1)
-        expected = expected.replace(" (", "").rstrip(")")
-    assert req.as_line() == expected.lower() if '://' not in expected else expected
+def test_convert_from_pipfile(monkeypatch, requirement, expected):
+    with monkeypatch.context() as m:
+        m.setattr(Requirement, "run_requires", mock_run_requires)
+        pkg_name = first(requirement.keys())
+        pkg_pipfile = requirement[pkg_name]
+        req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
+        if " (" in expected and expected.endswith(")"):
+            # To strip out plette[validation] (>=0.1.1)
+            expected = expected.replace(" (", "").rstrip(")")
+        assert req.as_line() == expected.lower() if '://' not in expected else expected
 
 
 @pytest.mark.requirements
@@ -195,16 +203,18 @@ def test_one_way_editable_extras():
 
 
 @pytest.mark.utils
-def test_convert_from_pip_git_uri_normalize():
+def test_convert_from_pip_git_uri_normalize(monkeypatch):
     """Pip does not parse this correctly, but we can (by converting to ssh://).
     """
-    dep = 'git+git@host:user/repo.git#egg=myname'
-    dep = Requirement.from_line(dep).as_pipfile()
-    assert dep == {
-        'myname': {
-            'git': 'git@host:user/repo.git',
+    with monkeypatch.context() as m:
+        m.setattr(Requirement, "run_requires", mock_run_requires)
+        dep = 'git+git@host:user/repo.git#egg=myname'
+        dep = Requirement.from_line(dep).as_pipfile()
+        assert dep == {
+            'myname': {
+                'git': 'git@host:user/repo.git',
+            }
         }
-    }
 
 
 @pytest.mark.utils
@@ -245,7 +255,7 @@ def test_get_requirements():
     extras_markers = Requirement.from_line(
         "requests[security]; os_name=='posix'"
     ).requirement
-    assert extras_markers.extras == ['security']
+    assert list(extras_markers.extras) == ['security']
     assert extras_markers.name == 'requests'
     assert str(extras_markers.marker) == 'os_name == "posix"'
     # Test VCS uris get generated correctly, retain git+git@ if supplied that way, and are named according to egg fragment

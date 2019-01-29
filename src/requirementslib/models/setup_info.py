@@ -75,12 +75,14 @@ def _get_src_dir(root):
     if src:
         return src
     virtual_env = os.environ.get("VIRTUAL_ENV")
-    if virtual_env:
+    if virtual_env is not None:
         return os.path.join(virtual_env, "src")
     if not root:
         # Intentionally don't match pip's behavior here -- this is a temporary copy
-        root = create_tracked_tempdir(prefix="requirementslib-", suffix="-src")
-    return os.path.join(root, "src")
+        src_dir = create_tracked_tempdir(prefix="requirementslib-", suffix="-src")
+    else:
+        src_dir = os.path.join(root, "src")
+    return src_dir
 
 
 def ensure_reqs(reqs):
@@ -208,22 +210,70 @@ def get_metadata(path, pkg_name=None):
             }
 
 
-@attr.s(slots=True)
+@attr.s(slots=True, frozen=True)
+class BaseRequirement(object):
+    name = attr.ib(type=str, default="", cmp=True)
+    requirement = attr.ib(default=None, cmp=True)  # type: Optional[PkgResourcesRequirement]
+
+    def __str__(self):
+        return "{0}".format(str(self.requirement))
+
+    def as_dict(self):
+        return {self.name: self.requirement}
+
+    def as_tuple(self):
+        return (self.name, self.requirement)
+
+    @classmethod
+    def from_string(cls, line):
+        line = line.strip()
+        req = init_requirement(line)
+        return cls.from_req(req)
+
+    @classmethod
+    def from_req(cls, req):
+        name = None
+        key = getattr(req, "key", None)
+        name = getattr(req, "name", None)
+        project_name = getattr(req, "project_name", None)
+        if key is not None:
+            name = key
+        if name is None:
+            name = project_name
+        return cls(name=name, requirement=req)
+
+
+@attr.s(slots=True, cmp=False)
 class SetupInfo(object):
-    name = attr.ib(type=str, default=None)
-    base_dir = attr.ib(type=Path, default=None)
-    version = attr.ib(type=packaging.version.Version, default=None)
-    requires = attr.ib(type=dict, default=attr.Factory(dict))
-    build_requires = attr.ib(type=list, default=attr.Factory(list))
-    build_backend = attr.ib(type=list, default=attr.Factory(list))
-    setup_requires = attr.ib(type=dict, default=attr.Factory(list))
-    python_requires = attr.ib(type=packaging.specifiers.SpecifierSet, default=None)
-    extras = attr.ib(type=dict, default=attr.Factory(dict))
-    setup_cfg = attr.ib(type=Path, default=None)
-    setup_py = attr.ib(type=Path, default=None)
-    pyproject = attr.ib(type=Path, default=None)
-    ireq = attr.ib(default=None)
-    extra_kwargs = attr.ib(default=attr.Factory(dict), type=dict)
+    name = attr.ib(type=str, default=None, cmp=True)
+    base_dir = attr.ib(type=Path, default=None, cmp=True, hash=False)
+    version = attr.ib(type=str, default=None, cmp=True)
+    _requirements = attr.ib(type=tuple, default=attr.Factory(tuple), cmp=True)
+    build_requires = attr.ib(type=tuple, default=attr.Factory(tuple), cmp=True)
+    build_backend = attr.ib(type=str, default="setuptools.build_meta", cmp=True)
+    setup_requires = attr.ib(type=tuple, default=attr.Factory(tuple), cmp=True)
+    python_requires = attr.ib(type=packaging.specifiers.SpecifierSet, default=None, cmp=True)
+    _extras_requirements = attr.ib(type=tuple, default=attr.Factory(tuple), cmp=True)
+    setup_cfg = attr.ib(type=Path, default=None, cmp=True, hash=False)
+    setup_py = attr.ib(type=Path, default=None, cmp=True, hash=False)
+    pyproject = attr.ib(type=Path, default=None, cmp=True, hash=False)
+    ireq = attr.ib(default=None, cmp=True, hash=False)
+    extra_kwargs = attr.ib(default=attr.Factory(dict), type=dict, cmp=False, hash=False)
+
+    @property
+    def requires(self):
+        return {req.name: req.requirement for req in self._requirements}
+
+    @property
+    def extras(self):
+        extras_dict = {}
+        extras = set(self._extras_requirements)
+        for section, deps in extras:
+            if isinstance(deps, BaseRequirement):
+                extras_dict[section] = deps.requirement
+            elif isinstance(deps, (list, tuple)):
+                extras_dict[section] = [d.requirement for d in deps]
+        return extras_dict
 
     @classmethod
     def get_setup_cfg(cls, setup_cfg_path):
@@ -245,29 +295,29 @@ class SetupInfo(object):
                 results["name"] = parser.get("metadata", "name")
             if parser.has_option("metadata", "version"):
                 results["version"] = parser.get("metadata", "version")
-            install_requires = {}
+            install_requires = ()
             if parser.has_option("options", "install_requires"):
-                install_requires = {
-                    dep.strip(): init_requirement(dep.strip())
+                install_requires = tuple([
+                    BaseRequirement.from_string(dep)
                     for dep in parser.get("options", "install_requires").split("\n")
                     if dep
-                }
+                ])
             results["install_requires"] = install_requires
             if parser.has_option("options", "python_requires"):
                 results["python_requires"] = parser.get("options", "python_requires")
-            extras_require = {}
+            extras_require = ()
             if "options.extras_require" in parser.sections():
-                extras_require = {
-                    section: [
-                        init_requirement(dep.strip())
+                extras_require = tuple([
+                    (section, tuple([
+                        BaseRequirement.from_string(dep)
                         for dep in parser.get(
                             "options.extras_require", section
                         ).split("\n")
                         if dep
-                    ]
+                    ]))
                     for section in parser.options("options.extras_require")
                     if section not in ["options", "metadata"]
-                }
+                ])
             results["extras_require"] = extras_require
             return results
 
@@ -278,15 +328,18 @@ class SetupInfo(object):
                 self.name = parsed.get("name")
             if self.version is None:
                 self.version = parsed.get("version")
-            self.requires.update(parsed["install_requires"])
+            self._requirements = self._requirements + parsed["install_requires"]
             if self.python_requires is None:
                 self.python_requires = parsed.get("python_requires")
-            self.extras.update(parsed["extras_require"])
+            if not self._extras_requirements:
+                self._extras_requirements = (parsed["extras_require"])
+            else:
+                self._extras_requirements = self._extras_requirements + parsed["extras_require"]
             if self.ireq is not None and self.ireq.extras:
-                self.requires.update({
-                    extra: self.extras[extra]
-                    for extra in self.ireq.extras if extra in self.extras
-                })
+                for extra in self.ireq.extras:
+                    if extra in self.extras:
+                        extras_tuple = tuple([BaseRequirement.from_req(req) for req in self.extras[extra]])
+                        self._extras_requirements += ((extra, extras_tuple),)
 
     def run_setup(self):
         if self.setup_py is not None and self.setup_py.exists():
@@ -332,8 +385,14 @@ class SetupInfo(object):
                     self.python_requires = packaging.specifiers.SpecifierSet(
                         dist.python_requires
                     )
+                if not self._extras_requirements:
+                    self._extras_requirements = ()
                 if dist.extras_require and not self.extras:
-                    self.extras = dist.extras_require
+                    for extra, extra_requires in dist.extras_require:
+                        extras_tuple = tuple(
+                            BaseRequirement.from_req(req) for req in extra_requires
+                        )
+                        self._extras_requirements += ((extra, extras_tuple),)
                 install_requires = dist.get_requires()
                 if not install_requires:
                     install_requires = dist.install_requires
@@ -342,9 +401,11 @@ class SetupInfo(object):
                     if getattr(self.ireq, "extras", None):
                         for extra in self.ireq.extras:
                             requirements.extend(list(self.extras.get(extra, [])))
-                    self.requires.update({req.key: req for req in requirements})
+                    self._requirements = self._requirements + tuple([
+                        BaseRequirement.from_req(req) for req in requirements
+                    ])
                 if dist.setup_requires and not self.setup_requires:
-                    self.setup_requires = dist.setup_requires
+                    self.setup_requires = tuple(dist.setup_requires)
                 if not self.version:
                     self.version = dist.get_version()
 
@@ -356,18 +417,20 @@ class SetupInfo(object):
                     self.name = metadata.get("name", self.name)
                 if not self.version:
                     self.version = metadata.get("version", self.version)
-                self.requires.update(
-                    {req.key: req for req in metadata.get("requires", {})}
-                )
+                self._requirements = self._requirements + tuple([
+                    BaseRequirement.from_req(req) for req in metadata.get("requires", [])
+                ])
                 if getattr(self.ireq, "extras", None):
                     for extra in self.ireq.extras:
                         extras = metadata.get("extras", {}).get(extra, [])
                         if extras:
-                            extras = ensure_reqs(extras)
-                            self.extras[extra] = set(extras)
-                            self.requires.update(
-                                {req.key: req for req in extras if req is not None}
-                            )
+                            extras_tuple = tuple([
+                                BaseRequirement.from_req(req)
+                                for req in ensure_reqs(extras)
+                                if req is not None
+                            ])
+                            self._extras_requirements += ((extra, extras_tuple),)
+                            self._requirements = self._requirements + extras_tuple
 
     def run_pyproject(self):
         if self.pyproject and self.pyproject.exists():
@@ -377,32 +440,37 @@ class SetupInfo(object):
                 if backend:
                     self.build_backend = backend
                 if requires and not self.build_requires:
-                    self.build_requires = requires
+                    self.build_requires = tuple(requires)
 
     def get_info(self):
         initial_path = os.path.abspath(os.getcwd())
         if self.setup_cfg and self.setup_cfg.exists():
             try:
-                self.parse_setup_cfg()
+                with cd(self.base_dir):
+                    self.parse_setup_cfg()
             finally:
                 os.chdir(initial_path)
         if self.setup_py and self.setup_py.exists():
             if not self.requires or not self.name:
                 try:
-                    self.run_setup()
+                    with cd(self.base_dir):
+                        self.run_setup()
                 except Exception:
-                    self.get_egg_metadata()
+                    with cd(self.base_dir):
+                        self.get_egg_metadata()
                 finally:
                     os.chdir(initial_path)
                 if not self.requires or not self.name:
                     try:
-                        self.get_egg_metadata()
+                        with cd(self.base_dir):
+                            self.get_egg_metadata()
                     finally:
                         os.chdir(initial_path)
 
         if self.pyproject and self.pyproject.exists():
             try:
-                self.run_pyproject()
+                with cd(self.base_dir):
+                    self.run_pyproject()
             finally:
                 os.chdir(initial_path)
         return self.as_dict()
