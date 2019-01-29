@@ -555,7 +555,6 @@ class SetupInfo(object):
             created = cls.create(
                 build_dir, subdirectory=subdir, ireq=ireq, kwargs=kwargs
             )
-        created.get_info()
         return created
 
     @classmethod
