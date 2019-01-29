@@ -1749,7 +1749,7 @@ class Requirement(object):
     vcs = attr.ib(default=None, validator=attr.validators.optional(validate_vcs), cmp=True)  # type: Optional[str]
     req = attr.ib(default=None, cmp=True)
     markers = attr.ib(default=None, cmp=True)
-    specifiers = attr.ib(validator=attr.validators.optional(validate_specifiers), cmp=True)
+    _specifiers = attr.ib(validator=attr.validators.optional(validate_specifiers), cmp=True)
     index = attr.ib(default=None)
     editable = attr.ib(default=None, cmp=True)
     hashes = attr.ib(default=attr.Factory(tuple), converter=tuple, cmp=True)  # type: Optional[Tuple[str]]
@@ -1806,12 +1806,33 @@ class Requirement(object):
             commit_hash = repo.get_commit_hash()
         return commit_hash
 
-    @specifiers.default
+    @_specifiers.default
     def get_specifiers(self):
         # type: () -> Optional[str]
         if self.req and self.req.req and self.req.req.specifier:
             return specs_to_string(self.req.req.specifier)
         return ""
+
+    @property
+    def specifiers(self):
+        # type: () -> Optional[str]
+        if not self._specifiers and (self.is_file_or_url or self.is_vcs):
+            if not self.line_instance:
+                parts = [
+                    self.req.line_part,
+                    self.extras_as_pip,
+                    self.markers_as_pip,
+                ]
+                self.line_instance = Line("".join(parts))
+            setup_info = self.line_instance.setup_info
+            if setup_info is not None:
+                setup_info = setup_info.as_dict()
+                self._specifiers = "=={0}".format(setup_info.get("version"))
+                if self.line_instance and self.line_instance.ireq:
+                    self.line_instance._ireq.specifiers = SpecifierSet(self.specifiers)
+                if getattr(self.req, "_parsed_line", None) and self.req._parsed_line.ireq:
+                    self.req._parsed_line._ireq.specifiers = SpecifierSet(self.specifiers)
+        return self._specifiers
 
     @property
     def is_vcs(self):
@@ -1945,14 +1966,6 @@ class Requirement(object):
         if hashes:
             args["hashes"] = tuple(hashes)  # type: ignore
         cls_inst = cls(**args)
-        if is_direct_url or cls_inst.is_file_or_url or cls_inst.is_vcs:
-            if not cls_inst.specifiers:
-                setup_info = cls_inst.run_requires()
-                cls_inst.specifiers = "=={0}".format(setup_info.get("version"))
-            if cls_inst.line_instance.ireq:
-                cls_inst.line_instance._ireq.specifiers = SpecifierSet(cls_inst.specifiers)
-            if getattr(cls_inst.req, "_parsed_line", None) and cls_inst.req._parsed_line.ireq:
-                cls_inst.req._parsed_line._ireq.specifiers = SpecifierSet(cls_inst.specifiers)
         return cls_inst
 
     @classmethod
