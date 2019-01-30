@@ -30,7 +30,7 @@ jobs:
     - stage: packaging
       python: "3.6"
       install:
-        - "python -m pip install --upgrade readme-renderer[md] twine"
+        - "python -m pip install --upgrade readme-renderer[md] twine setuptools requests[security]"
       script:
         - "python setup.py sdist"
         - "twine check dist/*"
