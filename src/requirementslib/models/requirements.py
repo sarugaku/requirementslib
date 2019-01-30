@@ -420,7 +420,8 @@ class Line(object):
         # type: () -> Optional[SetupInfo]
         if self._setup_info is None and not self.is_named:
             self._setup_info = SetupInfo.from_ireq(self.ireq)
-            self._setup_info.get_info()
+            if self._setup_info is not None:
+                self._setup_info.get_info()
         return self._setup_info
 
     def _get_vcsrepo(self):
@@ -785,7 +786,7 @@ class FileRequirement(object):
     #: PyProject Path
     pyproject_path = attr.ib(default=None, cmp=True)  # type: Optional[str]
     #: Setup metadata e.g. dependencies
-    setup_info = attr.ib(default=None, cmp=True)  # type: Optional[SetupInfo]
+    _setup_info = attr.ib(default=None, cmp=True)  # type: Optional[SetupInfo]
     _has_hashed_name = attr.ib(default=False, cmp=True)  # type: bool
     _parsed_line = attr.ib(default=None, hash=True)  # type: Optional[Line]
     #: Package name
@@ -920,12 +921,21 @@ class FileRequirement(object):
         return deps, setup_deps, build_deps
 
     def __attrs_post_init__(self):
-        if self.setup_info is None and self.parsed_line:
-            from .setup_info import SetupInfo
-            self.setup_info = SetupInfo.from_ireq(self.parsed_line.ireq)
         if self._parsed_line and self._parsed_line.ireq and not self._parsed_line.ireq.req:
             if self.req is not None:
                 self._parsed_line._ireq.req = self.req
+
+    @property
+    def setup_info(self):
+        from .setup_info import SetupInfo
+        if self._setup_info is None and self.parsed_line:
+            if self.parsed_line.setup_info:
+                self._setup_info = self.parsed_line.setup_info
+            elif self.parsed_line.ireq:
+                self._setup_info = SetupInfo.from_ireq(self.parsed_line.ireq)
+            else:
+                self._setup_info = Line(self.line_part).setup_info
+        return self._setup_info
 
     @uri.default
     def get_uri(self):
@@ -988,7 +998,7 @@ class FileRequirement(object):
             else:
                 setupinfo = SetupInfo.from_ireq(_ireq, subdir=subdir)
             if setupinfo:
-                self.setup_info = setupinfo
+                self._setup_info = setupinfo
                 self.setup_info.get_info()
                 setupinfo_dict = setupinfo.as_dict()
                 setup_name = setupinfo_dict.get("name", None)
@@ -1183,6 +1193,11 @@ class FileRequirement(object):
         _line = None
         ireq = None
         setup_info = None
+        if parsed_line:
+            if parsed_line.name:
+                name = parsed_line.name
+            if parsed_line.setup_info:
+                name = parsed_line.setup_info.as_dict().get("name", name)
         if not name or not parsed_line:
             if link is not None and link.url is not None:
                 _line = unquote(link.url_without_fragment)
@@ -1215,20 +1230,21 @@ class FileRequirement(object):
                 ireq = parsed_line.ireq
             if extras and not ireq.extras:
                 ireq.extras = set(extras)
-            if not ireq.is_wheel:
-                if setup_info is None:
-                    setup_info = SetupInfo.from_ireq(ireq)
-                setupinfo_dict = setup_info.as_dict()
-                setup_name = setupinfo_dict.get("name", None)
-                if setup_name:
-                    name = setup_name
-                    build_requires = setupinfo_dict.get("build_requires", ())
-                    build_backend = setupinfo_dict.get("build_backend", ())
-                    if not creation_kwargs.get("pyproject_requires") and build_requires:
-                        creation_kwargs["pyproject_requires"] = tuple(build_requires)
-                    if not creation_kwargs.get("pyproject_backend") and build_backend:
-                        creation_kwargs["pyproject_backend"] = build_backend
-                creation_kwargs["setup_info"] = setup_info
+            if setup_info is None:
+                setup_info = SetupInfo.from_ireq(ireq)
+            setupinfo_dict = setup_info.as_dict()
+            setup_name = setupinfo_dict.get("name", None)
+            if setup_name:
+                name = setup_name
+                build_requires = setupinfo_dict.get("build_requires", ())
+                build_backend = setupinfo_dict.get("build_backend", ())
+                if not creation_kwargs.get("pyproject_requires") and build_requires:
+                    creation_kwargs["pyproject_requires"] = tuple(build_requires)
+                if not creation_kwargs.get("pyproject_backend") and build_backend:
+                    creation_kwargs["pyproject_backend"] = build_backend
+        if setup_info is None and parsed_line and parsed_line.setup_info:
+            setup_info = parsed_line.setup_info
+        creation_kwargs["setup_info"] = setup_info
         if path or relpath:
             creation_kwargs["path"] = relpath if relpath else path
         if req is not None:
@@ -1384,12 +1400,13 @@ class FileRequirement(object):
             raise ValueError("Could not calculate url for {0!r}".format(self))
         return "{0}{1}".format(editable, seed)
 
+
     @property
     def pipfile_part(self):
         # type: () -> Dict[str, Dict[str, Any]]
         excludes = [
             "_base_line", "_has_hashed_name", "setup_path", "pyproject_path", "_uri_scheme",
-            "pyproject_requires", "pyproject_backend", "setup_info", "_parsed_line"
+            "pyproject_requires", "pyproject_backend", "_setup_info", "_parsed_line"
         ]
         filter_func = lambda k, v: bool(v) is True and k.name not in excludes  # noqa
         pipfile_dict = attr.asdict(self, filter=filter_func).copy()
@@ -1473,8 +1490,6 @@ class VCSRequirement(FileRequirement):
             self.parsed_line.ireq and not self.parsed_line.ireq.req
         ):
             self.parsed_line._ireq.req = self.req
-        if self.setup_info is None and self.parsed_line and self.parsed_line.setup_info:
-            self.setup_info = self.parsed_line.setup_info
 
     @link.default
     def get_link(self):
@@ -1834,7 +1849,7 @@ class VCSRequirement(FileRequirement):
         # type: () -> Dict[str, Dict[str, Union[List[str], str, bool]]]
         excludes = [
             "_repo", "_base_line", "setup_path", "_has_hashed_name", "pyproject_path",
-            "pyproject_requires", "pyproject_backend", "setup_info", "_parsed_line"
+            "pyproject_requires", "pyproject_backend", "_setup_info", "_parsed_line"
         ]
         filter_func = lambda k, v: bool(v) is True and k.name not in excludes  # noqa
         pipfile_dict = attr.asdict(self, filter=filter_func).copy()
@@ -2225,7 +2240,7 @@ class Requirement(object):
     def get_specifier(self):
         # type: () -> Union[SpecifierSet, LegacySpecifier]
         try:
-            return SpecifierSet(self.specifiers)
+            return Specifier(self.specifiers)
         except InvalidSpecifier:
             return LegacySpecifier(self.specifiers)
 
@@ -2275,7 +2290,7 @@ class Requirement(object):
         base_dict = {
             k: v
             for k, v in self.req.pipfile_part[name].items()
-            if k not in ["req", "link", "setup_info"]
+            if k not in ["req", "link", "_setup_info"]
         }
         base_dict.update(req_dict)
         conflicting_keys = ("file", "path", "uri")
@@ -2414,7 +2429,7 @@ class Requirement(object):
                 return {}
             info_dict = info.get_info()
             if self.req and not self.req.setup_info:
-                self.req.setup_info = info
+                self.req._setup_info = info
         if self.req._has_hashed_name and info_dict.get("name"):
             self.req.name = self.name = info_dict["name"]
             if self.req.req.name != info_dict["name"]:
