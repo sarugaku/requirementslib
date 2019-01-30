@@ -173,15 +173,17 @@ def test_convert_from_pipfile(monkeypatch, requirement, expected):
 
 
 @pytest.mark.requirements
-def test_convert_from_pipfile_vcs():
+def test_convert_from_pipfile_vcs(monkeypatch):
     """ssh VCS links should be converted correctly"""
-    pkg_name = "shellingham"
-    pkg_pipfile = {"editable": True, "git": "git@github.com:sarugaku/shellingham.git"}
-    req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
-    assert (
-        req.req.link.url ==
-        "git+ssh://git@github.com/sarugaku/shellingham.git#egg=shellingham"
-    )
+    with monkeypatch.context() as m:
+        m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
+        pkg_name = "shellingham"
+        pkg_pipfile = {"editable": True, "git": "git@github.com:sarugaku/shellingham.git"}
+        req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
+        assert (
+            req.req.link.url ==
+            "git+ssh://git@github.com/sarugaku/shellingham.git#egg=shellingham"
+        )
 
 
 @pytest.mark.utils
