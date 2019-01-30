@@ -1,7 +1,11 @@
 language: python
 sudo: false
-cache: pip
 dist: trusty
+cache:
+    directories:
+        - $HOME/.cache/pipenv
+        - $HOME/.cache/pip-tools
+        - $HOME/.cache/pip
 
 matrix:
   fast_finish: true
