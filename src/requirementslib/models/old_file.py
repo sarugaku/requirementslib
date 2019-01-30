@@ -785,7 +785,7 @@ class FileRequirement(object):
     #: PyProject Path
     pyproject_path = attr.ib(default=None, cmp=True)  # type: Optional[str]
     #: Setup metadata e.g. dependencies
-    setup_info = attr.ib(default=None, cmp=True)  # type: Optional[SetupInfo]
+    _setup_info = attr.ib(default=None, cmp=True)  # type: Optional[SetupInfo]
     _has_hashed_name = attr.ib(default=False, cmp=True)  # type: bool
     _parsed_line = attr.ib(default=None, hash=True)  # type: Optional[Line]
     #: Package name
@@ -896,6 +896,18 @@ class FileRequirement(object):
         return LinkInfo(vcs_type, prefer, relpath, path, uri, link)
 
     @property
+    def setup_info(self):
+        # type: () -> Optional[SetupInfo]
+        if self._setup_info is None:
+            try:
+                self._setup_info = self.parsed_line.setup_info
+            except Exception:
+                self._setup_info = SetupInfo.from_ireq(self.parsed_line.ireq)
+        if self._setup_info.as_dict().get("requires") is None:
+            self._setup_info.get_info()
+        return self._setup_info
+
+    @property
     def setup_py_dir(self):
         # type: () -> Optional[str]
         if self.setup_path:
@@ -920,9 +932,6 @@ class FileRequirement(object):
         return deps, setup_deps, build_deps
 
     def __attrs_post_init__(self):
-        if self.setup_info is None and self.parsed_line:
-            from .setup_info import SetupInfo
-            self.setup_info = SetupInfo.from_ireq(self.parsed_line.ireq)
         if self._parsed_line and self._parsed_line.ireq and not self._parsed_line.ireq.req:
             if self.req is not None:
                 self._parsed_line._ireq.req = self.req
@@ -983,13 +992,17 @@ class FileRequirement(object):
                 _ireq.extras = set(self.extras)
             from .setup_info import SetupInfo
             subdir = getattr(self, "subdirectory", None)
-            if self.setup_info is not None:
-                setupinfo = self.setup_info
-            else:
-                setupinfo = SetupInfo.from_ireq(_ireq, subdir=subdir)
+            setupinfo = SetupInfo.from_ireq(self.parsed_line.ireq)
+            # if self._setup_info is not None:
+            #     setupinfo = self._setup_info
+            # elif self._parsed_line is not None and self._parsed_line.setup_info is not None:
+            #     setupinfo = self._parsed_line.setup_info
+            #     self._setup_info = self._parsed_line.setup_info
+            # else:
+            #     setupinfo = SetupInfo.from_ireq(_ireq, subdir=subdir)
             if setupinfo:
-                self.setup_info = setupinfo
-                self.setup_info.get_info()
+                self._setup_info = setupinfo
+                setupinfo.get_info()
                 setupinfo_dict = setupinfo.as_dict()
                 setup_name = setupinfo_dict.get("name", None)
                 if setup_name:
@@ -1208,9 +1221,10 @@ class FileRequirement(object):
                     _line = "{0}[{1}]".format(_line, ",".join(sorted(set(extras))))
                 if ireq is None:
                     ireq = pip_shims.shims.install_req_from_line(_line)
+            if parsed_line is None:
                 if editable:
                     _line = "-e {0}".format(editable)
-            parsed_line = Line(_line)
+                parsed_line = Line(_line)
             if ireq is None:
                 ireq = parsed_line.ireq
             if extras and not ireq.extras:
@@ -1228,7 +1242,7 @@ class FileRequirement(object):
                         creation_kwargs["pyproject_requires"] = tuple(build_requires)
                     if not creation_kwargs.get("pyproject_backend") and build_backend:
                         creation_kwargs["pyproject_backend"] = build_backend
-                creation_kwargs["setup_info"] = setup_info
+        creation_kwargs["setup_info"] = setup_info
         if path or relpath:
             creation_kwargs["path"] = relpath if relpath else path
         if req is not None:
@@ -1473,8 +1487,6 @@ class VCSRequirement(FileRequirement):
             self.parsed_line.ireq and not self.parsed_line.ireq.req
         ):
             self.parsed_line._ireq.req = self.req
-        if self.setup_info is None and self.parsed_line and self.parsed_line.setup_info:
-            self.setup_info = self.parsed_line.setup_info
 
     @link.default
     def get_link(self):
@@ -1834,7 +1846,7 @@ class VCSRequirement(FileRequirement):
         # type: () -> Dict[str, Dict[str, Union[List[str], str, bool]]]
         excludes = [
             "_repo", "_base_line", "setup_path", "_has_hashed_name", "pyproject_path",
-            "pyproject_requires", "pyproject_backend", "setup_info", "_parsed_line"
+            "pyproject_requires", "pyproject_backend", "_setup_info", "_parsed_line"
         ]
         filter_func = lambda k, v: bool(v) is True and k.name not in excludes  # noqa
         pipfile_dict = attr.asdict(self, filter=filter_func).copy()
@@ -2414,7 +2426,7 @@ class Requirement(object):
                 return {}
             info_dict = info.get_info()
             if self.req and not self.req.setup_info:
-                self.req.setup_info = info
+                self.req._setup_info = info
         if self.req._has_hashed_name and info_dict.get("name"):
             self.req.name = self.name = info_dict["name"]
             if self.req.req.name != info_dict["name"]:

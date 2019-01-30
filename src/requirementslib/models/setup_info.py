@@ -20,7 +20,7 @@ from appdirs import user_cache_dir
 from six.moves import configparser
 from six.moves.urllib.parse import unquote
 from vistir.compat import Path, Iterable
-from vistir.contextmanagers import cd
+from vistir.contextmanagers import cd, temp_environ
 from vistir.misc import run
 from vistir.path import create_tracked_tempdir, ensure_mkdir_p, mkdir_p
 
@@ -133,27 +133,27 @@ def _prepare_wheel_building_kwargs(ireq=None, src_root=None, editable=False):
     }
 
 
-def iter_egginfos(path, pkg_name=None):
-    # type: (str, Optional[str]) -> Generator
+def iter_metadata(path, pkg_name=None, metadata_type="egg-info"):
+    # type: (str, Optional[str], str) -> Generator
     if pkg_name is not None:
         pkg_variants = get_name_variants(pkg_name)
     non_matching_dirs = []
     for entry in scandir(path):
         if entry.is_dir():
             entry_name, ext = os.path.splitext(entry.name)
-            if ext.endswith("egg-info"):
-                if pkg_name is None or entry_name in pkg_variants:
+            if ext.endswith(metadata_type):
+                if pkg_name is None or entry_name.lower() in pkg_variants:
                     yield entry
-            elif not entry.name.endswith("egg-info"):
+            elif not entry.name.endswith(metadata_type):
                 non_matching_dirs.append(entry)
     for entry in non_matching_dirs:
-        for dir_entry in iter_egginfos(entry.path, pkg_name=pkg_name):
+        for dir_entry in iter_metadata(entry.path, pkg_name=pkg_name, metadata_type=metadata_type):
             yield dir_entry
 
 
 def find_egginfo(target, pkg_name=None):
     # type: (str, Optional[str]) -> Generator
-    egg_dirs = (egg_dir for egg_dir in iter_egginfos(target, pkg_name=pkg_name))
+    egg_dirs = (egg_dir for egg_dir in iter_metadata(target, pkg_name=pkg_name))
     if pkg_name:
         yield next(iter(egg_dirs), None)
     else:
@@ -161,18 +161,38 @@ def find_egginfo(target, pkg_name=None):
             yield egg_dir
 
 
+def find_distinfo(target, pkg_name=None):
+    # type: (str, Optional[str]) -> Generator
+    dist_dirs = (dist_dir for dist_dir in iter_metadata(target, pkg_name=pkg_name, metadata_type="dist-info"))
+    if pkg_name:
+        yield next(iter(dist_dirs), None)
+    else:
+        for dist_dir in dist_dirs:
+            yield dist_dir
+
+
 def get_metadata(path, pkg_name=None):
     egg_dir = next(iter(find_egginfo(path, pkg_name=pkg_name)), None)
-    if egg_dir is not None:
+    dist_dir = next(iter(find_distinfo(path, pkg_name=pkg_name)), None)
+    matched_dir = next(iter(d for d in (dist_dir, egg_dir) if d is not None), None)
+    metadata_dir = None
+    base_dir = None
+    if matched_dir is not None:
         import pkg_resources
-
-        egg_dir = os.path.abspath(egg_dir.path)
-        base_dir = os.path.dirname(egg_dir)
-        path_metadata = pkg_resources.PathMetadata(base_dir, egg_dir)
-        dist = next(
-            iter(pkg_resources.distributions_from_metadata(path_metadata.egg_info)),
-            None,
-        )
+        metadata_dir = os.path.abspath(matched_dir.path)
+        base_dir = os.path.dirname(metadata_dir)
+        dist = None
+        distinfo_dist = None
+        egg_dist = None
+        if dist_dir is not None:
+            distinfo_dist = next(iter(pkg_resources.find_distributions(base_dir)), None)
+        if egg_dir is not None:
+            path_metadata = pkg_resources.PathMetadata(base_dir, metadata_dir)
+            egg_dist = next(
+                iter(pkg_resources.distributions_from_metadata(path_metadata.egg_info)),
+                None,
+            )
+        dist = next(iter(d for d in (distinfo_dist, egg_dist) if d is not None), None)
         if dist:
             try:
                 requires = dist.requires()
@@ -370,6 +390,9 @@ class SetupInfo(object):
                     python = os.environ.get('PIP_PYTHON_PATH', sys.executable)
                     out, _ = run([python, "setup.py"] + args, cwd=target_cwd, block=True,
                                  combine_stderr=False, return_object=False, nospin=True)
+                except SystemExit:
+                    print("Current directory: %s\nTarget file: %s\nDirectory Contents: %s\nSetup Path Contents: %s\n" % (
+                        os.getcwd(), script_name, os.listdir(os.getcwd()), os.listdir(os.path.dirname(script_name))))
                 finally:
                     _setup_stop_after = None
                     sys.argv = save_argv
@@ -445,11 +468,8 @@ class SetupInfo(object):
     def get_info(self):
         initial_path = os.path.abspath(os.getcwd())
         if self.setup_cfg and self.setup_cfg.exists():
-            try:
-                with cd(self.base_dir):
-                    self.parse_setup_cfg()
-            finally:
-                os.chdir(initial_path)
+            with cd(self.base_dir):
+                self.parse_setup_cfg()
         if self.setup_py and self.setup_py.exists():
             if not self.requires or not self.name:
                 try:
@@ -458,14 +478,9 @@ class SetupInfo(object):
                 except Exception:
                     with cd(self.base_dir):
                         self.get_egg_metadata()
-                finally:
-                    os.chdir(initial_path)
                 if not self.requires or not self.name:
-                    try:
-                        with cd(self.base_dir):
-                            self.get_egg_metadata()
-                    finally:
-                        os.chdir(initial_path)
+                    with cd(self.base_dir):
+                        self.get_egg_metadata()
 
         if self.pyproject and self.pyproject.exists():
             try:
@@ -536,7 +551,8 @@ class SetupInfo(object):
                     "The file URL points to a directory not installable: {}"
                     .format(ireq.link)
                 )
-        if not ireq.editable or not ireq.link.scheme == "file":
+
+        if not (ireq.editable and "file" in ireq.link.scheme):
             pip_shims.shims.unpack_url(
                 ireq.link,
                 ireq.source_dir,
