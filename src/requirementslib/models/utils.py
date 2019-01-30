@@ -24,10 +24,10 @@ from ..utils import SCHEME_LIST, VCS_LIST, is_star, add_ssh_scheme_to_git_uri
 from ..environment import MYPY_RUNNING
 
 if MYPY_RUNNING:
-    from typing import Union, Optional, List, Set, Any, TypeVar
+    from typing import Union, Optional, List, Set, Any, TypeVar, Tuple
     from attr import _ValidatorType
     from pkg_resources import Requirement as PkgResourcesRequirement
-    from pip_shims import Link
+    from pip_shims.shims import Link
     _T = TypeVar("_T")
 
 
@@ -51,7 +51,7 @@ def create_link(link):
 
     if not isinstance(link, six.string_types):
         raise TypeError("must provide a string to instantiate a new link")
-    from pip_shims import Link
+    from pip_shims.shims import Link
     return Link(link)
 
 
@@ -194,6 +194,7 @@ def get_pyproject(path):
 
 
 def split_markers_from_line(line):
+    # type: (str) -> Tuple[str, Optional[str]]
     """Split markers from a dependency"""
     if not any(line.startswith(uri_prefix) for uri_prefix in SCHEME_LIST):
         marker_sep = ";"
@@ -207,6 +208,7 @@ def split_markers_from_line(line):
 
 
 def split_vcs_method_from_uri(uri):
+    # type: (str) -> Tuple[Optional[str], str]
     """Split a vcs+uri formatted uri into (vcs, uri)"""
     vcs_start = "{0}+"
     vcs = first([vcs for vcs in VCS_LIST if uri.startswith(vcs_start.format(vcs))])
