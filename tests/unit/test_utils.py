@@ -1,5 +1,8 @@
 # -*- coding=utf-8 -*-
+import pip_shims.shims
+
 from pytest import raises
+
 from requirementslib import utils as base_utils
 from requirementslib.models import utils
 from requirementslib.models.requirements import Requirement
@@ -8,6 +11,10 @@ from requirementslib.models.setup_info import SetupInfo
 
 def mock_run_requires(cls):
     return {}
+
+
+def mock_unpack(link, source_dir, download_dir, only_download=False, session=None, hashes=None, progress_bar="off"):
+    return
 
 
 def test_filter_none():
@@ -73,6 +80,7 @@ def test_format_requirement_editable(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(SetupInfo, "get_info", mock_run_requires)
         m.setattr(Requirement, "run_requires", mock_run_requires)
+        m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
         ireq = Requirement.from_line('-e git+git://fake.org/x/y.git#egg=y').as_ireq()
         assert utils.format_requirement(ireq) == '-e git+git://fake.org/x/y.git#egg=y'
 

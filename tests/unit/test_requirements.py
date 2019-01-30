@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 import os
-import pytest
-from first import first
-from requirementslib import Requirement
-from requirementslib.models.setup_info import SetupInfo
-from requirementslib.exceptions import RequirementError
-from vistir.compat import Path
+
 import pip_shims.shims
+import pytest
+
+from first import first
+
+from requirementslib import Requirement
+from requirementslib.exceptions import RequirementError
+from requirementslib.models.setup_info import SetupInfo
+from vistir.compat import Path
 
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,16 +35,16 @@ DEP_PIP_PAIRS = [
         'requests[socks]==1.10',
     ),
     (
-        {'pinax-user-accounts': {
-            'git': 'git://github.com/pinax/pinax-user-accounts.git',
+        {'django-user-accounts': {
+            'git': 'git://github.com/pinax/django-user-accounts.git',
             'ref': 'v2.1.0',
             'editable': True,
         }},
-        '-e git+git://github.com/pinax/pinax-user-accounts.git@v2.1.0#egg=pinax-user-accounts',
+        '-e git+git://github.com/pinax/django-user-accounts.git@v2.1.0#egg=django-user-accounts',
     ),
     (
-        {'pinax-user-accounts': {'git': 'git://github.com/pinax/pinax-user-accounts.git', 'ref': 'v2.1.0'}},
-        'git+git://github.com/pinax/pinax-user-accounts.git@v2.1.0#egg=pinax-user-accounts',
+        {'django-user-accounts': {'git': 'git://github.com/pinax/django-user-accounts.git', 'ref': 'v2.1.0'}},
+        'git+git://github.com/pinax/django-user-accounts.git@v2.1.0#egg=django-user-accounts',
     ),
     (   # Mercurial.
         {'MyProject': {
@@ -221,6 +224,7 @@ def test_convert_from_pip_git_uri_normalize(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(Requirement, "run_requires", mock_run_requires)
         m.setattr(SetupInfo, "get_info", mock_run_requires)
+        m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
         dep = 'git+git@host:user/repo.git#egg=myname'
         dep = Requirement.from_line(dep).as_pipfile()
         assert dep == {

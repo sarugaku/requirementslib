@@ -1,8 +1,11 @@
 # -*- coding=utf-8 -*-
 
-import pytest
-import sys
 import os
+import sys
+
+import pip_shims.shims
+import pytest
+
 import vistir
 
 from requirementslib.models.requirements import Requirement
@@ -119,6 +122,12 @@ setup(
     with vistir.contextmanagers.cd(pathlib_tmpdir.as_posix()):
         r = Requirement.from_pipfile("test-package", pipfile_entry)
         assert r.name == "test-package"
-        r.run_requires()
+        r.req.setup_info.get_info()
         setup_dict = r.req.setup_info.as_dict()
-        assert sorted(list(setup_dict.get("requires").keys())) == ["coverage", "flaky", "six"]
+        import sys
+        for k, v in setup_dict.items():
+            print("{0}: {1}".format(k, v), file=sys.stderr)
+            if k in ("base_dir",):
+                print("    dir contents: %s" % os.listdir(v))
+        # assert setup_dict == "", setup_dict
+        assert sorted(list(setup_dict.get("requires").keys())) == ["coverage", "flaky", "six"], setup_dict

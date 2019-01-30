@@ -624,7 +624,8 @@ def get_name_variants(pkg):
         raise TypeError("must provide a string to derive package names")
     from pkg_resources import safe_name
     from packaging.utils import canonicalize_name
-    names = {safe_name(pkg), canonicalize_name(pkg)}
+    pkg = pkg.lower()
+    names = {safe_name(pkg), canonicalize_name(pkg), pkg.replace("-", "_")}
     return names
 
 
