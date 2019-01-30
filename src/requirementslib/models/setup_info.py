@@ -504,7 +504,8 @@ class SetupInfo(object):
     @classmethod
     def from_ireq(cls, ireq, subdir=None, finder=None):
         import pip_shims.shims
-
+        if not ireq.link:
+            return
         if ireq.link.is_wheel:
             return
         if not finder:
