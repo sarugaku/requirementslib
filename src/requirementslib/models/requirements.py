@@ -1906,10 +1906,10 @@ class VCSRequirement(FileRequirement):
             new_uri = urllib_parse.urlunsplit((scheme,) + rest[:-1] + ("",))
             new_uri = "{0}{1}".format(vcs_type, new_uri)
             self.uri = new_uri
-        if self.req and (
-            self.parsed_line.ireq and not self.parsed_line.ireq.req
+        if self.req and self._parsed_line and (
+            self._parsed_line.ireq and not self._parsed_line.ireq.req
         ):
-            self.parsed_line._ireq.req = self.req
+            self._parsed_line._ireq.req = self.req
 
     @link.default
     def get_link(self):
@@ -2461,6 +2461,13 @@ class Requirement(object):
                 self._line_instance = Line(line)
         return self._line_instance
 
+    @line_instance.setter
+    def line_instance(self, line_instance):
+        # type: (Line) -> None
+        if self.req and not self.req._parsed_line:
+            self.req._parsed_line = line_instance
+        self._line_instance = line_instance
+
     @property
     def specifiers(self):
         # type: () -> Optional[Text]
@@ -2560,73 +2567,11 @@ class Requirement(object):
             )
         else:
             r = named_req_from_parsed_line(parsed_line)
-        # hashes = None
-        # if "--hash=" in line:
-        #     hashes = line.split(" --hash=")
-        #     line, hashes = hashes[0], hashes[1:]
-        # editable = line.startswith("-e ")
-        # line = line.split(" ", 1)[1] if editable else line
-        # line, markers = split_markers_from_line(line)
-        # line, extras = pip_shims.shims._strip_extras(line)
-        # if extras:
-        #     extras = tuple(parse_extras(extras))
-        # line = line.strip('"').strip("'").strip()
-        # line_with_prefix = "-e {0}".format(line) if editable else line
-        # vcs = None
-        # # Installable local files and installable non-vcs urls are handled
-        # # as files, generally speaking
-        # line_is_vcs = is_vcs(line)
-        # is_direct_url = False
-        # # check for pep-508 compatible requirements
-        # name, _, possible_url = line.partition("@")
-        # name = name.strip()
-        # if possible_url is not None:
-        #     possible_url = possible_url.strip()
-        #     is_direct_url = is_valid_url(possible_url)
-        #     if not line_is_vcs:
-        #         line_is_vcs = is_vcs(possible_url)
-        # if is_installable_file(line) or (
-        #     (is_valid_url(possible_url) or is_file_url(line) or is_valid_url(line)) and
-        #     not (line_is_vcs or is_vcs(possible_url))
-        # ):
-        #     r = FileRequirement.from_line(line_with_prefix, extras=extras, parsed_line=parsed_line)
-        # elif line_is_vcs:
-        #     r = VCSRequirement.from_line(line_with_prefix, extras=extras, parsed_line=parsed_line)
-        #     if isinstance(r, VCSRequirement):
-        #         vcs = r.vcs
-        # elif line == "." and not is_installable_file(line):
-        #     raise RequirementError(
-        #         "Error parsing requirement %s -- are you sure it is installable?" % line
-        #     )
-        # else:
-        #     specs = "!=<>~"
-        #     spec_matches = set(specs) & set(line)
-        #     version = None
-        #     name = "{0}".format(line)
-        #     if spec_matches:
-        #         spec_idx = min((line.index(match) for match in spec_matches))
-        #         name = line[:spec_idx]
-        #         version = line[spec_idx:]
-        #     if not extras:
-        #         name, extras = pip_shims.shims._strip_extras(name)
-        #         if extras:
-        #             extras = tuple(parse_extras(extras))
-        #     if version:
-        #         name = "{0}{1}".format(name, version)
-        #     r = NamedRequirement.from_line(line, parsed_line=parsed_line)
         req_markers = None
         if parsed_line.markers:
             req_markers = PackagingRequirement("fakepkg; {0}".format(parsed_line.markers))
         if r is not None and r.req is not None:
             r.req.marker = getattr(req_markers, "marker", None) if req_markers else None
-        #     r.req.local_file = getattr(r.req, "local_file", False)
-        #     name = getattr(r, "name", None)
-        #     if name is None and getattr(r.req, "name", None) is not None:
-        #         name = r.req.name
-        #     elif name is None and getattr(r.req, "key", None) is not None:
-        #         name = r.req.key
-        #     if name is not None and getattr(r.req, "name", None) is None:
-        #         r.req.name = name
         args = {
             "name": r.name,
             "vcs": parsed_line.vcs,
@@ -2701,17 +2646,7 @@ class Requirement(object):
         if any(key in _pipfile for key in ["hash", "hashes"]):
             args["hashes"] = _pipfile.get("hashes", [pipfile.get("hash")])
         cls_inst = cls(**args)
-        # if not cls_inst.req._parsed_line:
-        #     parsed_line = Line(cls_inst.as_line())
-        #     cls_inst.req._parsed_line = parsed_line
-        #     if not cls_inst.line_instance:
-        #         cls_inst.line_instance = parsed_line
-        #     if not cls_inst.is_named and not cls_inst.req._setup_info and parsed_line.setup_info:
-        #         cls_inst.req._setup_info = parsed_line.setup_info
-        #         if not cls_inst.req.name and parsed_line.setup_info.name:
-        #             cls_inst.name = cls_inst.req.name = parsed_line.setup_info.name
-        #     if not cls_inst.req.name and parsed_line.name:
-        #         cls_inst.name = cls_inst.req.name = parsed_line.name
+        cls_inst.line_instance = Line(cls_inst.as_line())
         return cls_inst
 
     def as_line(

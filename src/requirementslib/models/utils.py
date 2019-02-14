@@ -33,11 +33,18 @@ if MYPY_RUNNING:
     from attr import _ValidatorType
     from packaging.requirements import Requirement as PackagingRequirement
     from pkg_resources import Requirement as PkgResourcesRequirement
-    from pkg_resources.extern.packaging.markers import Marker as PkgResourcesMarker
+    from pkg_resources.extern.packaging.markers import (
+        Op as PkgResourcesOp, Variable as PkgResourcesVariable,
+        Value as PkgResourcesValue, Marker as PkgResourcesMarker
+    )
     from pip_shims.shims import Link
     from vistir.compat import Path
     _T = TypeVar("_T")
     TMarker = Union[Marker, PkgResourcesMarker]
+    TVariable = TypeVar("TVariable", PkgResourcesVariable, Variable)
+    TValue = TypeVar("TValue", PkgResourcesValue, Value)
+    TOp = TypeVar("TOp", PkgResourcesOp, Op)
+    MarkerTuple = Tuple[TVariable, TOp, TValue]
     TRequirement = Union[PackagingRequirement, PkgResourcesRequirement]
 
 
@@ -284,7 +291,8 @@ def strip_extras_markers_from_requirement(req):
     """
     if req is None:
         raise TypeError("Must pass in a valid requirement, received {0!r}".format(req))
-    if req.marker is not None:
+    if getattr(req, "marker", None) is not None:
+        marker = req.marker  # type: TMarker
         req.marker._markers = _strip_extras_markers(req.marker._markers)
         if not req.marker._markers:
             req.marker = None
@@ -292,7 +300,7 @@ def strip_extras_markers_from_requirement(req):
 
 
 def _strip_extras_markers(marker):
-    # type: (TMarker) -> TMarker
+    # type: (Union[MarkerTuple, List[Union[MarkerTuple, str]]]) -> List[Union[MarkerTuple, str]]
     if marker is None or not isinstance(marker, (list, tuple)):
         raise TypeError("Expecting a marker type, received {0!r}".format(marker))
     markers_to_remove = []
