@@ -144,25 +144,15 @@ def _prepare_wheel_building_kwargs(ireq=None, src_root=None, src_dir=None, edita
             src_dir = src_root
         elif ireq is None and src_root is not None:
             src_dir = _get_src_dir(root=src_root)  # type: str
-        elif ireq is not None and ireq.editable is not None and ireq.source_dir is not None:
-            src_dir = ireq.source_dir
         elif ireq is not None and ireq.editable and src_root is not None:
             src_dir = _get_src_dir(root=src_root)
         else:
             src_dir = create_tracked_tempdir(prefix="reqlib-src")
 
-    # This logic matches pip's behavior, although I don't fully understand the
-    # intention. I guess the idea is to build editables in-place, otherwise out
-    # of the source tree?
-    if (ireq is not None and ireq.editable) or editable:
-        build_dir = src_dir
-    # else:
-
     # Let's always resolve in isolation
     if src_dir is None:
         src_dir = create_tracked_tempdir(prefix="reqlib-src")
-    if ireq is not None and not ireq.editable:
-        build_dir = create_tracked_tempdir(prefix="reqlib-build")
+    build_dir = create_tracked_tempdir(prefix="reqlib-build")
 
     return {
         "build_dir": build_dir,

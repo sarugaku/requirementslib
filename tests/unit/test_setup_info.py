@@ -34,8 +34,6 @@ def test_remote_req(url_line, name, requires):
     r = Requirement.from_line(url_line)
     assert r.name == name
     setup_dict = r.req.setup_info.as_dict()
-    if "typing" in requires and not sys.version_info < (3, 5):
-        requires.remove("typing")
     assert sorted(list(setup_dict.get("requires").keys())) == sorted(requires)
 
 
@@ -44,7 +42,7 @@ def test_no_duplicate_egg_info():
     base_dir = vistir.compat.Path(os.path.abspath(os.getcwd())).as_posix()
     r = Requirement.from_line("-e {}".format(base_dir))
     egg_info_name = "{}.egg-info".format(r.name.replace("-", "_"))
-    assert os.path.isdir(os.path.join(base_dir, "src", egg_info_name))
+    assert os.path.isdir(os.path.join(base_dir, "reqlib-metadata", egg_info_name))
     assert not os.path.isdir(os.path.join(base_dir, egg_info_name))
 
 
