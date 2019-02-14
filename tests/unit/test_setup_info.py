@@ -42,8 +42,19 @@ def test_no_duplicate_egg_info():
     base_dir = vistir.compat.Path(os.path.abspath(os.getcwd())).as_posix()
     r = Requirement.from_line("-e {}".format(base_dir))
     egg_info_name = "{}.egg-info".format(r.name.replace("-", "_"))
-    assert os.path.isdir(os.path.join(base_dir, "reqlib-metadata", egg_info_name))
-    assert not os.path.isdir(os.path.join(base_dir, egg_info_name))
+    distinfo_name = "{0}.dist-info".format(r.name.replace("-", "_"))
+
+    def find_metadata(path):
+        metadata_names = [
+            os.path.join(path, name) for name in (egg_info_name, distinfo_name)
+        ]
+        return next(iter(pth for pth in metadata_names if os.path.isdir(pth)), None)
+
+    assert not find_metadata(base_dir)
+    assert not find_metadata(os.path.join(base_dir, "reqlib-metadata"))
+    assert not find_metadata(os.path.join(base_dir, "src", "reqlib-metadata"))
+    assert r.req.setup_info and os.path.isdir(r.req.setup_info.egg_base)
+    assert find_metadata(r.req.setup_info.egg_base)
 
 
 def test_without_extras(pathlib_tmpdir):
@@ -122,10 +133,4 @@ setup(
         assert r.name == "test-package"
         r.req.setup_info.get_info()
         setup_dict = r.req.setup_info.as_dict()
-        import sys
-        for k, v in setup_dict.items():
-            print("{0}: {1}".format(k, v), file=sys.stderr)
-            if k in ("base_dir",):
-                print("    dir contents: %s" % os.listdir(v))
-        # assert setup_dict == "", setup_dict
         assert sorted(list(setup_dict.get("requires").keys())) == ["coverage", "flaky", "six"], setup_dict
