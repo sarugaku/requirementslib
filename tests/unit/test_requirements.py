@@ -239,8 +239,8 @@ def test_convert_from_pip_git_uri_normalize(monkeypatch):
 def test_get_requirements(monkeypatch):
     # Test eggs in URLs
     with monkeypatch.context() as m:
-        m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
-        m.setattr(SetupInfo, "get_info", mock_run_requires)
+        # m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
+        # m.setattr(SetupInfo, "get_info", mock_run_requires)
         url_with_egg = Requirement.from_line(
             'https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip#egg=django-user-clipboard'
         ).requirement
@@ -336,7 +336,7 @@ def test_local_editable_ref(monkeypatch):
 def test_pep_508():
     r = Requirement.from_line("tablib@ https://github.com/kennethreitz/tablib/archive/v0.12.1.zip")
     assert r.specifiers == "==0.12.1"
-    assert r.req.link.url == "https://github.com/kennethreitz/tablib/archive/v0.12.1.zip"
+    assert r.req.link.url == "https://github.com/kennethreitz/tablib/archive/v0.12.1.zip#egg=tablib"
     assert r.req.req.name == "tablib"
     assert r.req.req.url == "https://github.com/kennethreitz/tablib/archive/v0.12.1.zip"
     requires, setup_requires, build_requires = r.req.dependencies
