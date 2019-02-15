@@ -48,13 +48,21 @@ def test_no_duplicate_egg_info():
         metadata_names = [
             os.path.join(path, name) for name in (egg_info_name, distinfo_name)
         ]
-        return next(iter(pth for pth in metadata_names if os.path.isdir(pth)), None)
+        if not os.path.isdir(path):
+            return None
+        pth = next(iter(pth for pth in metadata_names if os.path.isdir(pth)), None)
+        if not pth:
+            pth = next(iter(
+                pth for pth in os.listdir(path)
+                if any(pth.endswith(md_ending) for md_ending in [".egg-info", ".dist-info"])
+            ), None)
+        return pth
 
     assert not find_metadata(base_dir)
     assert not find_metadata(os.path.join(base_dir, "reqlib-metadata"))
     assert not find_metadata(os.path.join(base_dir, "src", "reqlib-metadata"))
     assert r.req.setup_info and os.path.isdir(r.req.setup_info.egg_base)
-    assert find_metadata(r.req.setup_info.egg_base)
+    assert find_metadata(r.req.setup_info.egg_base) or find_metadata(r.req.setup_info.extra_kwargs["build_dir"])
 
 
 def test_without_extras(pathlib_tmpdir):
