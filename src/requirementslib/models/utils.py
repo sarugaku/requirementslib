@@ -342,8 +342,10 @@ def get_pyproject(path):
     pp_toml = path.joinpath("pyproject.toml")
     setup_py = path.joinpath("setup.py")
     if not pp_toml.exists():
-        if setup_py.exists():
+        if not setup_py.exists():
             return None
+        requires = ["setuptools>=40.6", "wheel"]
+        backend = "setuptools.build_meta:__legacy__"
     else:
         pyproject_data = {}
         with io.open(pp_toml.as_posix(), encoding="utf-8") as fh:
@@ -351,10 +353,10 @@ def get_pyproject(path):
         build_system = pyproject_data.get("build-system", None)
         if build_system is None:
             if setup_py.exists():
-                requires = ["setuptools", "wheel"]
-                backend = "setuptools.build_meta"
+                requires = ["setuptools>=40.6", "wheel"]
+                backend = "setuptools.build_meta:__legacy__"
             else:
-                requires = ["setuptools>=38.2.5", "wheel"]
+                requires = ["setuptools>=40.6", "wheel"]
                 backend = "setuptools.build_meta"
             build_system = {
                 "requires": requires,
@@ -362,9 +364,9 @@ def get_pyproject(path):
             }
             pyproject_data["build_system"] = build_system
         else:
-            requires = build_system.get("requires")
-            backend = build_system.get("build-backend", "setuptools.build_meta")
-        return (requires, backend)
+            requires = build_system.get("requires", ["setuptools>=40.6", "wheel"])
+            backend = build_system.get("build-backend", "setuptools.build_meta:__legacy__")
+    return (requires, backend)
 
 
 def split_markers_from_line(line):

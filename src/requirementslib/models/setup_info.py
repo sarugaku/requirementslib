@@ -48,7 +48,7 @@ except ImportError:
 
 
 if MYPY_RUNNING:
-    from typing import Any, Dict, List, Generator, Optional, Union, Tuple, TypeVar, Text
+    from typing import Any, Dict, List, Generator, Optional, Union, Tuple, TypeVar, Text, Set
     from pip_shims.shims import InstallRequirement, PackageFinder
     from pkg_resources import (
         PathMetadata, DistInfoDistribution, Requirement as PkgResourcesRequirement
@@ -65,6 +65,14 @@ CACHE_DIR = os.environ.get("PIPENV_CACHE_DIR", user_cache_dir("pipenv"))
 # in their setup.py scripts
 _setup_stop_after = None
 _setup_distribution = None
+
+
+class BuildEnv(pep517.envbuild.BuildEnvironment):
+    def pip_install(self, reqs):
+        cmd = [sys.executable, '-m', 'pip', 'install', '--ignore-installed', '--prefix',
+               self.path] + list(reqs)
+        run(cmd, block=True, combine_stderr=True, return_object=False,
+            write_to_stdout=False, nospin=True)
 
 
 @contextlib.contextmanager
@@ -441,7 +449,7 @@ class SetupInfo(object):
                 results["name"] = parser.get("metadata", "name")
             if parser.has_option("metadata", "version"):
                 results["version"] = parser.get("metadata", "version")
-            install_requires = set()  # type: Set(BaseRequirement)
+            install_requires = set()  # type: Set[BaseRequirement]
             if parser.has_option("options", "install_requires"):
                 install_requires = set([
                     BaseRequirement.from_string(dep)
@@ -481,7 +489,7 @@ class SetupInfo(object):
         if base is None:
             base = Path(self.base_dir)
         if base is None:
-            base = Path(self.extra_kwargs["build_dir"])
+            base = Path(self.extra_kwargs["src_dir"])
         egg_base = base.joinpath("reqlib-metadata")
         if not egg_base.exists():
             atexit.register(rmtree, egg_base.as_posix())
@@ -589,21 +597,25 @@ class SetupInfo(object):
     @contextlib.contextmanager
     def run_pep517(self):
         # type: (bool) -> Generator[pep517.wrappers.Pep517HookCaller, None, None]
-        with pep517.envbuild.BuildEnvironment():
-            hookcaller = pep517.wrappers.Pep517HookCaller(
-                self.base_dir, self.build_backend
-            )
-            hookcaller._subprocess_runner = pep517_subprocess_runner
-            build_deps = hookcaller.get_requires_for_build_wheel()
-            if self.ireq.editable:
-                build_deps += hookcaller.get_requires_for_build_sdist()
-            metadata_dirname = hookcaller.prepare_metadata_for_build_wheel(self.egg_base)
-            metadata_dir = os.path.join(self.egg_base, metadata_dirname)
+        config = {}
+        config.setdefault("--global-option", [])
+        builder = pep517.wrappers.Pep517HookCaller(
+            self.base_dir, self.build_backend
+        )
+        builder._subprocess_runner = pep517_subprocess_runner
+        with BuildEnv() as env:
+            env.pip_install(self.build_requires)
             try:
-                yield hookcaller
+                reqs = builder.get_requires_for_build_wheel(config_settings=config)
+                env.pip_install(reqs)
+                metadata_dirname = builder.prepare_metadata_for_build_wheel(
+                    self.egg_base, config_settings=config
+                )
             except Exception:
-                build_deps = ["setuptools", "wheel"]
-            self.build_requires = tuple(set(self.build_requires) | set(build_deps))
+                reqs = builder.get_requires_for_build_sdist(config_settings=config)
+                env.pip_install(reqs)
+            metadata_dir = os.path.join(self.egg_base, metadata_dirname)
+            yield builder
 
     def build(self):
         # type: () -> Optional[Text]
@@ -711,9 +723,10 @@ class SetupInfo(object):
                     self.build_backend = backend
                 else:
                     self.build_backend = "setuptools.build_meta:__legacy__"
+                if requires:
+                    self.build_requires = tuple(set(requires) | set(self.build_requires))
+                else:
                     self.build_requires = ("setuptools", "wheel")
-                if requires and not self.build_requires:
-                    self.build_requires = tuple(requires)
 
     def get_info(self):
         # type: () -> Dict[Text, Any]
@@ -791,12 +804,8 @@ class SetupInfo(object):
             if "file:/" in uri and "file:///" not in uri:
                 uri = uri.replace("file:/", "file:///")
             path = pip_shims.shims.url_to_path(uri)
-        #     if pip_shims.shims.is_installable_dir(path) and ireq.editable:
-        #         ireq.source_dir = path
         kwargs = _prepare_wheel_building_kwargs(ireq)
         ireq.source_dir = kwargs["src_dir"]
-        # os.environ["PIP_BUILD_DIR"] = kwargs["build_dir"]
-        ireq.ensure_has_source_dir(kwargs["build_dir"])
         if not (
             ireq.editable
             and pip_shims.shims.is_file_url(ireq.link)
@@ -813,17 +822,18 @@ class SetupInfo(object):
                 "The file URL points to a directory not installable: {}"
                 .format(ireq.link)
             )
-        if not ireq.editable:
-            build_dir = ireq.build_location(kwargs["build_dir"])
-            ireq._temp_build_dir.path = kwargs["build_dir"]
-        else:
-            build_dir = ireq.build_location(kwargs["src_dir"])
-            ireq._temp_build_dir.path = kwargs["build_dir"]
+        # if not ireq.editable:
+        build_dir = ireq.build_location(kwargs["build_dir"])
+        src_dir = ireq.ensure_has_source_dir(kwargs["src_dir"])
+        ireq._temp_build_dir.path = kwargs["build_dir"]
+        # else:
+        #     build_dir = ireq.build_location(kwargs["src_dir"])
+        #     ireq._temp_build_dir.path = kwargs["build_dir"]
 
         ireq.populate_link(finder, False, False)
         pip_shims.shims.unpack_url(
             ireq.link,
-            build_dir,
+            src_dir,
             download_dir,
             only_download=only_download,
             session=finder.session,
@@ -831,7 +841,7 @@ class SetupInfo(object):
             progress_bar="off",
         )
         created = cls.create(
-            build_dir, subdirectory=subdir, ireq=ireq, kwargs=kwargs
+            src_dir, subdirectory=subdir, ireq=ireq, kwargs=kwargs
         )
         return created
 
