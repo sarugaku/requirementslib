@@ -1666,13 +1666,13 @@ class FileRequirement(object):
         if name:
             creation_kwargs["name"] = name
         cls_inst = cls(**creation_kwargs)  # type: ignore
-        if parsed_line and not cls_inst._parsed_line:
-            cls_inst._parsed_line = parsed_line
-        if not cls_inst._parsed_line:
-            cls_inst._parsed_line = Line(cls_inst.line_part)
-        if cls_inst._parsed_line and cls_inst.parsed_line.ireq and not cls_inst.parsed_line.ireq.req:
-            if cls_inst.req:
-                cls_inst._parsed_line._ireq.req = cls_inst.req
+        # if parsed_line and not cls_inst._parsed_line:
+        #     cls_inst._parsed_line = parsed_line
+        # if not cls_inst._parsed_line:
+        #     cls_inst._parsed_line = Line(cls_inst.line_part)
+        # if cls_inst._parsed_line and cls_inst.parsed_line.ireq and not cls_inst.parsed_line.ireq.req:
+        #     if cls_inst.req:
+        #         cls_inst._parsed_line._ireq.req = cls_inst.req
         return cls_inst
 
     @classmethod
@@ -1906,10 +1906,10 @@ class VCSRequirement(FileRequirement):
             new_uri = urllib_parse.urlunsplit((scheme,) + rest[:-1] + ("",))
             new_uri = "{0}{1}".format(vcs_type, new_uri)
             self.uri = new_uri
-        if self.req and self._parsed_line and (
-            self._parsed_line.ireq and not self._parsed_line.ireq.req
-        ):
-            self._parsed_line._ireq.req = self.req
+        # if self.req and self._parsed_line and (
+        #     self._parsed_line.ireq and not self._parsed_line.ireq.req
+        # ):
+        #     self._parsed_line._ireq.req = self.req
 
     @link.default
     def get_link(self):
@@ -1944,15 +1944,15 @@ class VCSRequirement(FileRequirement):
 
     @property
     def setup_info(self):
+        if self._parsed_line and self._parsed_line.setup_info:
+            if not self._parsed_line.setup_info.name:
+                self._parsed_line._setup_info.get_info()
+            return self._parsed_line.setup_info
         if self._repo:
             from .setup_info import SetupInfo
             self._setup_info = SetupInfo.from_ireq(Line(self._repo.checkout_directory).ireq)
             self._setup_info.get_info()
             return self._setup_info
-        if self._parsed_line and self._parsed_line.setup_info:
-            if not self._parsed_line.setup_info.name:
-                self._parsed_line._setup_info.get_info()
-            return self._parsed_line.setup_info
         ireq = self.parsed_line.ireq
         from .setup_info import SetupInfo
         self._setup_info = SetupInfo.from_ireq(ireq)
@@ -2019,9 +2019,12 @@ class VCSRequirement(FileRequirement):
     def repo(self):
         # type: () -> VCSRepository
         if self._repo is None:
-            self._repo = self.get_vcs_repo()
-            if self._parsed_line:
-                self._parsed_line.vcsrepo = self._repo
+            if self._parsed_line and self._parsed_line.vcsrepo:
+                self._repo = self._parsed_line.vcsrepo
+            else:
+                self._repo = self.get_vcs_repo()
+                if self._parsed_line:
+                    self._parsed_line.vcsrepo = self._repo
         return self._repo
 
     def get_checkout_dir(self, src_dir=None):
@@ -2041,11 +2044,12 @@ class VCSRequirement(FileRequirement):
             return checkout_dir
         return os.path.join(create_tracked_tempdir(prefix="requirementslib"), self.name)
 
-    def get_vcs_repo(self, src_dir=None):
-        # type: (Optional[Text]) -> VCSRepository
+    def get_vcs_repo(self, src_dir=None, checkout_dir=None):
+        # type: (Optional[Text], Optional[Text]) -> VCSRepository
         from .vcs import VCSRepository
 
-        checkout_dir = self.get_checkout_dir(src_dir=src_dir)
+        if checkout_dir is None:
+            checkout_dir = self.get_checkout_dir(src_dir=src_dir)
         vcsrepo = VCSRepository(
             url=self.link.url,
             name=self.name,
@@ -2115,12 +2119,11 @@ class VCSRequirement(FileRequirement):
         if self._parsed_line:
             self._parsed_line.vcsrepo = vcsrepo
         if self._setup_info:
-            self._setup_info._requirements = ()
-            self._setup_info._extras_requirements = ()
-            self._setup_info.build_requires = ()
-            self._setup_info.setup_requires = ()
-            self._setup_info.version = None
-            self._setup_info.metadata = None
+            _old_setup_info = self._setup_info
+            self._setup_info = attr.evolve(
+                self._setup_info, requirements=(), _extras_requirements=(),
+                build_requires=(), setup_requires=(), version=None, metadata=None
+            )
         if self.parsed_line:
             self._parsed_line.vcsrepo = vcsrepo
             # self._parsed_line._specifier = "=={0}".format(self.setup_info.version)
@@ -2131,6 +2134,7 @@ class VCSRequirement(FileRequirement):
             yield vcsrepo
         finally:
             self._repo = orig_repo
+            # self._setup_info = _old_setup_info
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
@@ -2178,21 +2182,21 @@ class VCSRequirement(FileRequirement):
                 creation_args[key] = pipfile.get(key)
         creation_args["name"] = name
         cls_inst = cls(**creation_args)
-        if cls_inst._parsed_line is None:
-            vcs_uri = build_vcs_uri(
-                vcs=cls_inst.vcs, uri=add_ssh_scheme_to_git_uri(cls_inst.uri),
-                name=cls_inst.name, ref=cls_inst.ref, subdirectory=cls_inst.subdirectory,
-                extras=cls_inst.extras
-            )
-            if cls_inst.editable:
-                vcs_uri = "-e {0}".format(vcs_uri)
-            cls_inst._parsed_line = Line(vcs_uri)
-            if not cls_inst.name and cls_inst._parsed_line.name:
-                cls_inst.name = cls_inst._parsed_line.name
-        if cls_inst.req and (
-            cls_inst._parsed_line.ireq and not cls_inst.parsed_line.ireq.req
-        ):
-            cls_inst._parsed_line.ireq.req = cls_inst.req
+        # if cls_inst._parsed_line is None:
+        #     vcs_uri = build_vcs_uri(
+        #         vcs=cls_inst.vcs, uri=add_ssh_scheme_to_git_uri(cls_inst.uri),
+        #         name=cls_inst.name, ref=cls_inst.ref, subdirectory=cls_inst.subdirectory,
+        #         extras=cls_inst.extras
+        #     )
+        #     if cls_inst.editable:
+        #         vcs_uri = "-e {0}".format(vcs_uri)
+        #     cls_inst._parsed_line = Line(vcs_uri)
+        #     if not cls_inst.name and cls_inst._parsed_line.name:
+        #         cls_inst.name = cls_inst._parsed_line.name
+        # if cls_inst.req and (
+        #     cls_inst._parsed_line.ireq and not cls_inst.parsed_line.ireq.req
+        # ):
+        #     cls_inst._parsed_line.ireq.req = cls_inst.req
         return cls_inst
 
     @classmethod
@@ -2646,7 +2650,6 @@ class Requirement(object):
         if any(key in _pipfile for key in ["hash", "hashes"]):
             args["hashes"] = _pipfile.get("hashes", [pipfile.get("hash")])
         cls_inst = cls(**args)
-        cls_inst.line_instance = Line(cls_inst.as_line())
         return cls_inst
 
     def as_line(

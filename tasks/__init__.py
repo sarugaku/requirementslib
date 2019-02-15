@@ -200,7 +200,7 @@ def clean_mdchangelog(ctx):
 
 def log(task, message, level=LogLevel.INFO):
     message_format = f"[{level.name.upper()}] "
-    if level >= LogLevel.ERROR:
+    if level.value >= LogLevel.ERROR.value:
         task = f"****** ({task}) "
     else:
         task = f"({task}) "
