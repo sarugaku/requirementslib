@@ -248,9 +248,9 @@ def test_get_requirements(monkeypatch):
         assert url_with_egg.name == 'django-user-clipboard'
         # Test URLs without eggs pointing at installable zipfiles
         url = Requirement.from_line(
-            'https://github.com/kennethreitz/tablib/archive/v0.12.1.zip'
+            'https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1'
         ).requirement
-        assert url.url == 'https://github.com/kennethreitz/tablib/archive/v0.12.1.zip'
+        assert url.url == 'https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1'
         wheel_line = "https://github.com/pypa/pipenv/raw/master/tests/test_artifacts/six-1.11.0+mkl-py2.py3-none-any.whl"
         wheel = Requirement.from_line(wheel_line)
         assert wheel.as_pipfile() == {
@@ -334,11 +334,11 @@ def test_local_editable_ref(monkeypatch):
 
 
 def test_pep_508():
-    r = Requirement.from_line("tablib@ https://github.com/kennethreitz/tablib/archive/v0.12.1.zip")
+    r = Requirement.from_line("tablib@ https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1")
     assert r.specifiers == "==0.12.1"
-    assert r.req.link.url == "https://github.com/kennethreitz/tablib/archive/v0.12.1.zip#egg=tablib"
+    assert r.req.link.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1#egg=tablib"
     assert r.req.req.name == "tablib"
-    assert r.req.req.url == "https://github.com/kennethreitz/tablib/archive/v0.12.1.zip"
+    assert r.req.req.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
     requires, setup_requires, build_requires = r.req.dependencies
     assert all(dep in requires for dep in ["openpyxl", "odfpy", "xlrd"])
-    assert r.as_pipfile() == {'tablib': {'file': 'https://github.com/kennethreitz/tablib/archive/v0.12.1.zip'}}
+    assert r.as_pipfile() == {'tablib': {'file': 'https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1'}}
