@@ -6,8 +6,6 @@ import collections
 import copy
 import hashlib
 import os
-import re
-import string
 import sys
 
 from distutils.sysconfig import get_python_lib
@@ -15,8 +13,6 @@ from contextlib import contextmanager
 from functools import partial
 
 import attr
-import pep517
-import pep517.wrappers
 import pip_shims
 import six
 import vistir
@@ -29,7 +25,7 @@ from packaging.specifiers import Specifier, SpecifierSet, LegacySpecifier, Inval
 from packaging.utils import canonicalize_name
 from six.moves.urllib import parse as urllib_parse
 from six.moves.urllib.parse import unquote
-from vistir.compat import Path, Iterable, FileNotFoundError, lru_cache
+from vistir.compat import Path, FileNotFoundError, lru_cache
 from vistir.contextmanagers import temp_path
 from vistir.misc import dedup
 from vistir.path import (
@@ -46,7 +42,6 @@ from ..utils import (
     VCS_LIST,
     is_installable_file,
     is_vcs,
-    ensure_setup_py,
     add_ssh_scheme_to_git_uri,
     strip_ssh_from_git_uri,
     get_setup_paths
@@ -74,7 +69,6 @@ from .utils import (
     create_link,
     get_pyproject,
     convert_direct_url_to_url,
-    convert_url_to_direct_url,
     URL_RE,
     DIRECT_URL_RE
 )
@@ -1669,13 +1663,6 @@ class FileRequirement(object):
         if name:
             creation_kwargs["name"] = name
         cls_inst = cls(**creation_kwargs)  # type: ignore
-        # if parsed_line and not cls_inst._parsed_line:
-        #     cls_inst._parsed_line = parsed_line
-        # if not cls_inst._parsed_line:
-        #     cls_inst._parsed_line = Line(cls_inst.line_part)
-        # if cls_inst._parsed_line and cls_inst.parsed_line.ireq and not cls_inst.parsed_line.ireq.req:
-        #     if cls_inst.req:
-        #         cls_inst._parsed_line._ireq.req = cls_inst.req
         return cls_inst
 
     @classmethod
@@ -1909,10 +1896,6 @@ class VCSRequirement(FileRequirement):
             new_uri = urllib_parse.urlunsplit((scheme,) + rest[:-1] + ("",))
             new_uri = "{0}{1}".format(vcs_type, new_uri)
             self.uri = new_uri
-        # if self.req and self._parsed_line and (
-        #     self._parsed_line.ireq and not self._parsed_line.ireq.req
-        # ):
-        #     self._parsed_line._ireq.req = self.req
 
     @link.default
     def get_link(self):
@@ -2134,10 +2117,10 @@ class VCSRequirement(FileRequirement):
         if self.req:
             self.req.specifier = SpecifierSet("=={0}".format(self.setup_info.version))
         try:
-            yield vcsrepo
-        finally:
+            yield self._repo
+        except Exception:
             self._repo = orig_repo
-            # self._setup_info = _old_setup_info
+            raise
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
@@ -2185,21 +2168,6 @@ class VCSRequirement(FileRequirement):
                 creation_args[key] = pipfile.get(key)
         creation_args["name"] = name
         cls_inst = cls(**creation_args)
-        # if cls_inst._parsed_line is None:
-        #     vcs_uri = build_vcs_uri(
-        #         vcs=cls_inst.vcs, uri=add_ssh_scheme_to_git_uri(cls_inst.uri),
-        #         name=cls_inst.name, ref=cls_inst.ref, subdirectory=cls_inst.subdirectory,
-        #         extras=cls_inst.extras
-        #     )
-        #     if cls_inst.editable:
-        #         vcs_uri = "-e {0}".format(vcs_uri)
-        #     cls_inst._parsed_line = Line(vcs_uri)
-        #     if not cls_inst.name and cls_inst._parsed_line.name:
-        #         cls_inst.name = cls_inst._parsed_line.name
-        # if cls_inst.req and (
-        #     cls_inst._parsed_line.ireq and not cls_inst.parsed_line.ireq.req
-        # ):
-        #     cls_inst._parsed_line.ireq.req = cls_inst.req
         return cls_inst
 
     @classmethod
