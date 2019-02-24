@@ -33,7 +33,8 @@ from .utils import (
     get_pyproject,
     init_requirement,
     split_vcs_method_from_uri,
-    strip_extras_markers_from_requirement
+    strip_extras_markers_from_requirement,
+    get_default_pyproject_backend
 )
 
 try:
@@ -431,7 +432,7 @@ class SetupInfo(object):
     version = attr.ib(default=None, cmp=True)  # type: Text
     _requirements = attr.ib(type=frozenset, factory=frozenset, cmp=True, hash=True)
     build_requires = attr.ib(type=tuple, default=attr.Factory(tuple), cmp=True)
-    build_backend = attr.ib(default="setuptools.build_meta:__legacy__", cmp=True)  # type: Text
+    build_backend = attr.ib(cmp=True)  # type: Text
     setup_requires = attr.ib(type=tuple, default=attr.Factory(tuple), cmp=True)
     python_requires = attr.ib(type=packaging.specifiers.SpecifierSet, default=None, cmp=True)
     _extras_requirements = attr.ib(type=tuple, default=attr.Factory(tuple), cmp=True)
@@ -441,6 +442,10 @@ class SetupInfo(object):
     ireq = attr.ib(default=None, cmp=True, hash=False)  # type: Optional[InstallRequirement]
     extra_kwargs = attr.ib(default=attr.Factory(dict), type=dict, cmp=False, hash=False)
     metadata = attr.ib(default=None)  # type: Optional[Tuple[Text]]
+
+    @build_backend.default
+    def get_build_backend(self):
+        return get_default_pyproject_backend()
 
     @property
     def requires(self):
@@ -764,7 +769,7 @@ build-backend = "{1}"
                 if backend:
                     self.build_backend = backend
                 else:
-                    self.build_backend = "setuptools.build_meta:__legacy__"
+                    self.build_backend = get_default_pyproject_backend()
                 if requires:
                     self.build_requires = tuple(set(requires) | set(self.build_requires))
                 else:

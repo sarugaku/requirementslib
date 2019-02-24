@@ -18,8 +18,10 @@ from attr import validators
 from first import first
 from packaging.markers import InvalidMarker, Marker, Op, Value, Variable
 from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
+from packaging.version import parse as parse_version
 from six.moves.urllib import parse as urllib_parse
 from urllib3 import util as urllib3_util
+from vistir.compat import lru_cache
 from vistir.misc import dedup
 from vistir.path import is_valid_url
 
@@ -321,6 +323,26 @@ def _strip_extras_markers(marker):
     return marker
 
 
+@lru_cache()
+def get_setuptools_version():
+    # type: () -> Optional[Text]
+    import pkg_resources
+    setuptools_dist = pkg_resources.get_distribution(
+        pkg_resources.Requirement("setuptools")
+    )
+    return getattr(setuptools_dist, "version", None)
+
+
+def get_default_pyproject_backend():
+    # type: () -> Text
+    st_version = get_setuptools_version()
+    if st_version is not None:
+        parsed_st_version = parse_version(st_version)
+        if parsed_st_version >= parse_version("40.8.0"):
+            return "setuptools.build_meta:__legacy__"
+    return "setuptools.build_meta"
+
+
 def get_pyproject(path):
     # type: (Union[Text, Path]) -> Tuple[List[Text], Text]
     """
@@ -344,8 +366,8 @@ def get_pyproject(path):
     if not pp_toml.exists():
         if not setup_py.exists():
             return None
-        requires = ["setuptools>=40.6", "wheel"]
-        backend = "setuptools.build_meta:__legacy__"
+        requires = ["setuptools>=40.8", "wheel"]
+        backend = get_default_pyproject_backend()
     else:
         pyproject_data = {}
         with io.open(pp_toml.as_posix(), encoding="utf-8") as fh:
@@ -353,19 +375,19 @@ def get_pyproject(path):
         build_system = pyproject_data.get("build-system", None)
         if build_system is None:
             if setup_py.exists():
-                requires = ["setuptools>=40.6", "wheel"]
-                backend = "setuptools.build_meta:__legacy__"
+                requires = ["setuptools>=40.8", "wheel"]
+                backend = get_default_pyproject_backend()
             else:
-                requires = ["setuptools>=40.6", "wheel"]
-                backend = "setuptools.build_meta"
+                requires = ["setuptools>=40.8", "wheel"]
+                backend = get_default_pyproject_backend()
             build_system = {
                 "requires": requires,
                 "build-backend": backend
             }
             pyproject_data["build_system"] = build_system
         else:
-            requires = build_system.get("requires", ["setuptools>=40.6", "wheel"])
-            backend = build_system.get("build-backend", "setuptools.build_meta:__legacy__")
+            requires = build_system.get("requires", ["setuptools>=40.8", "wheel"])
+            backend = build_system.get("build-backend", get_default_pyproject_backend())
     return (requires, backend)
 
 
