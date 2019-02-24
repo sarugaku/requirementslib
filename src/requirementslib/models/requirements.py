@@ -70,7 +70,8 @@ from .utils import (
     get_pyproject,
     convert_direct_url_to_url,
     URL_RE,
-    DIRECT_URL_RE
+    DIRECT_URL_RE,
+    get_default_pyproject_backend
 )
 
 from ..environment import MYPY_RUNNING
@@ -305,7 +306,11 @@ class Line(object):
             # note: we need versions for direct dependencies at the very least
             if self.is_file or self.is_url or self.is_path or (self.is_vcs and not self.editable):
                 if self.specifier is not None:
-                    self.specifiers = self.specifier
+                    specifier = self.specifier
+                    if not isinstance(specifier, SpecifierSet):
+                        specifier = SpecifierSet(specifier)
+                    self.specifiers = specifier
+                    return specifier
         if self.ireq is not None and self.ireq.req is not None:
             return self.ireq.req.specifier
         elif self.requirement is not None:
@@ -381,7 +386,7 @@ class Line(object):
             pyproject_requires, pyproject_backend = get_pyproject(self.path)
             if not pyproject_backend and self.setup_cfg is not None:
                 setup_dict = SetupInfo.get_setup_cfg(self.setup_cfg)
-                pyproject_backend = "setuptools.build_meta:__legacy__"
+                pyproject_backend = get_default_pyproject_backend()
                 pyproject_requires = setup_dict.get("build_requires", ["setuptools", "wheel"])
 
             self._pyproject_requires = pyproject_requires
@@ -1819,7 +1824,14 @@ class FileRequirement(object):
         ]
         filter_func = lambda k, v: bool(v) is True and k.name not in excludes  # noqa
         pipfile_dict = attr.asdict(self, filter=filter_func).copy()
-        name = pipfile_dict.pop("name")
+        name = pipfile_dict.pop("name", None)
+        if name is None:
+            if self.name:
+                name = self.name
+            elif self.parsed_line and self.parsed_line.name:
+                name = self.name = self.parsed_line.name
+            elif self.setup_info and self.setup_info.name:
+                name = self.name = self.setup_info.name
         if "_uri_scheme" in pipfile_dict:
             pipfile_dict.pop("_uri_scheme")
         # For local paths and remote installable artifacts (zipfiles, etc)
@@ -2302,15 +2314,23 @@ class VCSRequirement(FileRequirement):
         ]
         filter_func = lambda k, v: bool(v) is True and k.name not in excludes  # noqa
         pipfile_dict = attr.asdict(self, filter=filter_func).copy()
+        name = pipfile_dict.pop("name", None)
+        if name is None:
+            if self.name:
+                name = self.name
+            elif self.parsed_line and self.parsed_line.name:
+                name = self.name = self.parsed_line.name
+            elif self.setup_info and self.setup_info.name:
+                name = self.name = self.setup_info.name
         if "vcs" in pipfile_dict:
             pipfile_dict = self._choose_vcs_source(pipfile_dict)
-        name, _ = pip_shims.shims._strip_extras(pipfile_dict.pop("name"))
+        name, _ = pip_shims.shims._strip_extras(name)
         return {name: pipfile_dict}
 
 
 @attr.s(cmp=True, hash=True)
 class Requirement(object):
-    name = attr.ib(cmp=True)  # type: Text
+    _name = attr.ib(cmp=True)  # type: Text
     vcs = attr.ib(default=None, validator=attr.validators.optional(validate_vcs), cmp=True)  # type: Optional[Text]
     req = attr.ib(default=None, cmp=True)  # type: Optional[Union[VCSRequirement, FileRequirement, NamedRequirement]]
     markers = attr.ib(default=None, cmp=True)  # type: Optional[Text]
@@ -2326,10 +2346,23 @@ class Requirement(object):
     def __hash__(self):
         return hash(self.as_line())
 
-    @name.default
+    @_name.default
     def get_name(self):
         # type: () -> Optional[Text]
         return self.req.name
+
+    @property
+    def name(self):
+        # type: () -> Optional[Text]
+        if self._name is not None:
+            return self._name
+        name = None
+        if self.req and self.req.name:
+            name = self.req.name
+        elif self.req and self.is_file_or_url and self.req.setup_info:
+            name = self.req.setup_info.name
+        self._name = name
+        return name
 
     @property
     def requirement(self):
@@ -2735,9 +2768,17 @@ class Requirement(object):
         name = self.name
         if "markers" in req_dict and req_dict["markers"]:
             req_dict["markers"] = req_dict["markers"].replace('"', "'")
+        if not self.req.name:
+            name_carriers = (self.req, self, self.line_instance, self.req.parsed_line)
+            name_options = [
+                getattr(carrier, "name", None)
+                for carrier in name_carriers if carrier is not None
+            ]
+            req_name = next(iter(n for n in name_options if n is not None), None)
+            self.req.name = req_name
+        req_name, dict_from_subreq = self.req.pipfile_part.popitem()
         base_dict = {
-            k: v
-            for k, v in self.req.pipfile_part[name].items()
+            k: v for k, v in dict_from_subreq.items()
             if k not in ["req", "link", "_setup_info"]
         }
         base_dict.update(req_dict)
