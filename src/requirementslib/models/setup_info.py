@@ -15,7 +15,6 @@ import pep517.envbuild
 import pep517.wrappers
 import six
 from appdirs import user_cache_dir
-from cached_property import cached_property
 from distlib.wheel import Wheel
 from packaging.markers import Marker
 from six.moves import configparser
