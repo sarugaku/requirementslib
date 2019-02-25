@@ -302,8 +302,8 @@ def get_metadata_from_wheel(wheel_path):
     name = metadata.name
     version = metadata.version
     requires = []
-    extras_keys = getattr(metadata, "extras", None)
-    extras = {}
+    extras_keys = getattr(metadata, "extras", [])
+    extras = {k: [] for k in extras_keys}
     for req in getattr(metadata, "run_requires", []):
         parsed_req = init_requirement(req)
         parsed_marker = parsed_req.marker
@@ -839,7 +839,7 @@ build-backend = "{1}"
             from .dependencies import get_finder
 
             finder = get_finder()
-        vcs_method, uri = split_vcs_method_from_uri(unquote(ireq.link.url_without_fragment))
+        _, uri = split_vcs_method_from_uri(unquote(ireq.link.url_without_fragment))
         parsed = urlparse(uri)
         if "file" in parsed.scheme:
             url_path = parsed.path
@@ -870,7 +870,7 @@ build-backend = "{1}"
                 "The file URL points to a directory not installable: {}"
                 .format(ireq.link)
             )
-        build_dir = ireq.build_location(kwargs["build_dir"])
+        ireq.build_location(kwargs["build_dir"])
         src_dir = ireq.ensure_has_source_dir(kwargs["src_dir"])
         ireq._temp_build_dir.path = kwargs["build_dir"]
 
