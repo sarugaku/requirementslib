@@ -652,6 +652,7 @@ build-backend = "{1}"
             dist_type="wheel"
         )
 
+    # noinspection PyPackageRequirements
     def build_sdist(self):
         # type: () -> Text
         if not self.pyproject.exists():
