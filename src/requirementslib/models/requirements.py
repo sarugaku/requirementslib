@@ -2602,7 +2602,7 @@ class Requirement(object):
                 r.req.extras = args["extras"]
         if parsed_line.hashes:
             args["hashes"] = tuple(parsed_line.hashes)  # type: ignore
-        cls_inst = cls(**args)
+        cls_inst = cls(**args)  # type: ignore
         return cls_inst
 
     @classmethod
