@@ -2522,7 +2522,8 @@ class Requirement(object):
     @property
     def build_backend(self):
         # type: () -> Optional[Text]
-        if self.is_vcs or (self.is_file_or_url and self.req.is_local):
+        if self.is_vcs or (self.is_file_or_url and (
+                self.req is not None and self.req.is_local)):
             setup_info = self.run_requires()
             build_backend = setup_info.get("build_backend")
             return build_backend
@@ -2548,7 +2549,11 @@ class Requirement(object):
     @property
     def is_wheel(self):
         # type: () -> bool
-        if not self.is_named and self.req.link is not None and self.req.link.is_wheel:
+        if not self.is_named and (
+            self.req is not None and
+            self.req.link is not None and
+            self.req.link.is_wheel
+        ):
             return True
         return False
 
@@ -2942,6 +2947,9 @@ class Requirement(object):
 def file_req_from_parsed_line(parsed_line):
     # type: (Line) -> FileRequirement
     path = parsed_line.relpath if parsed_line.relpath else parsed_line.path
+    pyproject_requires = ()  # type: Tuple[Text]
+    if parsed_line.pyproject_requires is not None:
+        pyproject_requires = tuple(parsed_line.pyproject_requires)
     return FileRequirement(
         setup_path=parsed_line.setup_py,
         path=path,
@@ -2950,7 +2958,7 @@ def file_req_from_parsed_line(parsed_line):
         uri_scheme=parsed_line.preferred_scheme,
         link=parsed_line.link,
         uri=parsed_line.uri,
-        pyproject_requires=tuple(parsed_line.pyproject_requires) if parsed_line.pyproject_requires else None,
+        pyproject_requires=pyproject_requires,
         pyproject_backend=parsed_line.pyproject_backend,
         pyproject_path=Path(parsed_line.pyproject_toml) if parsed_line.pyproject_toml else None,
         parsed_line=parsed_line,
@@ -2964,14 +2972,20 @@ def vcs_req_from_parsed_line(parsed_line):
     line = "{0}".format(parsed_line.line)
     if parsed_line.editable:
         line = "-e {0}".format(line)
-    link = create_link(build_vcs_uri(
-        vcs=parsed_line.vcs,
-        uri=parsed_line.url,
-        name=parsed_line.name,
-        ref=parsed_line.ref,
-        subdirectory=parsed_line.subdirectory,
-        extras=parsed_line.extras
-    ))
+    if parsed_line.url is not None:
+        link = create_link(build_vcs_uri(
+            vcs=parsed_line.vcs,
+            uri=parsed_line.url,
+            name=parsed_line.name,
+            ref=parsed_line.ref,
+            subdirectory=parsed_line.subdirectory,
+            extras=list(parsed_line.extras)
+        ))
+    else:
+        link = parsed_line.link
+    pyproject_requires = ()  # type: Tuple[Text]
+    if parsed_line.pyproject_requires is not None:
+        pyproject_requires = tuple(parsed_line.pyproject_requires)
     return VCSRequirement(
         setup_path=parsed_line.setup_py,
         path=parsed_line.path,
@@ -2983,7 +2997,7 @@ def vcs_req_from_parsed_line(parsed_line):
         uri_scheme=parsed_line.preferred_scheme,
         link=link,
         uri=parsed_line.uri,
-        pyproject_requires=tuple(parsed_line.pyproject_requires) if parsed_line.pyproject_requires else None,
+        pyproject_requires=pyproject_requires,
         pyproject_backend=parsed_line.pyproject_backend,
         pyproject_path=Path(parsed_line.pyproject_toml) if parsed_line.pyproject_toml else None,
         parsed_line=parsed_line,
