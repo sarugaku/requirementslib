@@ -51,8 +51,9 @@ def find_version():
 def typecheck(ctx):
     src_dir = ROOT / "src" / PACKAGE_NAME
     src_dir = src_dir.as_posix()
+    config_file = ROOT / "setup.cfg"
     env = {"MYPYPATH": src_dir}
-    ctx.run(f"mypy {src_dir}", env=env)
+    ctx.run(f"mypy {src_dir} --config-file={config_file}", env=env)
 
 
 @invoke.task()
