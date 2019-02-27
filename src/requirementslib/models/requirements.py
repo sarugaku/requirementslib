@@ -77,12 +77,13 @@ from .utils import (
 from ..environment import MYPY_RUNNING
 
 if MYPY_RUNNING:
-    from typing import Optional, TypeVar, List, Dict, Union, Any, Tuple, Set, Text
+    from typing import Optional, TypeVar, List, Dict, Union, Any, Tuple, Set, AnyStr, Text
     from pip_shims.shims import Link, InstallRequirement
     RequirementType = TypeVar('RequirementType', covariant=True, bound=PackagingRequirement)
     from six.moves.urllib.parse import SplitResult
     from .vcs import VCSRepository
     NON_STRING_ITERABLE = Union[List, Set, Tuple]
+    STRING_TYPE = Union[str, bytes, Text]
 
 
 SPECIFIERS_BY_LENGTH = sorted(list(Specifier._operators.keys()), key=len, reverse=True)
@@ -93,41 +94,41 @@ run = partial(vistir.misc.run, combine_stderr=False, return_object=True, nospin=
 
 class Line(object):
     def __init__(self, line, extras=None):
-        # type: (Text, Optional[NON_STRING_ITERABLE]) -> None
+        # type: (AnyStr, Optional[NON_STRING_ITERABLE]) -> None
         self.editable = False  # type: bool
         if line.startswith("-e "):
             line = line[len("-e "):]
             self.editable = True
-        self.extras = ()  # type: Tuple[Text]
+        self.extras = ()  # type: Tuple[STRING_TYPE]
         if extras is not None:
             self.extras = tuple(sorted(set(extras)))
-        self.line = line  # type: Text
-        self.hashes = []  # type: List[Text]
-        self.markers = None  # type: Optional[Text]
-        self.vcs = None  # type: Optional[Text]
-        self.path = None  # type: Optional[Text]
-        self.relpath = None  # type: Optional[Text]
-        self.uri = None  # type: Optional[Text]
+        self.line = line  # type: STRING_TYPE
+        self.hashes = []  # type: List[STRING_TYPE]
+        self.markers = None  # type: Optional[STRING_TYPE]
+        self.vcs = None  # type: Optional[STRING_TYPE]
+        self.path = None  # type: Optional[STRING_TYPE]
+        self.relpath = None  # type: Optional[STRING_TYPE]
+        self.uri = None  # type: Optional[STRING_TYPE]
         self._link = None  # type: Optional[Link]
         self.is_local = False  # type: bool
-        self._name = None  # type: Optional[Text]
-        self._specifier = None  # type: Optional[Text]
+        self._name = None  # type: Optional[STRING_TYPE]
+        self._specifier = None  # type: Optional[STRING_TYPE]
         self.parsed_marker = None  # type: Optional[Marker]
-        self.preferred_scheme = None  # type: Optional[Text]
+        self.preferred_scheme = None  # type: Optional[STRING_TYPE]
         self._requirement = None  # type: Optional[PackagingRequirement]
         self.is_direct_url = False  # type: bool
         self._parsed_url = None  # type: Optional[urllib_parse.ParseResult]
-        self._setup_cfg = None  # type: Optional[Text]
-        self._setup_py = None  # type: Optional[Text]
-        self._pyproject_toml = None  # type: Optional[Text]
-        self._pyproject_requires = None  # type: Optional[List[Text]]
-        self._pyproject_backend = None  # type: Optional[Text]
-        self._wheel_kwargs = None  # type: Dict[Text, Text]
+        self._setup_cfg = None  # type: Optional[STRING_TYPE]
+        self._setup_py = None  # type: Optional[STRING_TYPE]
+        self._pyproject_toml = None  # type: Optional[STRING_TYPE]
+        self._pyproject_requires = None  # type: Optional[Tuple[STRING_TYPE, ...]]
+        self._pyproject_backend = None  # type: Optional[STRING_TYPE]
+        self._wheel_kwargs = None  # type: Dict[STRING_TYPE, STRING_TYPE]
         self._vcsrepo = None  # type: Optional[VCSRepository]
         self._setup_info = None  # type: Optional[SetupInfo]
-        self._ref = None  # type: Optional[Text]
+        self._ref = None  # type: Optional[STRING_TYPE]
         self._ireq = None  # type: Optional[InstallRequirement]
-        self._src_root = None  # type: Optional[Text]
+        self._src_root = None  # type: Optional[STRING_TYPE]
         self.dist = None  # type: Any
         super(Line, self).__init__()
         self.parse()
@@ -153,12 +154,12 @@ class Line(object):
 
     @classmethod
     def split_hashes(cls, line):
-        # type: (Text) -> Tuple[Text, List[Text]]
+        # type: (AnyStr) -> Tuple[AnyStr, List[AnyStr]]
         if "--hash" not in line:
             return line,  []
         split_line = line.split()
-        line_parts = []  # type: List[Text]
-        hashes = []  # type: List[Text]
+        line_parts = []  # type: List[STRING_TYPE]
+        hashes = []  # type: List[STRING_TYPE]
         for part in split_line:
             if part.startswith("--hash"):
                 param, _, value = part.partition("=")
@@ -170,7 +171,7 @@ class Line(object):
 
     @property
     def line_with_prefix(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         line = self.line
         extras_str = extras_to_string(self.extras)
         if self.is_direct_url:
@@ -190,7 +191,7 @@ class Line(object):
 
     @property
     def line_for_ireq(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         line = ""
         if self.is_file or self.is_url and not self.is_vcs:
             scheme = self.preferred_scheme if self.preferred_scheme is not None else "uri"
@@ -231,7 +232,7 @@ class Line(object):
 
     @property
     def base_path(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if not self.link and not self.path:
             self.parse_link()
         if not self.path:
@@ -247,28 +248,28 @@ class Line(object):
 
     @property
     def setup_py(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self._setup_py is None:
             self.populate_setup_paths()
         return self._setup_py
 
     @property
     def setup_cfg(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self._setup_cfg is None:
             self.populate_setup_paths()
         return self._setup_cfg
 
     @property
     def pyproject_toml(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self._pyproject_toml is None:
             self.populate_setup_paths()
         return self._pyproject_toml
 
     @property
     def specifier(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         options = [self._specifier]
         for req in (self.ireq, self.requirement):
             if req is not None and getattr(req, "specifier", None):
@@ -319,7 +320,7 @@ class Line(object):
 
     @specifiers.setter
     def specifiers(self, specifiers):
-        # type: (Union[Text, SpecifierSet]) -> None
+        # type: (Union[Text, str, SpecifierSet]) -> None
         if not isinstance(specifiers, SpecifierSet):
             if isinstance(specifiers, six.string_types):
                 specifiers = SpecifierSet(specifiers)
@@ -335,7 +336,7 @@ class Line(object):
 
     @classmethod
     def get_requirement_specs(cls, specifierset):
-        # type: (SpecifierSet) -> List[Tuple[Text, Text]]
+        # type: (SpecifierSet) -> List[Tuple[AnyStr, AnyStr]]
         specs = []
         spec = next(iter(specifierset._specs), None)
         if spec:
@@ -365,14 +366,14 @@ class Line(object):
         base_path = self.base_path
         if base_path is None:
             return
-        setup_paths = get_setup_paths(self.base_path, subdirectory=self.subdirectory)  # type: Dict[Text, Optional[Text]]
+        setup_paths = get_setup_paths(self.base_path, subdirectory=self.subdirectory)  # type: Dict[STRING_TYPE, Optional[STRING_TYPE]]
         self._setup_py = setup_paths.get("setup_py")
         self._setup_cfg = setup_paths.get("setup_cfg")
         self._pyproject_toml = setup_paths.get("pyproject_toml")
 
     @property
     def pyproject_requires(self):
-        # type: () -> Optional[List[Text]]
+        # type: () -> Optional[List[STRING_TYPE]]
         if self._pyproject_requires is None and self.pyproject_toml is not None:
             pyproject_requires, pyproject_backend = get_pyproject(self.path)
             self._pyproject_requires = pyproject_requires
@@ -381,7 +382,7 @@ class Line(object):
 
     @property
     def pyproject_backend(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self._pyproject_requires is None and self.pyproject_toml is not None:
             pyproject_requires, pyproject_backend = get_pyproject(self.path)
             if not pyproject_backend and self.setup_cfg is not None:
@@ -493,7 +494,7 @@ class Line(object):
             self.extras = tuple(sorted(extras))
 
     def get_url(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         """Sets ``self.name`` if given a **PEP-508** style URL"""
 
         line = self.line
@@ -521,7 +522,7 @@ class Line(object):
 
     @property
     def name(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self._name is None:
             self.parse_name()
             if self._name is None and not self.is_named and not self.is_wheel:
@@ -531,7 +532,7 @@ class Line(object):
 
     @name.setter
     def name(self, name):
-        # type: (Text) -> None
+        # type: (STRING_TYPE) -> None
         self._name = name
         if self._setup_info:
             self._setup_info.name = name
@@ -542,7 +543,7 @@ class Line(object):
 
     @property
     def url(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self.uri is not None:
             url = add_ssh_scheme_to_git_uri(self.uri)
         else:
@@ -567,7 +568,7 @@ class Line(object):
 
     @property
     def subdirectory(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self.link is not None:
             return self.link.subdirectory_fragment
         return ""
@@ -645,7 +646,7 @@ class Line(object):
 
     @property
     def ref(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self._ref is None and self.relpath is not None:
             self.relpath, self._ref = split_ref_from_uri(self.relpath)
         return self._ref
@@ -778,7 +779,7 @@ class Line(object):
                 self._ireq.req = self.requirement
 
     def _parse_wheel(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if not self.is_wheel:
             pass
         from pip_shims.shims import Wheel
@@ -789,7 +790,7 @@ class Line(object):
         return name
 
     def _parse_name_from_link(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
 
         if self.link is None:
             return None
@@ -800,7 +801,7 @@ class Line(object):
         return None
 
     def _parse_name_from_line(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
 
         if not self.is_named:
             pass
@@ -963,13 +964,13 @@ class Line(object):
 
     @property
     def requirement_info(self):
-        # type: () -> Tuple(Optional[Text], Tuple[Optional[Text]], Optional[Text])
+        # type: () -> Tuple[Optional[AnyStr], Tuple[Optional[AnyStr], ...], Optional[AnyStr]]
         """
         Generates a 3-tuple of the requisite *name*, *extras* and *url* to generate a
         :class:`~packaging.requirements.Requirement` out of.
 
         :return: A Tuple containing an optional name, a Tuple of extras names, and an optional URL.
-        :rtype: Tuple[Optional[Text], Tuple[Optional[Text]], Optional[Text]]
+        :rtype: Tuple[Optional[AnyStr], Tuple[Optional[AnyStr], ...], Optional[AnyStr]]
         """
 
         # Direct URLs can be converted to packaging requirements directly, but
@@ -1050,10 +1051,10 @@ class Line(object):
 
 @attr.s(slots=True, hash=True)
 class NamedRequirement(object):
-    name = attr.ib()  # type: Text
-    version = attr.ib()  # type: Optional[Text]
+    name = attr.ib()  # type: STRING_TYPE
+    version = attr.ib()  # type: Optional[STRING_TYPE]
     req = attr.ib()  # type: PackagingRequirement
-    extras = attr.ib(default=attr.Factory(list))  # type: Tuple[Text]
+    extras = attr.ib(default=attr.Factory(list))  # type: Tuple[STRING_TYPE]
     editable = attr.ib(default=False)  # type: bool
     _parsed_line = attr.ib(default=None)  # type: Optional[Line]
 
@@ -1074,9 +1075,9 @@ class NamedRequirement(object):
 
     @classmethod
     def from_line(cls, line, parsed_line=None):
-        # type: (Text, Optional[Line]) -> NamedRequirement
+        # type: (AnyStr, Optional[Line]) -> NamedRequirement
         req = init_requirement(line)
-        specifiers = None  # type: Optional[Text]
+        specifiers = None  # type: Optional[STRING_TYPE]
         if req.specifier:
             specifiers = specs_to_string(req.specifier)
         req.line = line
@@ -1094,7 +1095,7 @@ class NamedRequirement(object):
             "parsed_line": parsed_line,
             "extras": None
         }
-        extras = None  # type: Optional[Tuple[Text]]
+        extras = None  # type: Optional[Tuple[STRING_TYPE]]
         if req.extras:
             extras = list(req.extras)
         creation_kwargs["extras"] = extras
@@ -1102,13 +1103,13 @@ class NamedRequirement(object):
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
-        # type: (Text, Dict[Text, Union[Text, Optional[Text], Optional[List[Text]]]]) -> NamedRequirement
-        creation_args = {}  # type: Dict[Text, Union[Optional[Text], Optional[List[Text]]]]
+        # type: (AnyStr, Dict[AnyStr, Union[Text, str, List[Union[Text, str]]]]) -> NamedRequirement
+        creation_args = {}  # type: Dict[STRING_TYPE, Union[Optional[STRING_TYPE], Optional[List[STRING_TYPE]]]]
         if hasattr(pipfile, "keys"):
             attr_fields = [field.name for field in attr.fields(cls)]
             creation_args = {k: v for k, v in pipfile.items() if k in attr_fields}
         creation_args["name"] = name
-        version = get_version(pipfile)  # type: Optional[Text]
+        version = get_version(pipfile)  # type: Optional[STRING_TYPE]
         extras = creation_args.get("extras", None)
         creation_args["version"] = version
         req = init_requirement("{0}{1}".format(name, version))
@@ -1119,7 +1120,7 @@ class NamedRequirement(object):
 
     @property
     def line_part(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         # FIXME: This should actually be canonicalized but for now we have to
         # simply lowercase it and replace underscores, since full canonicalization
         # also replaces dots and that doesn't actually work when querying the index
@@ -1127,7 +1128,7 @@ class NamedRequirement(object):
 
     @property
     def pipfile_part(self):
-        # type: () -> Dict[Text, Any]
+        # type: () -> Dict[STRING_TYPE, Any]
         pipfile_dict = attr.asdict(self, filter=filter_none).copy()  # type: ignore
         if "version" not in pipfile_dict:
             pipfile_dict["version"] = "*"
@@ -1148,36 +1149,36 @@ class FileRequirement(object):
     containing directories."""
 
     #: Path to the relevant `setup.py` location
-    setup_path = attr.ib(default=None, cmp=True)  # type: Optional[Text]
+    setup_path = attr.ib(default=None, cmp=True)  # type: Optional[STRING_TYPE]
     #: path to hit - without any of the VCS prefixes (like git+ / http+ / etc)
-    path = attr.ib(default=None, cmp=True)  # type: Optional[Text]
+    path = attr.ib(default=None, cmp=True)  # type: Optional[STRING_TYPE]
     #: Whether the package is editable
     editable = attr.ib(default=False, cmp=True)  # type: bool
     #: Extras if applicable
-    extras = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Tuple[Text]
-    _uri_scheme = attr.ib(default=None, cmp=True)  # type: Optional[Text]
+    extras = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Tuple[STRING_TYPE]
+    _uri_scheme = attr.ib(default=None, cmp=True)  # type: Optional[STRING_TYPE]
     #: URI of the package
-    uri = attr.ib(cmp=True)  # type: Optional[Text]
+    uri = attr.ib(cmp=True)  # type: Optional[STRING_TYPE]
     #: Link object representing the package to clone
     link = attr.ib(cmp=True)  # type: Optional[Link]
     #: PyProject Requirements
-    pyproject_requires = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Tuple
+    pyproject_requires = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Optional[Tuple[STRING_TYPE, ...]]
     #: PyProject Build System
-    pyproject_backend = attr.ib(default=None, cmp=True)  # type: Optional[Text]
+    pyproject_backend = attr.ib(default=None, cmp=True)  # type: Optional[STRING_TYPE]
     #: PyProject Path
-    pyproject_path = attr.ib(default=None, cmp=True)  # type: Optional[Text]
+    pyproject_path = attr.ib(default=None, cmp=True)  # type: Optional[STRING_TYPE]
     #: Setup metadata e.g. dependencies
     _setup_info = attr.ib(default=None, cmp=True)  # type: Optional[SetupInfo]
     _has_hashed_name = attr.ib(default=False, cmp=True)  # type: bool
     _parsed_line = attr.ib(default=None, cmp=False, hash=True)  # type: Optional[Line]
     #: Package name
-    name = attr.ib(cmp=True)  # type: Optional[Text]
+    name = attr.ib(cmp=True)  # type: Optional[STRING_TYPE]
     #: A :class:`~pkg_resources.Requirement` isntance
     req = attr.ib(cmp=True)  # type: Optional[PackagingRequirement]
 
     @classmethod
     def get_link_from_line(cls, line):
-        # type: (Text) -> LinkInfo
+        # type: (STRING_TYPE) -> LinkInfo
         """Parse link information from given requirement line.
 
         Return a 6-tuple:
@@ -1211,16 +1212,16 @@ class FileRequirement(object):
 
         # Git allows `git@github.com...` lines that are not really URIs.
         # Add "ssh://" so we can parse correctly, and restore afterwards.
-        fixed_line = add_ssh_scheme_to_git_uri(line)  # type: Text
+        fixed_line = add_ssh_scheme_to_git_uri(line)  # type: STRING_TYPE
         added_ssh_scheme = fixed_line != line  # type: bool
 
         # We can assume a lot of things if this is a local filesystem path.
         if "://" not in fixed_line:
             p = Path(fixed_line).absolute()  # type: Path
-            path = p.as_posix()  # type: Optional[Text]
-            uri = p.as_uri()  # type: Text
+            path = p.as_posix()  # type: Optional[STRING_TYPE]
+            uri = p.as_uri()  # type: STRING_TYPE
             link = create_link(uri)  # type: Link
-            relpath = None  # type: Optional[Text]
+            relpath = None  # type: Optional[STRING_TYPE]
             try:
                 relpath = get_converted_relative_path(path)
             except ValueError:
@@ -1233,13 +1234,13 @@ class FileRequirement(object):
         original_url = parsed_url._replace()  # type: SplitResult
 
         # Split the VCS part out if needed.
-        original_scheme = parsed_url.scheme  # type: Text
-        vcs_type = None  # type: Optional[Text]
+        original_scheme = parsed_url.scheme  # type: STRING_TYPE
+        vcs_type = None  # type: Optional[STRING_TYPE]
         if "+" in original_scheme:
-            scheme = None  # type: Optional[Text]
+            scheme = None  # type: Optional[STRING_TYPE]
             vcs_type, _, scheme = original_scheme.partition("+")
             parsed_url = parsed_url._replace(scheme=scheme)
-            prefer = "uri"  # type: Text
+            prefer = "uri"  # type: STRING_TYPE
         else:
             vcs_type = None
             prefer = "file"
@@ -1279,17 +1280,17 @@ class FileRequirement(object):
 
     @property
     def setup_py_dir(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self.setup_path:
             return os.path.dirname(os.path.abspath(self.setup_path))
         return None
 
     @property
     def dependencies(self):
-        # type: () -> Tuple[Dict[Text, PackagingRequirement], List[Union[Text, PackagingRequirement]], List[Text]]
-        build_deps = []  # type: List[Union[Text, PackagingRequirement]]
-        setup_deps = []  # type: List[Text]
-        deps = {}  # type: Dict[Text, PackagingRequirement]
+        # type: () -> Tuple[Dict[AnyStr, PackagingRequirement], List[Union[Text, str, PackagingRequirement]], List[AnyStr]]
+        build_deps = []  # type: List[Union[Text, str, PackagingRequirement]]
+        setup_deps = []  # type: List[STRING_TYPE]
+        deps = {}  # type: Dict[STRING_TYPE, PackagingRequirement]
         if self.setup_info:
             setup_info = self.setup_info.as_dict()
             deps.update(setup_info.get("requires", {}))
@@ -1340,7 +1341,7 @@ class FileRequirement(object):
 
     @uri.default
     def get_uri(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         if self.path and not self.uri:
             self._uri_scheme = "path"
             return pip_shims.shims.path_to_url(os.path.abspath(self.path))
@@ -1352,7 +1353,7 @@ class FileRequirement(object):
 
     @name.default
     def get_name(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         loc = self.path or self.uri
         if loc and not self._uri_scheme:
             self._uri_scheme = "path" if self.path else "file"
@@ -1519,7 +1520,7 @@ class FileRequirement(object):
 
     @property
     def formatted_path(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self.path:
             path = self.path
             if not isinstance(path, Path):
@@ -1530,16 +1531,16 @@ class FileRequirement(object):
     @classmethod
     def create(
         cls,
-        path=None,  # type: Optional[Text]
-        uri=None,  # type: Text
+        path=None,  # type: Optional[STRING_TYPE]
+        uri=None,  # type: STRING_TYPE
         editable=False,  # type: bool
-        extras=None,  # type: Optional[Tuple[Text]]
+        extras=None,  # type: Optional[Tuple[STRING_TYPE]]
         link=None,  # type: Link
         vcs_type=None,  # type: Optional[Any]
-        name=None,  # type: Optional[Text]
+        name=None,  # type: Optional[STRING_TYPE]
         req=None,  # type: Optional[Any]
-        line=None,  # type: Optional[Text]
-        uri_scheme=None,  # type: Text
+        line=None,  # type: Optional[STRING_TYPE]
+        uri_scheme=None,  # type: STRING_TYPE
         setup_path=None,  # type: Optional[Any]
         relpath=None,  # type: Optional[Any]
         parsed_line=None,  # type: Optional[Line]
@@ -1600,7 +1601,7 @@ class FileRequirement(object):
             creation_kwargs["vcs"] = vcs_type
         if name:
             creation_kwargs["name"] = name
-        _line = None  # type: Optional[Text]
+        _line = None  # type: Optional[STRING_TYPE]
         ireq = None  # type: Optional[InstallRequirement]
         setup_info = None  # type: Optional[SetupInfo]
         if parsed_line:
@@ -1674,7 +1675,7 @@ class FileRequirement(object):
 
     @classmethod
     def from_line(cls, line, extras=None, parsed_line=None):
-        # type: (Text, Optional[Tuple[Text]], Optional[Line]) -> FileRequirement
+        # type: (AnyStr, Optional[Tuple[AnyStr, ...]], Optional[Line]) -> FileRequirement
         line = line.strip('"').strip("'")
         link = None
         path = None
@@ -1725,7 +1726,7 @@ class FileRequirement(object):
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
-        # type: (Text, Dict[Text, Any]) -> FileRequirement
+        # type: (AnyStr, Dict[AnyStr, Any]) -> FileRequirement
         # Parse the values out. After this dance we should have two variables:
         # path - Local filesystem path.
         # uri - Absolute URI that is parsable with urlsplit.
@@ -1797,9 +1798,9 @@ class FileRequirement(object):
 
     @property
     def line_part(self):
-        # type: () -> Text
-        link_url = None  # type: Optional[Text]
-        seed = None  # type: Optional[Text]
+        # type: () -> STRING_TYPE
+        link_url = None  # type: Optional[STRING_TYPE]
+        seed = None  # type: Optional[STRING_TYPE]
         if self.link is not None:
             link_url = unquote(self.link.url_without_fragment)
         if self._uri_scheme and self._uri_scheme == "path":
@@ -1819,7 +1820,7 @@ class FileRequirement(object):
 
     @property
     def pipfile_part(self):
-        # type: () -> Dict[Text, Dict[Text, Any]]
+        # type: () -> Dict[AnyStr, Dict[AnyStr, Any]]
         excludes = [
             "_base_line", "_has_hashed_name", "setup_path", "pyproject_path", "_uri_scheme",
             "pyproject_requires", "pyproject_backend", "_setup_info", "_parsed_line"
@@ -1838,7 +1839,7 @@ class FileRequirement(object):
             pipfile_dict.pop("_uri_scheme")
         # For local paths and remote installable artifacts (zipfiles, etc)
         collision_keys = {"file", "uri", "path"}
-        collision_order = ["file", "uri", "path"]  # type: List[Text]
+        collision_order = ["file", "uri", "path"]  # type: List[STRING_TYPE]
         key_match = next(iter(k for k in collision_order if k in pipfile_dict.keys()))
         if self._uri_scheme:
             dict_key = self._uri_scheme
@@ -1880,18 +1881,18 @@ class VCSRequirement(FileRequirement):
     #: Whether the repository is editable
     editable = attr.ib(default=None)  # type: Optional[bool]
     #: URI for the repository
-    uri = attr.ib(default=None)  # type: Optional[Text]
+    uri = attr.ib(default=None)  # type: Optional[STRING_TYPE]
     #: path to the repository, if it's local
-    path = attr.ib(default=None, validator=attr.validators.optional(validate_path))  # type: Optional[Text]
+    path = attr.ib(default=None, validator=attr.validators.optional(validate_path))  # type: Optional[STRING_TYPE]
     #: vcs type, i.e. git/hg/svn
-    vcs = attr.ib(validator=attr.validators.optional(validate_vcs), default=None)  # type: Optional[Text]
+    vcs = attr.ib(validator=attr.validators.optional(validate_vcs), default=None)  # type: Optional[STRING_TYPE]
     #: vcs reference name (branch / commit / tag)
-    ref = attr.ib(default=None)  # type: Optional[Text]
+    ref = attr.ib(default=None)  # type: Optional[STRING_TYPE]
     #: Subdirectory to use for installation if applicable
-    subdirectory = attr.ib(default=None)  # type: Optional[Text]
+    subdirectory = attr.ib(default=None)  # type: Optional[STRING_TYPE]
     _repo = attr.ib(default=None)  # type: Optional[VCSRepository]
-    _base_line = attr.ib(default=None)  # type: Optional[Text]
-    name = attr.ib()  # type: Text
+    _base_line = attr.ib(default=None)  # type: Optional[STRING_TYPE]
+    name = attr.ib()  # type: STRING_TYPE
     link = attr.ib()  # type: Optional[pip_shims.shims.Link]
     req = attr.ib()  # type: Optional[RequirementType]
 
@@ -1927,7 +1928,7 @@ class VCSRequirement(FileRequirement):
 
     @name.default
     def get_name(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         return (
             self.link.egg_fragment or self.req.name
             if getattr(self, "req", None)
@@ -1936,7 +1937,7 @@ class VCSRequirement(FileRequirement):
 
     @property
     def vcs_uri(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         uri = self.uri
         if not any(uri.startswith("{0}+".format(vcs)) for vcs in VCS_LIST):
             uri = "{0}+{1}".format(self.vcs, uri)
@@ -2028,7 +2029,7 @@ class VCSRequirement(FileRequirement):
         return self._repo
 
     def get_checkout_dir(self, src_dir=None):
-        # type: (Optional[Text]) -> Text
+        # type: (Optional[AnyStr]) -> AnyStr
         src_dir = os.environ.get("PIP_SRC", None) if not src_dir else src_dir
         checkout_dir = None
         if self.is_local:
@@ -2045,7 +2046,7 @@ class VCSRequirement(FileRequirement):
         return os.path.join(create_tracked_tempdir(prefix="requirementslib"), self.name)
 
     def get_vcs_repo(self, src_dir=None, checkout_dir=None):
-        # type: (Optional[Text], Optional[Text]) -> VCSRepository
+        # type: (Optional[AnyStr], Optional[AnyStr]) -> VCSRepository
         from .vcs import VCSRepository
 
         if checkout_dir is None:
@@ -2076,13 +2077,13 @@ class VCSRequirement(FileRequirement):
         return vcsrepo
 
     def get_commit_hash(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         hash_ = None
         hash_ = self.repo.get_commit_hash()
         return hash_
 
     def update_repo(self, src_dir=None, ref=None):
-        # type: (Optional[Text], Optional[Text]) -> Text
+        # type: (Optional[AnyStr], Optional[AnyStr]) -> AnyStr
         if ref:
             self.ref = ref
         else:
@@ -2097,7 +2098,7 @@ class VCSRequirement(FileRequirement):
 
     @contextmanager
     def locked_vcs_repo(self, src_dir=None):
-        # type: (Optional[Text]) -> Generator[VCSRepository, None, None]
+        # type: (Optional[AnyStr]) -> Generator[VCSRepository, None, None]
         if not src_dir:
             src_dir = create_tracked_tempdir(prefix="requirementslib-", suffix="-src")
         vcsrepo = self.get_vcs_repo(src_dir=src_dir)
@@ -2138,7 +2139,7 @@ class VCSRequirement(FileRequirement):
 
     @classmethod
     def from_pipfile(cls, name, pipfile):
-        # type: (Text, Dict[Text, Union[List[Text], Text, bool]]) -> VCSRequirement
+        # type: (AnyStr, Dict[AnyStr, Union[List[AnyStr], AnyStr, bool]]) -> VCSRequirement
         creation_args = {}
         pipfile_keys = [
             k
@@ -2186,7 +2187,7 @@ class VCSRequirement(FileRequirement):
 
     @classmethod
     def from_line(cls, line, editable=None, extras=None, parsed_line=None):
-        # type: (Text, Optional[bool], Optional[Tuple[Text]], Optional[Line]) -> VCSRequirement
+        # type: (AnyStr, Optional[bool], Optional[Tuple[AnyStr]], Optional[Line]) -> VCSRequirement
         relpath = None
         if parsed_line is None:
             parsed_line = Line(line)
@@ -2264,7 +2265,7 @@ class VCSRequirement(FileRequirement):
 
     @property
     def line_part(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         """requirements.txt compatible line part sans-extras"""
         if self.is_local:
             base_link = self.link
@@ -2295,7 +2296,7 @@ class VCSRequirement(FileRequirement):
 
     @staticmethod
     def _choose_vcs_source(pipfile):
-        # type: (Dict[Text, Union[List[Text], Text, bool]]) -> Dict[Text, Union[List[Text], Text, bool]]
+        # type: (Dict[AnyStr, Union[List[AnyStr], AnyStr, bool]]) -> Dict[AnyStr, Union[List[AnyStr], AnyStr, bool]]
         src_keys = [k for k in pipfile.keys() if k in ["path", "uri", "file"]]
         if src_keys:
             chosen_key = first(src_keys)
@@ -2308,7 +2309,7 @@ class VCSRequirement(FileRequirement):
 
     @property
     def pipfile_part(self):
-        # type: () -> Dict[Text, Dict[Text, Union[List[Text], Text, bool]]]
+        # type: () -> Dict[AnyStr, Dict[AnyStr, Union[List[AnyStr], AnyStr, bool]]]
         excludes = [
             "_repo", "_base_line", "setup_path", "_has_hashed_name", "pyproject_path",
             "pyproject_requires", "pyproject_backend", "_setup_info", "_parsed_line",
@@ -2332,15 +2333,15 @@ class VCSRequirement(FileRequirement):
 
 @attr.s(cmp=True, hash=True)
 class Requirement(object):
-    _name = attr.ib(cmp=True)  # type: Text
-    vcs = attr.ib(default=None, validator=attr.validators.optional(validate_vcs), cmp=True)  # type: Optional[Text]
+    _name = attr.ib(cmp=True)  # type: STRING_TYPE
+    vcs = attr.ib(default=None, validator=attr.validators.optional(validate_vcs), cmp=True)  # type: Optional[STRING_TYPE]
     req = attr.ib(default=None, cmp=True)  # type: Optional[Union[VCSRequirement, FileRequirement, NamedRequirement]]
-    markers = attr.ib(default=None, cmp=True)  # type: Optional[Text]
-    _specifiers = attr.ib(validator=attr.validators.optional(validate_specifiers), cmp=True)  # type: Optional[Text]
-    index = attr.ib(default=None, cmp=True)  # type: Optional[Text]
+    markers = attr.ib(default=None, cmp=True)  # type: Optional[STRING_TYPE]
+    _specifiers = attr.ib(validator=attr.validators.optional(validate_specifiers), cmp=True)  # type: Optional[STRING_TYPE]
+    index = attr.ib(default=None, cmp=True)  # type: Optional[STRING_TYPE]
     editable = attr.ib(default=None, cmp=True)  # type: Optional[bool]
-    hashes = attr.ib(factory=frozenset, converter=frozenset, cmp=True)  # type: Optional[Tuple[Text]]
-    extras = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Optional[Tuple[Text]]
+    hashes = attr.ib(factory=frozenset, converter=frozenset, cmp=True)  # type: Optional[Tuple[STRING_TYPE]]
+    extras = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Optional[Tuple[STRING_TYPE]]
     abstract_dep = attr.ib(default=None, cmp=False)  # type: Optional[AbstractDependency]
     _line_instance = attr.ib(default=None, cmp=False)  # type: Optional[Line]
     _ireq = attr.ib(default=None, cmp=False)  # type: Optional[pip_shims.InstallRequirement]
@@ -2350,12 +2351,14 @@ class Requirement(object):
 
     @_name.default
     def get_name(self):
-        # type: () -> Optional[Text]
-        return self.req.name
+        # type: () -> Optional[STRING_TYPE]
+        if self.req is not None:
+            return self.req.name
+        return None
 
     @property
     def name(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self._name is not None:
             return self._name
         name = None
@@ -2369,7 +2372,9 @@ class Requirement(object):
     @property
     def requirement(self):
         # type: () -> Optional[PackagingRequirement]
-        return self.req.req
+        if self.req:
+            return self.req.req
+        return None
 
     def add_hashes(self, hashes):
         # type: (Union[List, Set, Tuple]) -> Requirement
@@ -2380,7 +2385,7 @@ class Requirement(object):
         return attr.evolve(self, hashes=frozenset(new_hashes))
 
     def get_hashes_as_pip(self, as_list=False):
-        # type: (bool) -> Union[Text, List[Text]]
+        # type: (bool) -> Union[STRING_TYPE, List[STRING_TYPE]]
         if self.hashes:
             if as_list:
                 return [HASH_STRING.format(h) for h in self.hashes]
@@ -2389,12 +2394,12 @@ class Requirement(object):
 
     @property
     def hashes_as_pip(self):
-        # type: () -> Union[Text, List[Text]]
-        self.get_hashes_as_pip()
+        # type: () -> Union[Text, str, List[AnyStr]]
+        return self.get_hashes_as_pip()
 
     @property
     def markers_as_pip(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         if self.markers:
             return " ; {0}".format(self.markers).replace('"', "'")
 
@@ -2402,27 +2407,28 @@ class Requirement(object):
 
     @property
     def extras_as_pip(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         if self.extras:
             return "[{0}]".format(
-                ",".join(sorted([extra.lower() for extra in self.extras]))
+                ",".join(sorted([extra.lower() for extra in self.extras]))  # type: ignore
             )
 
         return ""
 
     @cached_property
     def commit_hash(self):
-        # type: () -> Optional[Text]
-        if not self.is_vcs:
+        # type: () -> Optional[STRING_TYPE]
+        if self.req is None or not isinstance(self.req, VCSRequirement):
             return None
         commit_hash = None
-        with self.req.locked_vcs_repo() as repo:
-            commit_hash = repo.get_commit_hash()
+        if self.req is not None:
+            with self.req.locked_vcs_repo() as repo:
+                commit_hash = repo.get_commit_hash()
         return commit_hash
 
     @_specifiers.default
     def get_specifiers(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         if self.req and self.req.req and self.req.req.specifier:
             return specs_to_string(self.req.req.specifier)
         return ""
@@ -2449,8 +2455,8 @@ class Requirement(object):
     def line_instance(self):
         # type: () -> Optional[Line]
         if self._line_instance is None:
-            if self.req._parsed_line is not None:
-                self._line_instance = self.req.parsed_line
+            if self.req is not None and self.req._parsed_line is not None:
+                self._line_instance = self.req._parsed_line
             else:
                 include_extras = True
                 include_specifiers = True
@@ -2458,16 +2464,17 @@ class Requirement(object):
                     include_extras = False
                 if self.is_file_or_url or self.is_vcs or not self._specifiers:
                     include_specifiers = False
-
+                line_part = ""
+                if self.req and self.req.line_part:
+                    line_part = self.req.line_part
+                parts = []  # type: List[STRING_TYPE]
                 parts = [
-                    self.req.line_part,
+                    line_part,
                     self.extras_as_pip if include_extras else "",
                     self._specifiers if include_specifiers else "",
                     self.markers_as_pip,
                 ]
                 line = "".join(parts)
-                if line is None:
-                    return None
                 self._line_instance = Line(line)
         return self._line_instance
 
@@ -2480,7 +2487,7 @@ class Requirement(object):
 
     @property
     def specifiers(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[STRING_TYPE]
         if self._specifiers:
             return self._specifiers
         else:
@@ -2488,28 +2495,36 @@ class Requirement(object):
             if specs:
                 self._specifiers = specs
                 return specs
-        if self.is_named and not self._specifiers:
+        if not self._specifiers and (
+            self.req is not None and
+            isinstance(self.req, NamedRequirement) and
+            self.req.version
+        ):
             self._specifiers = self.req.version
-        elif not self.editable and not self.is_named:
+        elif not self.editable and self.req and not isinstance(self.req, NamedRequirement):
             if self.line_instance and self.line_instance.setup_info and self.line_instance.setup_info.version:
                 self._specifiers = "=={0}".format(self.req.setup_info.version)
-        elif self.req.parsed_line.specifiers and not self._specifiers:
-            self._specifiers = specs_to_string(self.req.parsed_line.specifiers)
-        elif self.line_instance.specifiers and not self._specifiers:
-            self._specifiers = specs_to_string(self.line_instance.specifiers)
-        elif not self._specifiers and (self.is_file_or_url or self.is_vcs):
-            try:
-                setupinfo_dict = self.run_requires()
-            except Exception:
-                setupinfo_dict = None
-            if setupinfo_dict is not None:
-                self._specifiers = "=={0}".format(setupinfo_dict.get("version"))
+        elif not self._specifiers:
+            if self.req and self.req.parsed_line and self.req.parsed_line.specifiers:
+                self._specifiers = specs_to_string(self.req.parsed_line.specifiers)
+            elif self.line_instance and self.line_instance.specifiers:
+                self._specifiers = specs_to_string(self.line_instance.specifiers)
+            elif self.is_file_or_url or self.is_vcs:
+                try:
+                    setupinfo_dict = self.run_requires()
+                except Exception:
+                    setupinfo_dict = None
+                if setupinfo_dict is not None:
+                    self._specifiers = "=={0}".format(setupinfo_dict.get("version"))
         if self._specifiers:
             specset = SpecifierSet(self._specifiers)
             if self.line_instance and not self.line_instance.specifiers:
                 self.line_instance.specifiers = specset
-            if self.req and self.req.parsed_line and not self.req.parsed_line.specifiers:
-                self.req._parsed_line.specifiers = specset
+            if self.req:
+                if self.req._parsed_line and not self.req._parsed_line.specifiers:
+                    self.req._parsed_line.specifiers = specset
+                elif not self.req._parsed_line and self.line_instance:
+                    self.req._parsed_line = self.line_instance
             if self.req and self.req.req and not self.req.req.specifier:
                 self.req.req.specifier = specset
         return self._specifiers
@@ -2521,9 +2536,10 @@ class Requirement(object):
 
     @property
     def build_backend(self):
-        # type: () -> Optional[Text]
-        if self.is_vcs or (self.is_file_or_url and (
-                self.req is not None and self.req.is_local)):
+        # type: () -> Optional[STRING_TYPE]
+        if self.req is not None and (
+            not isinstance(self.req, NamedRequirement) and self.req.is_local
+        ):
             setup_info = self.run_requires()
             build_backend = setup_info.get("build_backend")
             return build_backend
@@ -2549,8 +2565,7 @@ class Requirement(object):
     @property
     def is_wheel(self):
         # type: () -> bool
-        if not self.is_named and (
-            self.req is not None and
+        if self.req and not isinstance(self.req, NamedRequirement) and (
             self.req.link is not None and
             self.req.link.is_wheel
         ):
@@ -2559,7 +2574,7 @@ class Requirement(object):
 
     @property
     def normalized_name(self):
-        # type: () -> Text
+        # type: () -> STRING_TYPE
         return canonicalize_name(self.name)
 
     def copy(self):
@@ -2568,7 +2583,7 @@ class Requirement(object):
     @classmethod
     @lru_cache()
     def from_line(cls, line):
-        # type: (Text) -> Requirement
+        # type: (AnyStr) -> Requirement
         if isinstance(line, pip_shims.shims.InstallRequirement):
             line = format_requirement(line)
         parsed_line = Line(line)
@@ -2597,6 +2612,7 @@ class Requirement(object):
             "line_instance": parsed_line
         }
         if parsed_line.extras:
+            extras = ()  # type: Tuple[STRING_TYPE, ...]
             extras = tuple(sorted(dedup([extra.lower() for extra in parsed_line.extras])))
             args["extras"] = extras
             if r is not None:
@@ -2947,24 +2963,26 @@ class Requirement(object):
 def file_req_from_parsed_line(parsed_line):
     # type: (Line) -> FileRequirement
     path = parsed_line.relpath if parsed_line.relpath else parsed_line.path
-    pyproject_requires = ()  # type: Tuple[Text]
+    pyproject_requires = None  # type: Optional[Tuple[AnyStr, ...]]
     if parsed_line.pyproject_requires is not None:
         pyproject_requires = tuple(parsed_line.pyproject_requires)
-    return FileRequirement(
-        setup_path=parsed_line.setup_py,
-        path=path,
-        editable=parsed_line.editable,
-        extras=parsed_line.extras,
-        uri_scheme=parsed_line.preferred_scheme,
-        link=parsed_line.link,
-        uri=parsed_line.uri,
-        pyproject_requires=pyproject_requires,
-        pyproject_backend=parsed_line.pyproject_backend,
-        pyproject_path=Path(parsed_line.pyproject_toml) if parsed_line.pyproject_toml else None,
-        parsed_line=parsed_line,
-        name=parsed_line.name,
-        req=parsed_line.requirement
-    )
+    req_dict = {
+        "setup_path": parsed_line.setup_py,
+        "path": path,
+        "editable": parsed_line.editable,
+        "extras": parsed_line.extras,
+        "uri_scheme": parsed_line.preferred_scheme,
+        "link": parsed_line.link,
+        "uri": parsed_line.uri,
+        "pyproject_requires": pyproject_requires,
+        "pyproject_backend": parsed_line.pyproject_backend,
+        "pyproject_path": Path(parsed_line.pyproject_toml) if parsed_line.pyproject_toml else None,
+        "parsed_line": parsed_line,
+        "req": parsed_line.requirement
+    }
+    if parsed_line.name is not None:
+        req_dict["name"] = parsed_line.name
+    return FileRequirement(**req_dict)  # type: ignore
 
 
 def vcs_req_from_parsed_line(parsed_line):
@@ -2983,37 +3001,41 @@ def vcs_req_from_parsed_line(parsed_line):
         ))
     else:
         link = parsed_line.link
-    pyproject_requires = ()  # type: Tuple[Text]
+    pyproject_requires = ()  # type: Optional[Tuple[AnyStr, ...]]
     if parsed_line.pyproject_requires is not None:
         pyproject_requires = tuple(parsed_line.pyproject_requires)
-    return VCSRequirement(
-        setup_path=parsed_line.setup_py,
-        path=parsed_line.path,
-        editable=parsed_line.editable,
-        vcs=parsed_line.vcs,
-        ref=parsed_line.ref,
-        subdirectory=parsed_line.subdirectory,
-        extras=parsed_line.extras,
-        uri_scheme=parsed_line.preferred_scheme,
-        link=link,
-        uri=parsed_line.uri,
-        pyproject_requires=pyproject_requires,
-        pyproject_backend=parsed_line.pyproject_backend,
-        pyproject_path=Path(parsed_line.pyproject_toml) if parsed_line.pyproject_toml else None,
-        parsed_line=parsed_line,
-        name=parsed_line.name,
-        req=parsed_line.requirement,
-        base_line=line,
-    )
+    vcs_dict = {
+        "setup_path": parsed_line.setup_py,
+        "path": parsed_line.path,
+        "editable": parsed_line.editable,
+        "vcs": parsed_line.vcs,
+        "ref": parsed_line.ref,
+        "subdirectory": parsed_line.subdirectory,
+        "extras": parsed_line.extras,
+        "uri_scheme": parsed_line.preferred_scheme,
+        "link": link,
+        "uri": parsed_line.uri,
+        "pyproject_requires": pyproject_requires,
+        "pyproject_backend": parsed_line.pyproject_backend,
+        "pyproject_path": Path(parsed_line.pyproject_toml) if parsed_line.pyproject_toml else None,
+        "parsed_line": parsed_line,
+        "req": parsed_line.requirement,
+        "base_line": line
+    }
+    if parsed_line.name:
+        vcs_dict["name"] = parsed_line.name
+    return VCSRequirement(**vcs_dict)  # type: ignore
 
 
 def named_req_from_parsed_line(parsed_line):
     # type: (Line) -> NamedRequirement
-    return NamedRequirement(
-        name=parsed_line.name,
-        version=parsed_line.specifier,
-        req=parsed_line.requirement,
-        extras=parsed_line.extras,
-        editable=parsed_line.editable,
-        parsed_line=parsed_line
-    )
+    if parsed_line.name is not None:
+        return NamedRequirement(
+            name=parsed_line.name,
+            version=parsed_line.specifier,
+            req=parsed_line.requirement,
+            extras=parsed_line.extras,
+            editable=parsed_line.editable,
+            parsed_line=parsed_line
+        )
+    return NamedRequirement.from_line(parsed_line.line)
