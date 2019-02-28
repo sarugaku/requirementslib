@@ -49,6 +49,7 @@ if MYPY_RUNNING:
     MarkerTuple = Tuple[TVariable, TOp, TValue]
     TRequirement = Union[PackagingRequirement, PkgResourcesRequirement]
     STRING_TYPE = Union[bytes, str, Text]
+    S = TypeVar("S", bytes, str, Text)
 
 
 HASH_STRING = " --hash={0}"
@@ -119,7 +120,7 @@ def init_requirement(name):
 
 
 def extras_to_string(extras):
-    # type: (Sequence) -> Text
+    # type: (Sequence) -> S
     """Turn a list of extras into a string"""
     if isinstance(extras, six.string_types):
         if extras.startswith("["):
@@ -128,7 +129,7 @@ def extras_to_string(extras):
             extras = [extras]
     if not extras:
         return ""
-    return "[{0}]".format(",".join(sorted(set(extras))))
+    return "[{0}]".format(",".join(sorted(set(extras))))  # type: ignore
 
 
 def parse_extras(extras_str):
@@ -160,14 +161,14 @@ def specs_to_string(specs):
 
 
 def build_vcs_uri(
-    vcs,  # type: Optional[STRING_TYPE]
-    uri,  # type: STRING_TYPE
-    name=None,  # type: Optional[STRING_TYPE]
-    ref=None,  # type: Optional[STRING_TYPE]
-    subdirectory=None,  # type: Optional[STRING_TYPE]
-    extras=None  # type: Optional[List[STRING_TYPE]]
+    vcs,  # type: Optional[S]
+    uri,  # type: S
+    name=None,  # type: Optional[S]
+    ref=None,  # type: Optional[S]
+    subdirectory=None,  # type: Optional[S]
+    extras=None  # type: Optional[Union[List[S], Tuple[S, ...]]]
 ):
-    # type: (...) -> STRING_TYPE
+    # type: (...) -> S
     if extras is None:
         extras = []
     vcs_start = ""
@@ -288,7 +289,7 @@ def strip_extras_markers_from_requirement(req):
     *extra == 'name'*, strip out the extras from the markers and return the cleaned
     requirement
 
-    :param PackagingRequirement req: A pacakaging requirement to clean
+    :param PackagingRequirement req: A packaging requirement to clean
     :return: A cleaned requirement
     :rtype: PackagingRequirement
     """
@@ -391,7 +392,7 @@ def get_pyproject(path):
         else:
             requires = build_system.get("requires", ["setuptools>=40.8", "wheel"])
             backend = build_system.get("build-backend", get_default_pyproject_backend())
-    return (requires, backend)
+    return requires, backend
 
 
 def split_markers_from_line(line):
@@ -495,8 +496,8 @@ def _requirement_to_str_lowercase_name(requirement):
     modified to lowercase the dependency name.
 
     Previously, we were invoking the original Requirement.__str__ method and
-    lowercasing the entire result, which would lowercase the name, *and* other,
-    important stuff that should not be lowercased (such as the marker). See
+    lower-casing the entire result, which would lowercase the name, *and* other,
+    important stuff that should not be lower-cased (such as the marker). See
     this issue for more information: https://github.com/pypa/pipenv/issues/2113.
     """
 
