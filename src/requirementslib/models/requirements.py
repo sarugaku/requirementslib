@@ -25,7 +25,7 @@ from packaging.specifiers import Specifier, SpecifierSet, LegacySpecifier, Inval
 from packaging.utils import canonicalize_name
 from six.moves.urllib import parse as urllib_parse
 from six.moves.urllib.parse import unquote
-from vistir.compat import Path, FileNotFoundError, lru_cache
+from vistir.compat import Path, FileNotFoundError, lru_cache, Mapping
 from vistir.contextmanagers import temp_path
 from vistir.misc import dedup
 from vistir.path import (
@@ -347,7 +347,7 @@ class Line(object):
 
     @property
     def requirement(self):
-        # type: () -> Optional[PackagingRequirement]
+        # type: () -> Optional[RequirementType]
         if self._requirement is None:
             self.parse_requirement()
             if self._requirement is None and self._name is not None:
@@ -964,7 +964,7 @@ class Line(object):
         # only if they are `file://` (with only two slashes)
         name = None  # type: Optional[S]
         extras = ()  # type: Tuple[Optional[S], ...]
-        url = None  # type: Optional[S]
+        url = None  # type: Optional[STRING_TYPE]
         # if self.is_direct_url:
         if self._name:
             name = canonicalize_name(self._name)
@@ -1146,7 +1146,7 @@ class FileRequirement(object):
     #: Link object representing the package to clone
     link = attr.ib(cmp=True)  # type: Optional[Link]
     #: PyProject Requirements
-    pyproject_requires = attr.ib(default=attr.Factory(tuple), cmp=True)  # type: Optional[Tuple[STRING_TYPE, ...]]
+    pyproject_requires = attr.ib(factory=tuple, cmp=True)  # type: Optional[Tuple[STRING_TYPE, ...]]
     #: PyProject Build System
     pyproject_backend = attr.ib(default=None, cmp=True)  # type: Optional[STRING_TYPE]
     #: PyProject Path
@@ -1157,7 +1157,7 @@ class FileRequirement(object):
     _parsed_line = attr.ib(default=None, cmp=False, hash=True)  # type: Optional[Line]
     #: Package name
     name = attr.ib(cmp=True)  # type: Optional[STRING_TYPE]
-    #: A :class:`~pkg_resources.Requirement` isntance
+    #: A :class:`~pkg_resources.Requirement` instance
     req = attr.ib(cmp=True)  # type: Optional[PackagingRequirement]
 
     @classmethod
@@ -1298,7 +1298,7 @@ class FileRequirement(object):
         ):
             self.req = self._parsed_line.requirement
         if self._parsed_line and self._parsed_line.ireq and not self._parsed_line.ireq.req:
-            if self.req is not None:
+            if self.req is not None and self._parsed_line._ireq is not None:
                 self._parsed_line._ireq.req = self.req
 
     @property
@@ -1306,16 +1306,19 @@ class FileRequirement(object):
         # type: () -> SetupInfo
         from .setup_info import SetupInfo
         if self._setup_info is None and self.parsed_line:
-            if self.parsed_line.setup_info:
-                if not self._parsed_line.setup_info.name:
+            if self.parsed_line and self._parsed_line and self.parsed_line.setup_info:
+                if self._parsed_line._setup_info and not self._parsed_line._setup_info.name:
                     self._parsed_line._setup_info.get_info()
-                self._setup_info = self.parsed_line.setup_info
-            elif self.parsed_line.ireq and not self.parsed_line.is_wheel:
+                self._setup_info = self.parsed_line._setup_info
+            elif self.parsed_line and (
+                self.parsed_line.ireq and not self.parsed_line.is_wheel
+            ):
                 self._setup_info = SetupInfo.from_ireq(self.parsed_line.ireq)
             else:
                 if self.link and not self.link.is_wheel:
                     self._setup_info = Line(self.line_part).setup_info
-                    self._setup_info.get_info()
+                    if self._setup_info:
+                        self._setup_info.get_info()
         return self._setup_info
 
     @setup_info.setter
@@ -1343,9 +1346,12 @@ class FileRequirement(object):
         loc = self.path or self.uri
         if loc and not self._uri_scheme:
             self._uri_scheme = "path" if self.path else "file"
-        name = None
-        hashed_loc = hashlib.sha256(loc.encode("utf-8")).hexdigest()
-        hashed_name = hashed_loc[-7:]
+        name = None  # type: Optional[STRING_TYPE]
+        hashed_loc = None  # type: Optional[STRING_TYPE]
+        hashed_name = None  # type: Optional[STRING_TYPE]
+        if loc:
+            hashed_loc = hashlib.sha256(loc.encode("utf-8")).hexdigest()
+            hashed_name = hashed_loc[-7:]
         if getattr(self, "req", None) and self.req is not None and getattr(self.req, "name") and self.req.name is not None:
             if self.is_direct_url and self.req.name != hashed_name:
                 return self.req.name
@@ -1358,20 +1364,19 @@ class FileRequirement(object):
         elif self.link and ((self.link.scheme == "file" or self.editable) or (
             self.path and self.setup_path and os.path.isfile(str(self.setup_path))
         )):
-            _ireq = None
+            _ireq = None  # type: Optional[InstallRequirement]
+            target_path = ""  # type: STRING_TYPE
+            if self.setup_py_dir:
+                target_path = Path(self.setup_py_dir).as_posix()
+            elif self.path:
+                target_path = Path(os.path.abspath(self.path)).as_posix()
             if self.editable:
-                if self.setup_path:
-                    line = pip_shims.shims.path_to_url(self.setup_py_dir)
-                else:
-                    line = pip_shims.shims.path_to_url(os.path.abspath(self.path))
+                line = pip_shims.shims.path_to_url(target_path)
                 if self.extras:
                     line = "{0}[{1}]".format(line, ",".join(self.extras))
                 _ireq = pip_shims.shims.install_req_from_editable(line)
             else:
-                if self.setup_path:
-                    line = Path(self.setup_py_dir).as_posix()
-                else:
-                    line = Path(os.path.abspath(self.path)).as_posix()
+                line = target_path
                 if self.extras:
                     line = "{0}[{1}]".format(line, ",".join(self.extras))
                 _ireq = pip_shims.shims.install_req_from_line(line)
@@ -1435,9 +1440,14 @@ class FileRequirement(object):
             except Exception:
                 pass
             req = copy.deepcopy(self._parsed_line.requirement)
-            return req
+            if req:
+                return req
 
         req = init_requirement(normalize_name(self.name))
+        if req is None:
+            raise ValueError(
+                "Failed to generate a requirement: missing name for {0!r}".format(self)
+            )
         req.editable = False
         if self.link is not None:
             req.line = self.link.url_without_fragment
@@ -1542,7 +1552,7 @@ class FileRequirement(object):
                 path = get_converted_relative_path(path)
             except ValueError:  # Vistir raises a ValueError if it can't make a relpath
                 path = path
-        if line and not (uri_scheme and uri and link):
+        if line is not None and not (uri_scheme and uri and link):
             vcs_type, uri_scheme, relpath, path, uri, link = cls.get_link_from_line(line)
         if not uri_scheme:
             uri_scheme = "path" if path else "file"
