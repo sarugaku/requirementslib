@@ -5,17 +5,17 @@ Features
 --------
 
 - Added ``is_pep517`` and ``build_backend`` properties to the top level ``Requirement`` object to help determine how to build the requirement.  #125
-  
+
 
 Bug Fixes
 ---------
 
 - Suppressed output written to ``stdout`` by pip during clones of repositories to non-base branches.  #124
-  
+
 - Fixed a bug which caused local file and VCS requirements to be discovered in a depth-first, inexact search, which sometimes caused incorrect matches to be returned.  #128
-  
+
 - Fixed a bug with link generation on VCS requirements without URI schemes.  #132
-  
+
 - ``VCSRequirement.get_checkout_dir`` will now properly respect the ``src_dir`` argument.  #133
 
 
@@ -35,15 +35,15 @@ Features
 --------
 
 - Enhanced parsing of dependency and extras detail from ``setup.cfg`` files.  #118
-  
+
 
 Bug Fixes
 ---------
 
 - Take the path passed in if it's valid when loading or creating the lockfile/pipfile.  #114
-  
+
 - Don't write redundant ``egg-info`` under project root when ``src`` is used as package base.  #115
-  
+
 - Fixed an issue which prevented parsing of extras and dependency information from local ``setup.py`` files and could cause irrecoverable errors.  #116
 
 
@@ -63,17 +63,17 @@ Features
 --------
 
 - Added support for loading metadata from ``pyproject.toml``.  #102
-  
+
 - Local and remote archive ``FileRequirements`` will now be unpacked to a temporary directory for parsing.  #103
-  
+
 - Dependency information will now be parsed from local paths, including locally unpacked archives, via ``setup.py egg_info`` execution.  #104
-  
+
 - Additional metadata will now be gathered for ``Requirement`` objects which contain a ``setup.cfg`` on their base path.  #105
-  
+
 - Requirement names will now be harvested from all available sources, including from ``setup.py`` execution, ``setup.cfg`` files, and any metadata provided as input.  #107
-  
+
 - Added a flag for PEP508 style direct url requirements.  #99
-  
+
 
 Bug Fixes
 ---------
@@ -133,15 +133,15 @@ Features
 --------
 
 - ``Pipfile`` and ``Lockfile`` models will now properly perform import and export operations with fully data serialization.  #83
-  
+
 - Added a new interface for merging ``dev`` and ``default`` sections in both ``Pipfile`` and ``Lockfile`` objects using ``get_deps(dev=True, only=False)``.  #85
-  
+
 
 Bug Fixes
 ---------
 
 - ``Requirement.as_line()`` now provides an argument to make the inclusion of markers optional by passing ``include_markers=False``.  #82
-  
+
 - ``Pipfile`` and ``Lockfile`` models are now able to successfully perform creation operations on projects which currently do not have existing files if supplied ``create=True``.  #84
 
 
@@ -161,7 +161,7 @@ Bug Fixes
 ---------
 
 - Fixed a bug which caused VCS URIs to build incorrectly when calling ``VCSRequirement.as_line()`` in some cases.  #73
-  
+
 - Fixed bug that editable package with ref by @ is not supported correctly  #74
 
 
@@ -181,19 +181,19 @@ Features
 --------
 
 - ``Requirement.get_commit_hash`` and ``Requirement.update_repo`` will no longer clone local repositories to temporary directories or local src directories in order to determine commit hashes.  #60
-  
+
 - Added ``Requirement.lock_vcs_ref()`` api for locking the VCS commit hash to the current commit (and obtaining it and determining it if necessary).  #64
-  
+
 - ``Requirement.as_line()`` now offers the parameter ``as_list`` to return requirements more suited for passing directly to ``subprocess.run`` and ``subprocess.Popen`` calls.  #67
-  
+
 
 Bug Fixes
 ---------
 
 - Fixed a bug error formatting of the path validator method of local requirements.  #57
-  
+
 - Fixed an issue which prevented successful loads of ``Pipfile`` objects missing entries in some sections.  #59
-  
+
 - Fixed an issue which caused ``Requirement.get_commit_hash()`` to fail for local requirements.  #67
 
 
@@ -240,7 +240,7 @@ Bug Fixes
 ---------
 
 - Fixed a bug which sometimes caused extras to be dropped when parsing named requirements using constraint-style specifiers.  #44
-  
+
 - Fix parsing error in `Requirement.as_ireq()` if requirement contains hashes.  #45
 
 
@@ -251,37 +251,37 @@ Features
 --------
 
 - Added support for ``Requirement.get_dependencies()`` to return unpinned dependencies.
-  Implemented full support for both parsing and writing lockfiles.
-  Introduced lazy imports to enhance runtime performance.
-  Switch to ``packaging.canonicalize_name()`` instead of custom canonicalization function.
-  Added ``Requirement.copy()`` to the api to copy a requirement.  #33
-  
+- Implemented full support for both parsing and writing lockfiles.
+- Introduced lazy imports to enhance runtime performance.
+- Switch to ``packaging.canonicalize_name()`` instead of custom canonicalization function.
+- Added ``Requirement.copy()`` to the api to copy a requirement.  #33
+
 - Add pep423 formatting to package names when generating ``as_line()`` output.
-  Sort extras when building lines.
-  Improve local editable requirement name resolution.  #36
-  
+- Sort extras when building lines.
+- Improve local editable requirement name resolution.  #36
+
 
 Bug Fixes
 ---------
 
-- - Fixed a bug which prevented dependency resolution using pip >= 18.0.
+- Fixed a bug which prevented dependency resolution using pip >= 18.0.
 
-  - Fix pipfile parser bug which mishandled missing ``requires`` section.  #33
-  
+- Fix pipfile parser bug which mishandled missing ``requires`` section.  #33
+
 - Fixed a bug which caused extras to be excluded from VCS urls generated from pipfiles.  #41
-  
+
 
 Vendored Libraries
 ------------------
 
 - Unvendored ``pipfile`` in favor of ``plette``.  #33
-  
+
 
 Removals and Deprecations
 -------------------------
 
 - Unvendored ``pipfile`` in favor of ``plette``.  #33
-  
+
 - Moved pipfile and lockfile models to ``plette`` and added api wrappers for compatibility.  #43
 
 

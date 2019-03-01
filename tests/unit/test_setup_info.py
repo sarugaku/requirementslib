@@ -1,8 +1,11 @@
 # -*- coding=utf-8 -*-
 
-import pytest
-import sys
 import os
+import sys
+
+import pip_shims.shims
+import pytest
+
 import vistir
 
 from requirementslib.models.requirements import Requirement
@@ -31,8 +34,6 @@ def test_remote_req(url_line, name, requires):
     r = Requirement.from_line(url_line)
     assert r.name == name
     setup_dict = r.req.setup_info.as_dict()
-    if "typing" in requires and not sys.version_info < (3, 5):
-        requires.remove("typing")
     assert sorted(list(setup_dict.get("requires").keys())) == sorted(requires)
 
 
@@ -41,8 +42,30 @@ def test_no_duplicate_egg_info():
     base_dir = vistir.compat.Path(os.path.abspath(os.getcwd())).as_posix()
     r = Requirement.from_line("-e {}".format(base_dir))
     egg_info_name = "{}.egg-info".format(r.name.replace("-", "_"))
-    assert os.path.isdir(os.path.join(base_dir, "src", egg_info_name))
-    assert not os.path.isdir(os.path.join(base_dir, egg_info_name))
+    distinfo_name = "{0}.dist-info".format(r.name.replace("-", "_"))
+
+    def find_metadata(path):
+        metadata_names = [
+            os.path.join(path, name) for name in (egg_info_name, distinfo_name)
+        ]
+        if not os.path.isdir(path):
+            return None
+        pth = next(iter(pth for pth in metadata_names if os.path.isdir(pth)), None)
+        if not pth:
+            pth = next(iter(
+                pth for pth in os.listdir(path)
+                if any(pth.endswith(md_ending) for md_ending in [".egg-info", ".dist-info", ".whl"])
+            ), None)
+        return pth
+
+    assert not find_metadata(base_dir)
+    assert not find_metadata(os.path.join(base_dir, "reqlib-metadata"))
+    assert not find_metadata(os.path.join(base_dir, "src", "reqlib-metadata"))
+    assert r.req.setup_info and os.path.isdir(r.req.setup_info.egg_base)
+    assert (
+        find_metadata(r.req.setup_info.egg_base) or
+        find_metadata(r.req.setup_info.extra_kwargs["build_dir"])
+    )
 
 
 def test_without_extras(pathlib_tmpdir):
@@ -119,6 +142,6 @@ setup(
     with vistir.contextmanagers.cd(pathlib_tmpdir.as_posix()):
         r = Requirement.from_pipfile("test-package", pipfile_entry)
         assert r.name == "test-package"
-        r.run_requires()
+        r.req.setup_info.get_info()
         setup_dict = r.req.setup_info.as_dict()
-        assert sorted(list(setup_dict.get("requires").keys())) == ["coverage", "flaky", "six"]
+        assert sorted(list(setup_dict.get("requires").keys())) == ["coverage", "flaky", "six"], setup_dict

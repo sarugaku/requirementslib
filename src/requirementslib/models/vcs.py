@@ -9,7 +9,7 @@ import six
 import sys
 
 
-@attr.s
+@attr.s(hash=True)
 class VCSRepository(object):
     DEFAULT_RUN_ARGS = None
 
@@ -83,7 +83,10 @@ class VCSRepository(object):
         new_defaults = [False,] + list(run_command_defaults)[1:]
         new_defaults = tuple(new_defaults)
         if six.PY3:
-            pip_vcs.VersionControl.run_command.__defaults__ = new_defaults
+            try:
+                pip_vcs.VersionControl.run_command.__defaults__ = new_defaults
+            except AttributeError:
+                pip_vcs.VersionControl.run_command.__func__.__defaults__ = new_defaults
         else:
             pip_vcs.VersionControl.run_command.__func__.__defaults__ = new_defaults
         sys.modules[target_module] = pip_vcs
