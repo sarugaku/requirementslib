@@ -31,7 +31,7 @@ from ..utils import SCHEME_LIST, VCS_LIST, is_star, add_ssh_scheme_to_git_uri
 from ..environment import MYPY_RUNNING
 
 if MYPY_RUNNING:
-    from typing import Union, Optional, List, Set, Any, TypeVar, Tuple, Sequence, Dict, Text, AnyStr
+    from typing import Union, Optional, List, Set, Any, TypeVar, Tuple, Sequence, Dict, Text, AnyStr, Match, Iterable
     from attr import _ValidatorType
     from packaging.requirements import Requirement as PackagingRequirement
     from pkg_resources import Requirement as PkgResourcesRequirement
@@ -120,7 +120,7 @@ def init_requirement(name):
 
 
 def extras_to_string(extras):
-    # type: (Sequence) -> S
+    # type: (Iterable[S]) -> S
     """Turn a list of extras into a string"""
     if isinstance(extras, six.string_types):
         if extras.startswith("["):
@@ -133,7 +133,7 @@ def extras_to_string(extras):
 
 
 def parse_extras(extras_str):
-    # type: (AnyStr) -> List
+    # type: (AnyStr) -> List[AnyStr]
     """
     Turn a string of extras into a parsed extras list
     """
@@ -155,7 +155,7 @@ def specs_to_string(specs):
         try:
             extras = ",".join(["".join(spec) for spec in specs])
         except TypeError:
-            extras = ",".join(["".join(spec._spec) for spec in specs])
+            extras = ",".join(["".join(spec._spec) for spec in specs])  # type: ignore
         return extras
     return ""
 
@@ -166,9 +166,9 @@ def build_vcs_uri(
     name=None,  # type: Optional[S]
     ref=None,  # type: Optional[S]
     subdirectory=None,  # type: Optional[S]
-    extras=None  # type: Optional[Union[List[S], Tuple[S, ...]]]
+    extras=None  # type: Optional[Iterable[S]]
 ):
-    # type: (...) -> S
+    # type: (...) -> STRING_TYPE
     if extras is None:
         extras = []
     vcs_start = ""
@@ -198,16 +198,19 @@ def convert_direct_url_to_url(direct_url):
     :return: A reformatted URL for use with Link objects and :class:`~pip_shims.shims.InstallRequirement` objects.
     :rtype: AnyStr
     """
-    direct_match = DIRECT_URL_RE.match(direct_url)
+    direct_match = DIRECT_URL_RE.match(direct_url)  # type: Optional[Match]
     if direct_match is None:
         url_match = URL_RE.match(direct_url)
         if url_match or is_valid_url(direct_url):
             return direct_url
-    match_dict = direct_match.groupdict()
+    match_dict = {}  # type: Dict[STRING_TYPE, Union[Tuple[STRING_TYPE, ...], STRING_TYPE]]
+    if direct_match is not None:
+        match_dict = direct_match.groupdict()  # type: ignore
     if not match_dict:
         raise ValueError("Failed converting value to normal URL, is it a direct URL? {0!r}".format(direct_url))
     url_segments = [match_dict.get(s) for s in ("scheme", "host", "path", "pathsep")]
-    url = "".join([s for s in url_segments if s is not None])
+    url = ""  # type: STRING_TYPE
+    url = "".join([s for s in url_segments if s is not None])  # type: ignore
     new_url = build_vcs_uri(
         None,
         url,
@@ -268,7 +271,7 @@ def convert_url_to_direct_url(url, name=None):
 
 
 def get_version(pipfile_entry):
-    # type: (Union[STRING_TYPE, Dict[AnyStr, bool, List[AnyStr]]]) -> AnyStr
+    # type: (Union[STRING_TYPE, Dict[STRING_TYPE, Union[STRING_TYPE, bool, Iterable[STRING_TYPE]]]]) -> STRING_TYPE
     if str(pipfile_entry) == "{}" or is_star(pipfile_entry):
         return ""
 
@@ -348,14 +351,14 @@ def get_default_pyproject_backend():
 
 
 def get_pyproject(path):
-    # type: (Union[STRING_TYPE, Path]) -> Tuple[List[STRING_TYPE], STRING_TYPE]
+    # type: (Union[STRING_TYPE, Path]) -> Optional[Tuple[List[STRING_TYPE], STRING_TYPE]]
     """
     Given a base path, look for the corresponding ``pyproject.toml`` file and return its
     build_requires and build_backend.
 
     :param AnyStr path: The root path of the project, should be a directory (will be truncated)
     :return: A 2 tuple of build requirements and the build backend
-    :rtype: Tuple[List[AnyStr], AnyStr]
+    :rtype: Optional[Tuple[List[AnyStr], AnyStr]]
     """
 
     if not path:
@@ -410,9 +413,10 @@ def split_markers_from_line(line):
 
 
 def split_vcs_method_from_uri(uri):
-    # type: (AnyStr) -> Tuple[Optional[AnyStr], AnyStr]
+    # type: (AnyStr) -> Tuple[Optional[STRING_TYPE], STRING_TYPE]
     """Split a vcs+uri formatted uri into (vcs, uri)"""
     vcs_start = "{0}+"
+    vcs = None  # type: Optional[STRING_TYPE]
     vcs = first([vcs for vcs in VCS_LIST if uri.startswith(vcs_start.format(vcs))])
     if vcs:
         vcs, uri = uri.split("+", 1)
