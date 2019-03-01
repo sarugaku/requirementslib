@@ -2094,7 +2094,7 @@ class VCSRequirement(FileRequirement):
         from .vcs import VCSRepository
 
         if checkout_dir is None:
-            checkout_dir = self.get_checkout_dir(src_dir=vistir.compat.fs_encode(src_dir))
+            checkout_dir = self.get_checkout_dir(src_dir=src_dir)
         vcsrepo = VCSRepository(
             url=self.url,
             name=self.name,
