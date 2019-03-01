@@ -1,5 +1,5 @@
 Contributing to requirementslib
-================================
+====================================
 
 To work on requirementslib itself, fork the repository and clone your fork to your local
 system.

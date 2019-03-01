@@ -1,5 +1,4 @@
 RequirementsLib: Requirement Management Library for Pip and Pipenv
-===========================================================================
 
 .. image:: https://img.shields.io/pypi/v/requirementslib.svg
     :target: https://pypi.org/project/requirementslib
