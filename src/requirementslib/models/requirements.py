@@ -41,6 +41,7 @@ from vistir.path import (
 )
 
 from .setup_info import SetupInfo, _prepare_wheel_building_kwargs
+from .url import URI
 from .utils import (
     DIRECT_URL_RE,
     HASH_STRING,
@@ -483,42 +484,12 @@ class Line(object):
         url = ""  # type: STRING_TYPE
         if "@" in self.line or self.is_vcs or self.is_url:
             line = "{0}".format(self.line)
-            match = DIRECT_URL_RE.match(line)
-            if match is None:
-                match = URL_RE.match(line)
-            else:
-                self.is_direct_url = True
-            if match is not None:
-                match_dict = match.groupdict()
-                name = match_dict.get("name")
-                extras = match_dict.get("extras")
-                scheme = match_dict.get("scheme")
-                host = match_dict.get("host")
-                path = match_dict.get("path")
-                ref = match_dict.get("ref")
-                subdir = match_dict.get("subdirectory")
-                pathsep = match_dict.get("pathsep", "/")
-                if scheme is not None:
-                    url = scheme
-                if host:
-                    url = "{0}{1}".format(url, host)
-                if path:
-                    url = "{0}{1}{2}".format(url, pathsep, path)
-                    if self.is_vcs and ref:
-                        url = "{0}@{1}".format(url, ref)
-                    if name:
-                        url = "{0}#egg={1}".format(url, name)
-                        if extras:
-                            url = "{0}{1}".format(url, extras)
-                    elif is_file_url(url) and extras and not name and self.editable:
-                        url = "{0}{1}{2}".format(pathsep, path, extras)
-                    if subdir:
-                        url = "{0}&subdirectory={1}".format(url, subdir)
-                elif extras and not path:
-                    url = "{0}{1}".format(url, extras)
-                self.line = add_ssh_scheme_to_git_uri(url)
-                if name:
-                    self._name = name
+            uri = URI.parse(line)
+            name = uri.name
+            if name:
+                self._name = name
+            if uri.host and uri.path and uri.scheme:
+                self.line = uri.to_string(escape_password=False, direct=False)
             else:
                 self.line, extras = pip_shims.shims._strip_extras(self.line)
         else:
@@ -1014,14 +985,14 @@ class Line(object):
             else:
                 # set this so we can call `self.name` without a recursion error
                 self._link = link
-            if (self.is_direct_url or vcs) and self.name is not None and vcs is not None:
+            if (self.is_direct_url or vcs) and self._name is not None and vcs is not None:
                 self._link = create_link(
                     build_vcs_uri(
                         vcs=vcs,
                         uri=link_url,
                         ref=ref,
                         extras=self.extras,
-                        name=self.name,
+                        name=self._name,
                         subdirectory=link.subdirectory_fragment,
                     )
                 )

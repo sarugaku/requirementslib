@@ -568,6 +568,14 @@
             ],
             "version": "==1.8.2.post2"
         },
+        "orderedmultidict": {
+            "hashes": [
+                "sha256:24e3b730cf84e4a6a68be5cc760864905cf66abc89851e724bd5b4e849eaa96b",
+                "sha256:b89895ba6438038d0bdf88020ceff876cf3eae0d5c66a69b526fab31125db2c5"
+            ],
+            "index": "pypi",
+            "version": "==1.0"
+        },
         "packaging": {
             "hashes": [
                 "sha256:0c98a5d0be38ed775798ece1b9727178c4469d9c3b4ada66e8e6b7849f8732af",
