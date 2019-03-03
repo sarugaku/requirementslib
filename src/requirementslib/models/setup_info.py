@@ -553,27 +553,22 @@ class SetupInfo(object):
                 results["python_requires"] = parser.get("options", "python_requires")
             if parser.has_option("options", "build_requires"):
                 results["build_requires"] = parser.get("options", "build_requires")
-            extras_require = ()
             if "options.extras_require" in parser.sections():
-                extras_require = tuple(
-                    [
-                        (
-                            section,
-                            tuple(
-                                [
-                                    BaseRequirement.from_string(dep)
-                                    for dep in parser.get(
-                                        "options.extras_require", section
-                                    ).split("\n")
-                                    if dep
-                                ]
-                            ),
-                        )
-                        for section in parser.options("options.extras_require")
-                        if section not in ["options", "metadata"]
-                    ]
-                )
-            results["extras_require"] = extras_require
+                extras_require_section = parser.options("options.extras_require")
+                extras = []
+                for section in extras_require_section:
+                    if section in ["options", "metadata"]:
+                        continue
+                    section_contents = parser.get("options.extras_require", section)
+                    section_list = section_contents.split("\n")
+                    section_extras = []
+                    for extra_name in section_list:
+                        if not extra_name or extra_name.startswith("#"):
+                            continue
+                        section_extras.append(BaseRequirement.from_string(extra_name))
+                    if section_extras:
+                        extras.append(tuple([section, tuple(section_extras)]))
+            results["extras_require"] = tuple(extras)
             return results
 
     @property
