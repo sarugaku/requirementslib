@@ -1,5 +1,0 @@
-Added full support for parsing PEP-508 compliant direct URL dependencies.
-
-Fully implemented pep517 dependency mapping for VCS, URL, and file-type requirements.
-
-Expanded type-checking coverage.

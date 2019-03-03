@@ -1,1 +1,0 @@
-Fixed a parsing  bug which incorrectly represented local VCS uris with progressively fewer forward slashes in the ``scheme``, causing dependency resolution to fail.
