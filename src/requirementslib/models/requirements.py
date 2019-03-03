@@ -88,6 +88,7 @@ if MYPY_RUNNING:
         Union,
         Any,
         Tuple,
+        Sequence,
         Set,
         AnyStr,
         Text,
@@ -434,30 +435,35 @@ class Line(object):
     def pyproject_requires(self):
         # type: () -> Optional[Tuple[STRING_TYPE, ...]]
         if self._pyproject_requires is None and self.pyproject_toml is not None:
-            pyproject_requires, pyproject_backend = get_pyproject(
-                self.path
-            )  # type: ignore
-            if pyproject_requires:
-                self._pyproject_requires = tuple(pyproject_requires)
-            self._pyproject_backend = pyproject_backend
+            if self.path is not None:
+                pyproject_requires, pyproject_backend = None, None
+                pyproject_results = get_pyproject(self.path)  # type: ignore
+                if pyproject_results:
+                    pyproject_requires, pyproject_backend = pyproject_results
+                if pyproject_requires:
+                    self._pyproject_requires = tuple(pyproject_requires)
+                self._pyproject_backend = pyproject_backend
         return self._pyproject_requires
 
     @property
     def pyproject_backend(self):
         # type: () -> Optional[STRING_TYPE]
         if self._pyproject_requires is None and self.pyproject_toml is not None:
-            pyproject_requires, pyproject_backend = get_pyproject(
-                self.path
-            )  # type: ignore
+            pyproject_requires = None  # type: Optional[Sequence[STRING_TYPE]]
+            pyproject_backend = None  # type: Optional[STRING_TYPE]
+            pyproject_results = get_pyproject(self.path)  # type: ignore
+            if pyproject_results:
+                pyproject_requires, pyproject_backend = pyproject_results
             if not pyproject_backend and self.setup_cfg is not None:
                 setup_dict = SetupInfo.get_setup_cfg(self.setup_cfg)
                 pyproject_backend = get_default_pyproject_backend()
                 pyproject_requires = setup_dict.get(
                     "build_requires", ["setuptools", "wheel"]
                 )  # type: ignore
-
-            self._pyproject_requires = tuple(pyproject_requires)
-            self._pyproject_backend = pyproject_backend
+            if pyproject_requires:
+                self._pyproject_requires = tuple(pyproject_requires)
+            if pyproject_backend:
+                self._pyproject_backend = pyproject_backend
         return self._pyproject_backend
 
     def parse_hashes(self):
@@ -481,7 +487,6 @@ class Line(object):
         """
 
         extras = None
-        url = ""  # type: STRING_TYPE
         if "@" in self.line or self.is_vcs or self.is_url:
             line = "{0}".format(self.line)
             uri = URI.parse(line)
@@ -489,7 +494,9 @@ class Line(object):
             if name:
                 self._name = name
             if uri.host and uri.path and uri.scheme:
-                self.line = uri.to_string(escape_password=False, direct=False)
+                self.line = uri.to_string(
+                    escape_password=False, direct=False, strip_ssh=uri.is_implicit_ssh
+                )
             else:
                 self.line, extras = pip_shims.shims._strip_extras(self.line)
         else:
@@ -1012,7 +1019,7 @@ class Line(object):
         Generates a 3-tuple of the requisite *name*, *extras* and *url* to generate a
         :class:`~packaging.requirements.Requirement` out of.
 
-        :return: A Tuple containing an optional name, a Tuple of extras names, and an optional URL.
+        :return: A Tuple of an optional name, a Tuple of extras, and an optional URL.
         :rtype: Tuple[Optional[S], Tuple[Optional[S], ...], Optional[S]]
         """
 
@@ -1054,8 +1061,8 @@ class Line(object):
         when there is a folder called *alembic* in the working directory.
 
         In this case we first need to check that the given requirement is a valid
-        URL, VCS requirement, or installable filesystem path before deciding to treat it as
-        a file requirement over a named requirement.
+        URL, VCS requirement, or installable filesystem path before deciding to treat it
+        as a file requirement over a named requirement.
         """
         line = self.line
         if is_file_url(line):
@@ -1149,8 +1156,12 @@ class NamedRequirement(object):
         return cls(**creation_kwargs)
 
     @classmethod
-    def from_pipfile(cls, name, pipfile):
-        # type: (S, Dict[S, Union[S, bool, Union[List[S], Tuple[S, ...], Set[S]]]]) -> NamedRequirement
+    def from_pipfile(
+        cls,
+        name,  # type: S
+        pipfile,  # type: Dict[S, Union[S, bool, Union[List[S], Tuple[S, ...], Set[S]]]]
+    ):
+        # type: (...) -> NamedRequirement
         creation_args = (
             {}
         )  # type: Dict[STRING_TYPE, Union[Optional[STRING_TYPE], Optional[List[STRING_TYPE]]]]
