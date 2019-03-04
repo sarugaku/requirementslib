@@ -97,30 +97,29 @@ class URI(object):
     _auth = attr.ib(default=None, type=str, repr=False)
     _fragment_dict = attr.ib(factory=dict, type=dict)
 
-    def __attrs_post_init__(self):
-        # type: () -> None
-        self._parse_auth()._parse_query()._parse_fragment()
-
     def _parse_query(self):
         # type: () -> URI
-        if self.query is None:
-            self.query = ""
-        queries = self.query.split("&")
+        query = self.query if self.query is not None else ""
+        query_dict = omdict()
+        queries = query.split("&")
         query_items = []
         for q in queries:
             key, _, val = q.partition("=")
             val = unquote_plus(val.replace("+", " "))
             query_items.append((key, val))
-        self.query_dict.load(query_items)
-        return self
+        query_dict.load(query_items)
+        return attr.evolve(self, query_dict=query_dict, query=query)
 
     def _parse_fragment(self):
         # type: () -> URI
+        subdirectory = self.subdirectory if self.subdirectory else ""
+        fragment = self.fragment if self.fragment else ""
         if self.fragment is None:
-            self.subdirectory = ""
-            self.fragment = ""
+            return self
         fragments = self.fragment.split("&")
         fragment_items = {}
+        name = self.name if self.name else ""
+        extras = self.extras
         for q in fragments:
             key, _, val = q.partition("=")
             val = unquote_plus(val.replace("+", " "))
@@ -128,20 +127,26 @@ class URI(object):
             if key == "egg":
                 from .utils import parse_extras
 
-                name, extras = pip_shims.shims._strip_extras(val)
-                self.name = name
-                if extras:
-                    self.extras = tuple(parse_extras(extras))
+                name, stripped_extras = pip_shims.shims._strip_extras(val)
+                if stripped_extras:
+                    extras = tuple(parse_extras(stripped_extras))
             elif key == "subdirectory":
-                self.subdirectory = val
-        self._fragment_dict = fragment_items
-        return self
+                subdirectory = val
+        return attr.evolve(
+            self,
+            fragment_dict=fragment_items,
+            subdirectory=subdirectory,
+            fragment=fragment,
+            extras=extras,
+            name=name,
+        )
 
     def _parse_auth(self):
         # type: () -> URI
         if self._auth:
-            self.username, _, password = self._auth.partition(":")
-            self.password = quote_plus(password)
+            username, _, password = self._auth.partition(":")
+            password = quote_plus(password)
+            return attr.evolve(self, username=username, password=password)
         return self
 
     def get_password(self, unquote=False, include_token=True):
@@ -180,7 +185,17 @@ class URI(object):
             name_with_extras, _, url = url.partition("@")
             name_with_extras = name_with_extras.strip()
         url, ref = split_ref_from_uri(url.strip())
+        if "file:/" in url and "file:///" not in url:
+            url = url.replace("file:/", "file:///")
         parsed = _get_parsed_url(url)
+        if not (parsed.scheme and parsed.host and parsed.path):
+            # check if this is a file uri
+            if not (
+                parsed.scheme
+                and parsed.path
+                and (parsed.scheme == "file" or parsed.scheme.endswith("+file"))
+            ):
+                raise ValueError("Failed parsing URL {0!r} - Not a valid url".format(url))
         parsed_dict = dict(parsed._asdict()).copy()
         parsed_dict["is_direct_url"] = is_direct_url
         parsed_dict["is_implicit_ssh"] = is_implicit_ssh
@@ -196,7 +211,7 @@ class URI(object):
             parsed_dict["fragment"] = "egg={0}{1}".format(name_with_extras, fragment)
         if ref is not None:
             parsed_dict["ref"] = ref.strip()
-        return cls(**parsed_dict)
+        return cls(**parsed_dict)._parse_auth()._parse_query()._parse_fragment()
 
     def to_string(
         self,
@@ -204,6 +219,9 @@ class URI(object):
         unquote=True,  # type: bool
         direct=None,  # type: Optional[bool]
         strip_ssh=False,  # type: bool
+        strip_ref=False,  # type: bool
+        strip_name=False,  # type: bool
+        strip_subdir=False,  # type: bool
     ):
         # type: (...) -> str
         """
@@ -215,6 +233,9 @@ class URI(object):
         :param unquote: bool, optional
         :param bool direct: Whether to format as a direct URL
         :param bool strip_ssh: Whether to strip the SSH scheme from the url (git only)
+        :param bool strip_ref: Whether to drop the VCS ref (if present)
+        :param bool strip_name: Whether to drop the name and extras (if present)
+        :param bool strip_subdir: Whether to drop the subdirectory (if present)
         :return: The reconstructed string representing the URI
         :rtype: str
         """
@@ -235,38 +256,40 @@ class URI(object):
         if self.query:
             query = "{query}?{self.query}".format(query=query, self=self)
         if not direct:
-            if self.name:
+            if self.name and not strip_name:
                 fragment = "#egg={self.name_with_extras}".format(self=self)
-            elif self.extras and self.scheme and self.scheme.startswith("file"):
+            elif not strip_name and (
+                self.extras and self.scheme and self.scheme.startswith("file")
+            ):
                 from .utils import extras_to_string
 
                 fragment = extras_to_string(self.extras)
             else:
                 fragment = ""
             query = "{query}{fragment}".format(query=query, fragment=fragment)
-        if self.subdirectory:
+        if self.subdirectory and not strip_subdir:
             query = "{query}&subdirectory={self.subdirectory}".format(
                 query=query, self=self
             )
-        url = "{self.scheme}://{auth}{self.host_port_path}{query}".format(
-            auth=auth, self=self, query=query
+        host_port_path = self.get_host_port_path(strip_ref=strip_ref)
+        url = "{self.scheme}://{auth}{host_port_path}{query}".format(
+            self=self, auth=auth, host_port_path=host_port_path, query=query
         )
         if strip_ssh:
             from ..utils import strip_ssh_from_git_uri
 
             url = strip_ssh_from_git_uri(url)
-        if self.name and direct:
+        if self.name and direct and not strip_name:
             return "{self.name_with_extras}@ {url}".format(self=self, url=url)
         return url
 
-    @property
-    def host_port_path(self):
-        # type: () -> str
-        host = self.host
+    def get_host_port_path(self, strip_ref=False):
+        # type: (bool) -> str
+        host = self.host if self.host else ""
         if self.port:
             host = "{host}:{self.port!s}".format(host=host, self=self)
         path = "{self.path}".format(self=self)
-        if self.ref:
+        if self.ref and not strip_ref:
             path = "{path}@{self.ref}".format(path=path, self=self)
         return "{host}{path}".format(host=host, path=path)
 
@@ -279,6 +302,69 @@ class URI(object):
             return ""
         extras = extras_to_string(self.extras)
         return "{self.name}{extras}".format(self=self, extras=extras)
+
+    @property
+    def as_link(self):
+        # type: () -> Link
+        link = pip_shims.shims.Link(
+            self.to_string(escape_password=False, strip_ssh=False, direct=False)
+        )
+        return link
+
+    @property
+    def bare_url(self):
+        # type: () -> str
+        return self.to_string(
+            escape_password=False,
+            strip_ssh=self.is_implicit_ssh,
+            direct=False,
+            strip_name=True,
+            strip_ref=True,
+            strip_subdir=True,
+        )
+
+    @property
+    def url_without_fragment_or_ref(self):
+        # type: () -> str
+        return self.to_string(
+            escape_password=False,
+            strip_ssh=self.is_implicit_ssh,
+            direct=False,
+            strip_name=True,
+            strip_ref=True,
+        )
+
+    @property
+    def url_without_fragment(self):
+        # type: () -> str
+        return self.to_string(
+            escape_password=False,
+            strip_ssh=self.is_implicit_ssh,
+            direct=False,
+            strip_name=True,
+        )
+
+    @property
+    def url_without_ref(self):
+        # type: () -> str
+        return self.to_string(
+            escape_password=False,
+            strip_ssh=self.is_implicit_ssh,
+            direct=False,
+            strip_ref=True,
+        )
+
+    @property
+    def base_url(self):
+        # type: () -> str
+        return self.to_string(
+            escape_password=False, strip_ssh=self.is_implicit_ssh, direct=False
+        )
+
+    @property
+    def full_url(self):
+        # type: () -> str
+        return self.to_string(escape_password=False, strip_ssh=False, direct=False)
 
     @property
     def safe_string(self):
@@ -301,6 +387,11 @@ class URI(object):
         from ..utils import VCS_SCHEMES
 
         return self.scheme in VCS_SCHEMES
+
+    @property
+    def is_file_url(self):
+        # type: () -> bool
+        return all([self.scheme, self.scheme == "file"])
 
     def __str__(self):
         # type: () -> str
