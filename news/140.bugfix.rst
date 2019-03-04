@@ -1,1 +1,0 @@
-Fixed a bug which caused significant degradation in performance while loading requirements.
