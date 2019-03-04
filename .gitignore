@@ -103,7 +103,13 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+mypyhtml/
+.typeshed
+
+# pycharm
+.idea/
+
+# pip
+pip-wheel-metadata/
 
 .vscode
-.typeshed
-mypyhtml/
