@@ -1,0 +1,1 @@
+Egg fragments on ``PEP-508`` style direct URL dependencies are now disregarded rather than merged with the leading name.
