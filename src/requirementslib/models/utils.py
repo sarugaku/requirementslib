@@ -20,7 +20,7 @@ from packaging.version import parse as parse_version
 from plette.models import Package, PackageCollection
 from six.moves.urllib import parse as urllib_parse
 from tomlkit.container import Container
-from tomlkit.items import Array, Table, InlineTable, AoT, Item, Bool, String
+from tomlkit.items import AoT, Array, Bool, InlineTable, Item, String, Table
 from urllib3 import util as urllib3_util
 from vistir.compat import lru_cache
 from vistir.misc import dedup
@@ -121,8 +121,9 @@ def create_link(link):
 def tomlkit_value_to_python(toml_value):
     # type: (Union[Array, AoT, TOML_DICT_TYPES, Item]) -> Union[List, Dict]
     value_type = type(toml_value).__name__
-    if (isinstance(toml_value, TOML_DICT_OBJECTS + (dict,)) or
-        value_type in TOML_DICT_NAMES
+    if (
+        isinstance(toml_value, TOML_DICT_OBJECTS + (dict,))
+        or value_type in TOML_DICT_NAMES
     ):
         return tomlkit_dict_to_python(toml_value)
     elif isinstance(toml_value, AoT) or value_type == "AoT":
@@ -144,10 +145,14 @@ def tomlkit_dict_to_python(toml_dict):
     if toml_dict is None:
         raise TypeError("Invalid type NoneType when converting toml dict to python")
     converted = None  # type: Optional[Dict]
-    if (isinstance(toml_dict, (InlineTable, Table))
-            or value_type in ("InlineTable", "Table")):
+    if isinstance(toml_dict, (InlineTable, Table)) or value_type in (
+        "InlineTable",
+        "Table",
+    ):
         converted = toml_dict.value
-    elif isinstance(toml_dict, (Package, PackageCollection)) or value_type in ("Package, PackageCollection"):
+    elif isinstance(toml_dict, (Package, PackageCollection)) or value_type in (
+        "Package, PackageCollection"
+    ):
         converted = toml_dict._data
         if isinstance(converted, Container) or type(converted).__name__ == "Container":
             converted = converted.value
