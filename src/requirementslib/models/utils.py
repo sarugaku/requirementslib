@@ -128,7 +128,7 @@ def tomlkit_value_to_python(toml_value):
     elif isinstance(toml_value, AoT) or value_type == "AoT":
         return [tomlkit_value_to_python(val) for val in toml_value._body]
     elif isinstance(toml_value, Array) or value_type == "Array":
-        return [tomlkit_value_to_python(val) for val in toml_value._value]
+        return [tomlkit_value_to_python(val) for val in list(toml_value)]
     elif isinstance(toml_value, String) or value_type == "String":
         return "{0!s}".format(toml_value)
     elif isinstance(toml_value, Bool) or value_type == "Bool":

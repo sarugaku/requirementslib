@@ -158,8 +158,8 @@ class Pipfile(object):
     _pipfile = attr.ib(type=PipfileLoader)
     _pyproject = attr.ib(default=attr.Factory(tomlkit.document), type=tomlkit.toml_document.TOMLDocument)
     build_system = attr.ib(default=attr.Factory(dict), type=dict)
-    requirements = attr.ib(default=attr.Factory(list), type=list)
-    dev_requirements = attr.ib(default=attr.Factory(list), type=list)
+    _requirements = attr.ib(default=attr.Factory(list), type=list)
+    _dev_requirements = attr.ib(default=attr.Factory(list), type=list)
 
     @path.default
     def _get_path(self):
@@ -306,21 +306,9 @@ class Pipfile(object):
 
         projectfile = cls.load_projectfile(path, create=create)
         pipfile = projectfile.model
-        dev_requirements = [
-            Requirement.from_pipfile(k, getattr(v, "_data", v.__dict__))
-            for k, v in tomlkit_value_to_python(pipfile.get("dev-packages", {})).items()
-            if v is not None and isinstance(v, plette.models.Package)
-        ]
-        requirements = [
-            Requirement.from_pipfile(k, getattr(v, "_data", v.__dict__))
-            for k, v in tomlkit_value_to_python(pipfile.get("dev-packages", {})).items()
-            if v is not None and isinstance(v, plette.models.Package)
-        ]
         creation_args = {
             "projectfile": projectfile,
             "pipfile": pipfile,
-            "dev_requirements": dev_requirements,
-            "requirements": requirements,
             "path": Path(projectfile.location)
         }
         return cls(**creation_args)
@@ -339,6 +327,28 @@ class Pipfile(object):
     def packages(self):
         # type: () -> List[Requirement]
         return self.requirements
+
+    @property
+    def dev_requirements(self):
+        # type: () -> List[Requirement]
+        if not self._dev_requirements:
+            packages = tomlkit_value_to_python(self.pipfile.get("dev-packages", {}))
+            self._dev_requirements = [
+                Requirement.from_pipfile(k, v) for k, v in packages.items()
+                if v is not None
+            ]
+        return self._dev_requirements
+
+    @property
+    def requirements(self):
+        # type: () -> List[Requirement]
+        if not self._requirements:
+            packages = tomlkit_value_to_python(self.pipfile.get("packages", {}))
+            self._requirements = [
+                Requirement.from_pipfile(k, v) for k, v in packages.items()
+                if v is not None
+            ]
+        return self._requirements
 
     def _read_pyproject(self):
         # type: () -> None
