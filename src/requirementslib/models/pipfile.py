@@ -18,7 +18,7 @@ from ..exceptions import RequirementError
 from ..utils import is_editable, is_vcs, merge_items
 from .project import ProjectFile
 from .requirements import Requirement
-from .utils import optional_instance_of, get_url_name
+from .utils import optional_instance_of, get_url_name, tomlkit_value_to_python
 
 from ..environment import MYPY_RUNNING
 if MYPY_RUNNING:
@@ -188,7 +188,9 @@ class Pipfile(object):
             deps.update(self.pipfile._data["dev-packages"])
             if only:
                 return deps
-        return merge_items([deps, self.pipfile._data["packages"]])
+        return tomlkit_value_to_python(
+            merge_items([deps, self.pipfile._data["packages"]])
+        )
 
     def get(self, k):
         # type: (Text) -> Any
@@ -213,6 +215,7 @@ class Pipfile(object):
             if "-" in k:
                 section, _, pkg_type = k.rpartition("-")
                 vals = getattr(pipfile.get(section, {}), "_data", {})
+                vals = tomlkit_value_to_python(vals)
                 if pkg_type == "vcs":
                     retval = {k: v for k, v in vals.items() if is_vcs(v)}
                 elif pkg_type == "editable":
@@ -304,10 +307,14 @@ class Pipfile(object):
         projectfile = cls.load_projectfile(path, create=create)
         pipfile = projectfile.model
         dev_requirements = [
-            Requirement.from_pipfile(k, getattr(v, "_data", v)) for k, v in pipfile.get("dev-packages", {}).items()
+            Requirement.from_pipfile(k, getattr(v, "_data", v.__dict__))
+            for k, v in tomlkit_value_to_python(pipfile.get("dev-packages", {})).items()
+            if v is not None and isinstance(v, plette.models.Package)
         ]
         requirements = [
-            Requirement.from_pipfile(k, getattr(v, "_data", v)) for k, v in pipfile.get("packages", {}).items()
+            Requirement.from_pipfile(k, getattr(v, "_data", v.__dict__))
+            for k, v in tomlkit_value_to_python(pipfile.get("dev-packages", {})).items()
+            if v is not None and isinstance(v, plette.models.Package)
         ]
         creation_args = {
             "projectfile": projectfile,
