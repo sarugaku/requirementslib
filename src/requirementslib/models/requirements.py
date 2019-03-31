@@ -46,6 +46,7 @@ from .markers import (
     format_pyversion,
     get_contained_pyversions,
     get_without_pyversion,
+    normalize_marker_str,
 )
 from .setup_info import SetupInfo, _prepare_wheel_building_kwargs
 from .url import URI
@@ -3251,20 +3252,8 @@ class Requirement(object):
             ireq_marker = ireq.markers
             _markers.append(str(ireq_marker))
         _markers.append(str(markers))
-        new_marker = Marker(" and ".join(_markers))
-        if contains_pyversion(new_marker):
-            pyversion = get_contained_pyversions(new_marker)
-            new_marker = get_without_pyversion(new_marker)
-            marker_str = ""
-            if pyversion:
-                parts = cleanup_pyspecs(pyversion)
-                marker_str = " and ".join([format_pyversion(pv) for pv in parts])
-            if new_marker:
-                if marker_str:
-                    marker_str = "{0!s} and {1!s}".format(marker_str, new_marker)
-                else:
-                    marker_str = "{0!s}".format(new_marker)
-            new_marker = Marker(marker_str)
+        marker_str = normalize_marker_str(" and ".join(_markers))
+        new_marker = Marker(marker_str)
         line = copy.deepcopy(self._line_instance)
         line.markers = marker_str
         line.parsed_marker = new_marker
