@@ -1,0 +1,1 @@
+Fixed a bug which prevented handling special setup.cfg directives during dependency parsing.

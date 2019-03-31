@@ -23,7 +23,7 @@ exclude = '''
 [tool.towncrier]
 package = "requirementslib"
 package_dir = "src"
-newsfile = "CHANGELOG.rst"
+filename = "CHANGELOG.rst"
 directory = "news/"
 title_format = "{version} ({project_date})"
 template = "tasks/CHANGELOG.rst.jinja2"
