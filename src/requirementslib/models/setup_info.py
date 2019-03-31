@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 
 import atexit
 import contextlib
+import importlib
 import os
 import shutil
 import sys
@@ -131,6 +132,84 @@ class HookCaller(pep517.wrappers.Pep517HookCaller):
         self.source_dir = os.path.abspath(source_dir)
         self.build_backend = build_backend
         self._subprocess_runner = pep517_subprocess_runner
+
+
+def parse_special_directives(setup_entry):
+    # type: (S) -> S
+    rv = setup_entry
+    if setup_entry.startswith("file:"):
+        _, path = setup_entry.split("file:")
+        path = path.strip()
+        if os.path.exists(path):
+            with open(path, "r") as fh:
+                rv = fh.read()
+    elif setup_entry.startswith("attr:"):
+        _, resource = setup_entry.split("attr:")
+        resource = resource.strip()
+        if "." in resource:
+            resource, _, attribute = resource.rpartition(".")
+        module = importlib.import_module(resource)
+        rv = getattr(module, attribute)
+        if not isinstance(rv, six.string_types):
+            rv = str(rv)
+    return rv
+
+
+def parse_setup_cfg(setup_cfg_path):
+    # type: (S) -> Dict[S, Union[S, None, Set[BaseRequirement], List[S], Tuple[S, Tuple[BaseRequirement]]]]
+    if os.path.exists(setup_cfg_path):
+        default_opts = {
+            "metadata": {"name": "", "version": ""},
+            "options": {
+                "install_requires": "",
+                "python_requires": "",
+                "build_requires": "",
+                "setup_requires": "",
+                "extras": "",
+            },
+        }
+        parser = configparser.ConfigParser(default_opts)
+        parser.read(setup_cfg_path)
+        results = {}
+        if parser.has_option("metadata", "name"):
+            results["name"] = parse_special_directives(parser.get("metadata", "name"))
+        if parser.has_option("metadata", "version"):
+            results["version"] = parse_special_directives(
+                parser.get("metadata", "version")
+            )
+        install_requires = set()  # type: Set[BaseRequirement]
+        if parser.has_option("options", "install_requires"):
+            install_requires = set(
+                [
+                    BaseRequirement.from_string(dep)
+                    for dep in parser.get("options", "install_requires").split("\n")
+                    if dep
+                ]
+            )
+        results["install_requires"] = install_requires
+        if parser.has_option("options", "python_requires"):
+            results["python_requires"] = parse_special_directives(
+                parser.get("options", "python_requires")
+            )
+        if parser.has_option("options", "build_requires"):
+            results["build_requires"] = parser.get("options", "build_requires")
+        extras = []
+        if "options.extras_require" in parser.sections():
+            extras_require_section = parser.options("options.extras_require")
+            for section in extras_require_section:
+                if section in ["options", "metadata"]:
+                    continue
+                section_contents = parser.get("options.extras_require", section)
+                section_list = section_contents.split("\n")
+                section_extras = []
+                for extra_name in section_list:
+                    if not extra_name or extra_name.startswith("#"):
+                        continue
+                    section_extras.append(BaseRequirement.from_string(extra_name))
+                if section_extras:
+                    extras.append(tuple([section, tuple(section_extras)]))
+        results["extras_require"] = tuple(extras)
+        return results
 
 
 @contextlib.contextmanager
@@ -521,55 +600,7 @@ class SetupInfo(object):
     @classmethod
     def get_setup_cfg(cls, setup_cfg_path):
         # type: (S) -> Dict[S, Union[S, None, Set[BaseRequirement], List[S], Tuple[S, Tuple[BaseRequirement]]]]
-        if os.path.exists(setup_cfg_path):
-            default_opts = {
-                "metadata": {"name": "", "version": ""},
-                "options": {
-                    "install_requires": "",
-                    "python_requires": "",
-                    "build_requires": "",
-                    "setup_requires": "",
-                    "extras": "",
-                },
-            }
-            parser = configparser.ConfigParser(default_opts)
-            parser.read(setup_cfg_path)
-            results = {}
-            if parser.has_option("metadata", "name"):
-                results["name"] = parser.get("metadata", "name")
-            if parser.has_option("metadata", "version"):
-                results["version"] = parser.get("metadata", "version")
-            install_requires = set()  # type: Set[BaseRequirement]
-            if parser.has_option("options", "install_requires"):
-                install_requires = set(
-                    [
-                        BaseRequirement.from_string(dep)
-                        for dep in parser.get("options", "install_requires").split("\n")
-                        if dep
-                    ]
-                )
-            results["install_requires"] = install_requires
-            if parser.has_option("options", "python_requires"):
-                results["python_requires"] = parser.get("options", "python_requires")
-            if parser.has_option("options", "build_requires"):
-                results["build_requires"] = parser.get("options", "build_requires")
-            extras = []
-            if "options.extras_require" in parser.sections():
-                extras_require_section = parser.options("options.extras_require")
-                for section in extras_require_section:
-                    if section in ["options", "metadata"]:
-                        continue
-                    section_contents = parser.get("options.extras_require", section)
-                    section_list = section_contents.split("\n")
-                    section_extras = []
-                    for extra_name in section_list:
-                        if not extra_name or extra_name.startswith("#"):
-                            continue
-                        section_extras.append(BaseRequirement.from_string(extra_name))
-                    if section_extras:
-                        extras.append(tuple([section, tuple(section_extras)]))
-            results["extras_require"] = tuple(extras)
-            return results
+        return parse_setup_cfg(setup_cfg_path)
 
     @property
     def egg_base(self):
