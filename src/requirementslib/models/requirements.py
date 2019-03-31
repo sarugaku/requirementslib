@@ -43,6 +43,7 @@ from vistir.path import (
 from .markers import (
     cleanup_pyspecs,
     contains_pyversion,
+    format_pyversion,
     get_contained_pyversions,
     get_without_pyversion,
 )
@@ -3257,9 +3258,7 @@ class Requirement(object):
             marker_str = ""
             if pyversion:
                 parts = cleanup_pyspecs(pyversion)
-                marker_str = " and ".join(
-                    ["python_version {0[0]!s} '{0[1]!s}'".format(pv) for pv in parts]
-                )
+                marker_str = " and ".join([format_pyversion(pv) for pv in parts])
             if new_marker:
                 if marker_str:
                     marker_str = "{0!s} and {1!s}".format(marker_str, new_marker)

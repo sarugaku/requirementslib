@@ -558,11 +558,19 @@ def parse_marker_dict(marker_dict):
         # At the tip of the tree we are dealing with strings all around and they just need
         # to be smashed together
         specs = set()
-        marker = Marker(format_string.format(**marker_dict))
         if lhs == "python_version":
+            format_string = "{lhs}{op}{rhs}"
+            marker = Marker(format_string.format(**marker_dict))
             marker_parts = getattr(marker, "_markers", [])
             _set = get_specset(marker_parts)
             if _set:
                 specs |= set(_set)
                 specset._specs = frozenset(specs)
         return specset, finalized_marker
+
+
+def format_pyversion(parts):
+    op, val = parts
+    if op in ("in", "not in"):
+        return "python_version {0} '{1}'".format(op, val)
+    return "python_version{0}'{1}'".format(op, val)
