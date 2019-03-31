@@ -40,6 +40,12 @@ from vistir.path import (
     normalize_path,
 )
 
+from .markers import (
+    cleanup_pyspecs,
+    contains_pyversion,
+    get_contained_pyversions,
+    get_without_pyversion,
+)
 from .setup_info import SetupInfo, _prepare_wheel_building_kwargs
 from .url import URI
 from .utils import (
@@ -3238,15 +3244,46 @@ class Requirement(object):
         # type: (Union[AnyStr, Marker]) -> None
         if not isinstance(markers, Marker):
             markers = Marker(markers)
-        _markers = set()  # type: Set[Marker]
-        if self.ireq and self.ireq.markers:
-            _markers.add(Marker(self.ireq.markers))
-        _markers.add(markers)
-        new_markers = Marker(" or ".join([str(m) for m in sorted(_markers)]))
-        self.markers = str(new_markers)
-        if self.req and self.req.req:
-            self.req.req.marker = new_markers
-        return
+        _markers = []  # type: List[Marker]
+        ireq = self.as_ireq()
+        if ireq and ireq.markers:
+            ireq_marker = ireq.markers
+            _markers.append(str(ireq_marker))
+        _markers.append(str(markers))
+        new_marker = Marker(" and ".join(_markers))
+        if contains_pyversion(new_marker):
+            pyversion = get_contained_pyversions(new_marker)
+            new_marker = get_without_pyversion(new_marker)
+            marker_str = ""
+            if pyversion:
+                parts = cleanup_pyspecs(pyversion)
+                marker_str = " and ".join(
+                    ["python_version {0[0]!s} '{0[1]!s}'".format(pv) for pv in parts]
+                )
+            if new_marker:
+                if marker_str:
+                    marker_str = "{0!s} and {1!s}".format(marker_str, new_marker)
+                else:
+                    marker_str = "{0!s}".format(new_marker)
+            new_marker = Marker(marker_str)
+        line = copy.deepcopy(self._line_instance)
+        line.markers = str(new_marker)
+        line.parsed_marker = new_marker
+        if getattr(line, "_requirement", None) is not None:
+            line._requirement.marker = new_marker
+        if getattr(line, "_ireq", None) is not None and line._ireq.req:
+            line._ireq.req.marker
+        new_ireq = getattr(self, "ireq", None)
+        if new_ireq and new_ireq.req:
+            new_ireq.req.marker = new_marker
+        req = self.req
+        if req.req:
+            req_requirement = req.req
+            req_requirement.marker = new_marker
+            req = attr.evolve(req, req=req_requirement, parsed_line=line)
+        return attr.evolve(
+            self, markers=str(new_marker), ireq=new_ireq, req=req, line_instance=line
+        )
 
 
 def file_req_from_parsed_line(parsed_line):
