@@ -3266,7 +3266,7 @@ class Requirement(object):
                     marker_str = "{0!s}".format(new_marker)
             new_marker = Marker(marker_str)
         line = copy.deepcopy(self._line_instance)
-        line.markers = str(new_marker)
+        line.markers = marker_str
         line.parsed_marker = new_marker
         if getattr(line, "_requirement", None) is not None:
             line._requirement.marker = new_marker
