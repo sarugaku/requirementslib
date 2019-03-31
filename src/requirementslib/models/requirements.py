@@ -3252,7 +3252,7 @@ class Requirement(object):
             ireq_marker = ireq.markers
             _markers.append(str(ireq_marker))
         _markers.append(str(markers))
-        marker_str = normalize_marker_str(" and ".join(_markers))
+        marker_str = " and ".join([normalize_marker_str(m) for m in _markers if m])
         new_marker = Marker(marker_str)
         line = copy.deepcopy(self._line_instance)
         line.markers = marker_str
