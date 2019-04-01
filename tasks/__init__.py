@@ -58,9 +58,12 @@ def clean(ctx):
     """
     ctx.run(f"python setup.py clean")
     dist = ROOT.joinpath("dist")
-    print(f"[clean] Removing {dist}")
+    build = ROOT.joinpath("build")
+    print(f"[clean] Removing {dist} and {build}")
     if dist.exists():
         shutil.rmtree(str(dist))
+    if build.exists():
+        shutil.rmtree(str(build))
 
 
 def _read_version():

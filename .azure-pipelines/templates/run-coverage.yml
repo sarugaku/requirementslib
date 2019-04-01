@@ -1,0 +1,14 @@
+steps:
+  - script: python -m pip install codacy-coverage codecov
+    displayName: 'Install Coverage Reporters'
+
+  - script: pipenv run coverage xml -o coverage.xml
+    displayName: 'Build Coverage Report'
+
+  - script: |
+      pipenv run python-codacy-coverage -r coverage.xml
+      pipenv run codecov
+    env:
+      CODACY_PROJECT_TOKEN: $(CODACY_PROJECT_TOKEN)
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
+    displayName: 'Send Coverage Report'
