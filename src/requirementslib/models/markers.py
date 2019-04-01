@@ -550,7 +550,9 @@ def parse_marker_dict(marker_dict):
         # Actually when we "or" things as well we can also just turn them into a reduced
         # set using this logic now
         sides = reduce(lambda x, y: set(x) & set(y), side_spec_list)
-        finalized_marker = " or ".join(side_markers_list)
+        finalized_marker = " or ".join(
+            [normalize_marker_str(m) for m in side_markers_list]
+        )
         specset._specs = frozenset(sides)
         return specset, finalized_marker
     else:
