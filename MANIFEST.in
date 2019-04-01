@@ -1,6 +1,7 @@
 include README.rst LICENSE HISTORY.txt CHANGELOG.rst CONTRIBUTING.rst
 recursive-include src *LICENSE* *COPYING*
 include pyproject.toml
+exclude .pre-commit-config.yaml
 exclude .coveragerc
 exclude .editorconfig
 exclude .travis.yml
