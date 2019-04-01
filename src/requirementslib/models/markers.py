@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import itertools
 import operator
-from collections import defaultdict
 
 import attr
 import distlib.markers
@@ -222,17 +221,17 @@ def cleanup_pyspecs(specs, joiner="or"):
                 results.add(("in", version))
             else:
                 specifier = SpecifierSet(
-                    ",".join(sorted("{0}".format(op, v) for v in version_list))
+                    ",".join(sorted("{0}{1}".format(op, v) for v in version_list))
                 )._specs
                 for s in specifier:
-                    results &= (specifier._spec[0], specifier._spec[1])
+                    results.add((s._spec[0], s._spec[1]))
         else:
             if len(version) == 1:
                 results.add((op, version))
             else:
                 specifier = SpecifierSet("{0}".format(version))._specs
                 for s in specifier:
-                    results |= (specifier._spec[0], specifier._spec[1])
+                    results.add((s._spec[0], s._spec[1]))
     return results
 
 
