@@ -173,7 +173,7 @@ def _get_specs(specset):
                 result.append((op, _tuplize_version(ver.strip())))
         else:
             result.append((spec.operator, _tuplize_version(spec.version)))
-    return result
+    return sorted(result, key=operator.itemgetter(1))
 
 
 @lru_cache(maxsize=128)
@@ -234,7 +234,7 @@ def cleanup_pyspecs(specs, joiner="or"):
                 specifier = SpecifierSet("{0}".format(version))._specs
                 for s in specifier:
                     results.add((s._spec[0], s._spec[1]))
-    return results
+    return sorted(results, key=operator.itemgetter(1))
 
 
 def fix_version_tuple(version_tuple):
@@ -270,7 +270,7 @@ def get_versions(specset, group_by_operator=True):
         for op, vals in op_groups
         for val in vals
     ]
-    return versions
+    return sorted(versions, key=operator.itemgetter(1))
 
 
 def _ensure_marker(marker):
@@ -553,7 +553,7 @@ def parse_marker_dict(marker_dict):
         finalized_marker = " or ".join(
             [normalize_marker_str(m) for m in side_markers_list]
         )
-        specset._specs = frozenset(sides)
+        specset._specs = frozenset(sorted(sides))
         return specset, finalized_marker
     else:
         # At the tip of the tree we are dealing with strings all around and they just need
