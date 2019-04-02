@@ -429,7 +429,7 @@ def get_contained_pyversions(marker):
     marker = _ensure_marker(marker)
     # Collect the (Variable, Op, Value) tuples and string joiners from the marker
     _markers_collect_pyversions(marker._markers, collection)
-    marker_str = " and ".join(collection)
+    marker_str = " and ".join(sorted(collection))
     if not marker_str:
         return set()
     # Use the distlib dictionary parser to create a dictionary 'trie' which is a bit
