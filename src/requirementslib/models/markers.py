@@ -117,7 +117,9 @@ def _tuplize_version(version):
 
 @lru_cache(maxsize=128)
 def _format_version(version):
-    return ".".join(str(i) for i in version)
+    if not isinstance(version, six.string_types):
+        return ".".join(str(i) for i in version)
+    return version
 
 
 # Prefer [x,y) ranges.
@@ -143,9 +145,9 @@ def _format_pyspec(specifier):
     except IndexError:
         next_tuple = (curr_tuple[0], 1)
     if not next_tuple[1] <= MAX_VERSIONS[next_tuple[0]]:
-        if specifier.operator == "<" and next_tuple[1] - 1 <= MAX_VERSIONS[next_tuple[0]]:
+        if specifier.operator == "<" and curr_tuple[1] <= MAX_VERSIONS[next_tuple[0]]:
             op = "<="
-            next_tuple = (next_tuple[0], next_tuple[1] - 1)
+            next_tuple = (next_tuple[0], curr_tuple[1])
         else:
             return specifier
     specifier = Specifier("{0}{1}".format(op, _format_version(next_tuple)))
@@ -380,8 +382,8 @@ def _markers_collect_pyversions(markers, collection):
         elif isinstance(el, list):
             _markers_collect_pyversions(el, local_collection)
     if local_collection:
-        local_collection = "{0}".format(" ".join(local_collection))
-        collection.append(local_collection)
+        # local_collection = "{0}".format(" ".join(local_collection))
+        collection.extend(local_collection)
 
 
 def _markers_contains_extra(markers):
@@ -427,7 +429,7 @@ def get_contained_pyversions(marker):
     marker = _ensure_marker(marker)
     # Collect the (Variable, Op, Value) tuples and string joiners from the marker
     _markers_collect_pyversions(marker._markers, collection)
-    marker_str = " ".join(collection)
+    marker_str = " and ".join(collection)
     if not marker_str:
         return set()
     # Use the distlib dictionary parser to create a dictionary 'trie' which is a bit
