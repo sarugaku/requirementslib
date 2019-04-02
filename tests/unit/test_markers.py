@@ -9,7 +9,7 @@ import requirementslib.models.markers
 
 @pytest.mark.parametrize(
     "version, cleaned",
-    [("3.0.*", (3, 0)), ("3.1.*", (3, 1))("3.2.*", (3, 2))("3.4.*", (3, 4))],
+    [("3.0.*", (3, 0)), ("3.1.*", (3, 1)), ("3.2.*", (3, 2)), ("3.4.*", (3, 4))],
 )
 def test_tuplize_version(version, cleaned):
     assert requirementslib.models.markers._tuplize_version(version) == cleaned
@@ -28,7 +28,8 @@ def test_format_version(version_tuple, version_str):
     [
         ("<=3.6", Specifier("<3.7")),
         (Specifier("<=3.6"), Specifier("<3.7")),
-        (">2.6", Specifier(">=2.7"))(Specifier(">2.6"), Specifier(">=2.7")),
+        (">2.6", Specifier(">=2.7")),
+        (Specifier(">2.6"), Specifier(">=2.7")),
     ],
 )
 def test_format_pyspec(specifier, rounded_specifier):
@@ -40,7 +41,7 @@ def test_format_pyspec(specifier, rounded_specifier):
     [
         (
             "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*",
-            [("!=", (3, 0)), ("!=", (3, 2)), ("!=", (3, 1)), ("!=", (3, 3))],
+            [("!=", (3, 0)), ("!=", (3, 1)), ("!=", (3, 2)), ("!=", (3, 3))],
         )
     ],
 )
@@ -98,7 +99,12 @@ def test_cleanup_pyspecs(specset, new_set):
         ),
         (
             SpecifierSet(">2.6,>=2.7,<3.6,<3.7"),
-            [("<", Version("3.7")), (">=", Version("2.7"))],
+            [
+                (">", Version("2.6")),
+                ("<", Version("3.6")),
+                ("<", Version("3.7")),
+                (">=", Version("2.7")),
+            ],
         ),
     ],
 )
@@ -118,7 +124,7 @@ def test_get_extras(marker, extras):
 
 
 @pytest.mark.parametrize(
-    "marker, extras",
+    "marker, pyversions",
     [
         (
             Marker(
@@ -139,7 +145,8 @@ def test_get_pyversions(marker, pyversions):
 
 
 @pytest.mark.parametrize(
-    "marker, expected"[
+    "marker, expected",
+    [
         (
             Marker(
                 "os_name == 'nt' and python_version >= '2.7' and python_version <= '3.5'"
@@ -150,7 +157,7 @@ def test_get_pyversions(marker, pyversions):
             Marker(
                 "os_name == 'posix' and python_version >= '2.7' and python_version not in '3.0.*,3.1.*,3.2.*,3.3.*'"
             ),
-            "python_version not in '3.0, 3.1, 3.2, 3.3' and python_version >= '2.7' and os_name == 'posix'",
+            "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3' and os_name == 'posix'",
         ),
         (
             Marker(
@@ -158,7 +165,7 @@ def test_get_pyversions(marker, pyversions):
             ),
             "python_version < '3.7' and python_version >= '3.6'",
         ),
-    ]
+    ],
 )
 def test_normalize_marker_str(marker, expected):
     assert requirementslib.models.markers.normalize_marker_str(marker) == expected
