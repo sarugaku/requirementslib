@@ -52,13 +52,13 @@ def test_get_specs(specset, new_set):
 @pytest.mark.parametrize(
     "specset, new_set",
     [
-        (SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3"), {("not in", "3.0, 3.1, 3.2, 3.3")}),
-        (SpecifierSet("==3.0,==3.1,==3.2,==3.3"), {("in", "3.0, 3.1, 3.2, 3.3")}),
+        (SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3"), [("not in", "3.0, 3.1, 3.2, 3.3")]),
+        (SpecifierSet("==3.0,==3.1,==3.2,==3.3"), [("in", "3.0, 3.1, 3.2, 3.3")]),
         (
             SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3,>=2.7,<3.7"),
-            {("not in", "3.0, 3.1, 3.2, 3.3"), (">=", "2.7"), ("<", "3.7")},
+            [(">=", "2.7"), ("not in", "3.0, 3.1, 3.2, 3.3"), ("<", "3.7")],
         ),
-        (SpecifierSet(">2.6,>=2.7,<3.6,<3.7"), {("<", "3.7"), (">=", "2.7")}),
+        (SpecifierSet(">2.6,>=2.7,<3.6,<3.7"), [(">=", "2.7"), ("<", "3.7")]),
     ],
 )
 def test_cleanup_pyspecs(specset, new_set):
@@ -89,21 +89,21 @@ def test_cleanup_pyspecs(specset, new_set):
         (
             SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3,>=2.7,<3.7"),
             [
+                (">=", Version("2.7")),
                 ("!=", Version("3.0")),
                 ("!=", Version("3.1")),
                 ("!=", Version("3.2")),
                 ("!=", Version("3.3")),
                 ("<", Version("3.7")),
-                (">=", Version("2.7")),
             ],
         ),
         (
             SpecifierSet(">2.6,>=2.7,<3.6,<3.7"),
             [
                 (">", Version("2.6")),
+                (">=", Version("2.7")),
                 ("<", Version("3.6")),
                 ("<", Version("3.7")),
-                (">=", Version("2.7")),
             ],
         ),
     ],
@@ -151,7 +151,7 @@ def test_get_pyversions(marker, pyversions):
             Marker(
                 "os_name == 'nt' and python_version >= '2.7' and python_version <= '3.5'"
             ),
-            "python_version < '3.6' and python_version >= '2.7' and os_name == 'nt'",
+            "python_version >= '2.7' and python_version < '3.6' and os_name == 'nt'",
         ),
         (
             Marker(
@@ -163,7 +163,7 @@ def test_get_pyversions(marker, pyversions):
             Marker(
                 "python_version > '3.5' and python_version < '3.7' and python_version > '3.5'"
             ),
-            "python_version < '3.7' and python_version >= '3.6'",
+            "python_version >= '3.6' and python_version < '3.7'",
         ),
     ],
 )
