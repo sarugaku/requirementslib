@@ -16,16 +16,12 @@ steps:
       pipenv run inv clean
       pipenv run inv build
     displayName: Build Package
-  - script: pip install twine && twine check dist/*
-    displayname: Check package dist
-
   - task: CopyFiles@2
     inputs:
       sourceFolder: dist/
       contents: "**"
       targetFolder: $(Build.ArtifactStagingDirectory)
     displayName: Copy Artifacts
-
 
   - task: PublishBuildArtifacts@1
     inputs:
