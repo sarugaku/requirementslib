@@ -591,10 +591,6 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):
     unparse = partial(ast_unparse, initial_mapping=initial_mapping, analyzer=analyzer)
     if isinstance(item, ast.Dict):
         unparsed = dict(zip(unparse(item.keys), unparse(item.values)))
-        # unparsed = {}
-        # for k, v in zip(ast_unparse(item.keys), ast_unparse(item.values))  #:
-        # key = ast_unparse(k)
-        # unparsed[key] = ast_unparse(v)
     elif isinstance(item, ast.List):
         unparsed = [unparse(el) for el in item.elts]
     elif isinstance(item, ast.Tuple):
@@ -672,30 +668,6 @@ def ast_parse_setup_py(path):
         if isinstance(k, ast.Name) and k.id == "setup":
             setup = v
     cleaned_setup = ast_unparse(setup, analyzer=ast_analyzer)
-    # for k, v in setup.items():
-    #     if isinstance(v, ast.Name):
-    #         if v in ast_analyzer.assignments:
-    #             new_val = ast_unparse(ast_analyzer.assignments[v])
-    #         elif v in ast_analyzer.name_types:
-    #             assgn_name = next(iter(
-    #                 name for name in ast_analyzer.assignments if name.id == v.id
-    #             ), None)
-    #             if assgn_name is not None:
-    #                 new_val = ast_unparse(ast_analyzer.assignments[assgn_name])
-    #             else:
-    #                 new_val = ast_unparse(v)
-    #     elif isinstance(v, six.string_types) and any(
-    #         n.id == v for n in ast_analyzer.name_types
-    #     ):
-    #         new_name = next(iter(n for n in ast_analyzer.name_types if n.id == v))
-    #         if new_name in ast_analyzer.assignments:
-    #             new_val = ast_unparse(ast_analyzer.assignments[new_name])
-    #         else:
-    #             new_val = ast_unparse(new_name)
-    #     else:
-    #         new_val = ast_unparse(v)
-    #     if isinstance(new_val, (six.string_types, list, Mapping, tuple, Number)):
-    #         cleaned_setup[k] = new_val
     return cleaned_setup
 
 
@@ -956,28 +928,7 @@ class SetupInfo(object):
             parsed = self.get_setup_cfg(self.setup_cfg.as_posix())
             if not parsed:
                 return {}
-            # self.update_from_dict(parsed)
             return parsed
-            # if self.name is None:
-            #     self.name = parsed.get("name")
-            # if self.version is None:
-            #     self.version = parsed.get("version")
-            # build_requires = parsed.get("build_requires", [])
-            # if self.build_requires:
-            #     self.build_requires = tuple(
-            #         set(self.build_requires) | set(build_requires)
-            #     )
-            # self._requirements = frozenset(
-            #     set(self._requirements) | set(parsed["install_requires"])
-            # )
-            # if self.python_requires is None:
-            #     self.python_requires = parsed.get("python_requires")
-            # if not self._extras_requirements:
-            #     self._extras_requirements = parsed["extras_require"]
-            # else:
-            #     self._extras_requirements = (
-            #         self._extras_requirements + parsed["extras_require"]
-            #     )
 
     def parse_setup_py(self):
         # type: () -> None
@@ -1157,24 +1108,6 @@ build-backend = "{1}"
             self.update_from_dict(cleaned.copy())
         else:
             self.update_from_dict(metadata)
-        # if self.name is None:
-        #     self.name = metadata.get("name", self.name)
-        # if not self.version:
-        #     self.version = metadata.get("version", self.version)
-        # requires = make_base_requirements(metadata.get("requires", []))
-        # if self.ireq.editable:
-        #     requires |= make_base_requirements(metadata.get("setup_requires", []))
-        # self._requirements = frozenset(set(self._requirements) | requires)
-        # if getattr(self.ireq, "extras", None):
-        #     for extra in self.ireq.extras:
-        #         extras = metadata.get("extras", {}).get(extra, [])
-        #         if extras:
-        #             reqs = ensure_reqs(tuple(extras))
-        #             extras_tuple = tuple(make_base_requirements(reqs))
-        #             self._extras_requirements += ((extra, extras_tuple),)
-        #             self._requirements = frozenset(
-        #                 set(self._requirements) | set(extras_tuple)
-        #             )
 
     def run_pyproject(self):
         # type: () -> None

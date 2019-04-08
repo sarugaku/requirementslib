@@ -814,12 +814,14 @@ class Line(object):
 
     @cached_property
     def metadata(self):
+        # type: () -> Dict[Any, Any]
         if self.is_local and is_installable_dir(self.path):
             return get_metadata(self.path)
         return {}
 
     @cached_property
     def parsed_setup_cfg(self):
+        # type: () -> Dict[Any, Any]
         if self.is_local and is_installable_dir(self.path):
             if self.setup_cfg:
                 return parse_setup_cfg(self.setup_cfg)
@@ -827,6 +829,7 @@ class Line(object):
 
     @cached_property
     def parsed_setup_py(self):
+        # type: () -> Dict[Any, Any]
         if self.is_local and is_installable_dir(self.path):
             if self.setup_py:
                 return ast_parse_setup_py(self.setup_py)
@@ -953,7 +956,7 @@ class Line(object):
         return None
 
     def parse_name(self):
-        # type: () -> None
+        # type: () -> "Line"
         if self._name is None:
             name = None
             if self.link is not None:
@@ -1014,7 +1017,7 @@ class Line(object):
         return self._requirement
 
     def parse_requirement(self):
-        # type: () -> None
+        # type: () -> "Line"
         if self._name is None:
             self.parse_name()
             if not self._name and not self.is_vcs and not self.is_named:
@@ -1060,7 +1063,7 @@ class Line(object):
         return self
 
     def parse_link(self):
-        # type: () -> None
+        # type: () -> "Line"
         parsed_url = None  # type: Optional[URI]
         if not is_valid_url(self.line) and (
             self.line.startswith("./")
