@@ -42,9 +42,10 @@ from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
 
 try:
-    from setuptools.dist import distutils
+    from setuptools.dist import distutils, Distribution
 except ImportError:
     import distutils
+    from distutils.core import Distribution
 
 
 try:
@@ -183,7 +184,7 @@ def make_base_requirements(reqs):
 def setuptools_parse_setup_cfg(path):
     from setuptools.config import read_configuration
 
-    parsed = read_configuration(setup_cfg_path)
+    parsed = read_configuration(path)
     results = parsed.get("metadata", {})
     results.update({parsed.get("options", {})})
     results["install_requires"] = make_base_requirements(
@@ -455,7 +456,6 @@ def get_egginfo_dist(path, pkg_name=None):
 
 def get_metadata(path, pkg_name=None, metadata_type=None):
     # type: (S, Optional[S], Optional[S]) -> Dict[S, Union[S, List[RequirementType], Dict[S, RequirementType]]]
-    metadata_dirs = []
     wheel_allowed = metadata_type == "wheel" or metadata_type is None
     egg_allowed = metadata_type == "egg" or metadata_type is None
     dist = None  # type: Optional[Union[DistInfoDistribution, EggInfoDistribution]]
@@ -587,7 +587,7 @@ class Analyzer(ast.NodeVisitor):
 
 
 def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):
-    # type: Union[ast.List, ast.Dict, ast.Str, ast.Call, S] -> Union[List[Any] Dict[Any, Any], S]
+    # type: (Any, bool, Optional[Analyzer], bool) -> Union[List[Any] Dict[Any, Any], Tuple[Any...], S]
     unparse = partial(ast_unparse, initial_mapping=initial_mapping, analyzer=analyzer)
     if isinstance(item, ast.Dict):
         unparsed = dict(zip(unparse(item.keys), unparse(item.values)))
@@ -700,7 +700,7 @@ def run_setup(script_path, egg_base=None):
             with open(script_name, "rb") as f:
                 contents = f.read()
                 if six.PY3:
-                    contents.replace(rb"\r\n", rb"\n")
+                    contents.replace(br"\r\n", br"\n")
                 else:
                     contents.replace(r"\r\n", r"\n")
                 if sys.version_info < (3, 5):
@@ -928,7 +928,7 @@ class SetupInfo(object):
                     self._extras_requirements += (extra, extras)
 
     def parse_setup_cfg(self):
-        # type: () -> None
+        # type: () -> Dict[S, Any]
         if self.setup_cfg is not None and self.setup_cfg.exists():
             parsed = self.get_setup_cfg(self.setup_cfg.as_posix())
             if not parsed:
@@ -936,7 +936,7 @@ class SetupInfo(object):
             return parsed
 
     def parse_setup_py(self):
-        # type: () -> None
+        # type: () -> Dict[S, Any]
         if self.setup_py is not None and self.setup_py.exists():
             parsed = ast_parse_setup_py(self.setup_py.as_posix())
             if not parsed:
@@ -944,7 +944,7 @@ class SetupInfo(object):
             return parsed
 
     def run_setup(self):
-        # type: () -> None
+        # type: () -> "SetupInfo"
         if self.setup_py is not None and self.setup_py.exists():
             dist = run_setup(self.setup_py.as_posix(), egg_base=self.egg_base)
             target_cwd = self.setup_py.parent.as_posix()
@@ -952,8 +952,7 @@ class SetupInfo(object):
                 if not dist:
                     metadata = self.get_egg_metadata()
                     if metadata:
-                        self.populate_metadata(metadata)
-                        return
+                        return self.populate_metadata(metadata)
 
                 if isinstance(dist, Mapping):
                     self.populate_metadata(dist)
@@ -979,7 +978,7 @@ class SetupInfo(object):
                 version = dist.get_version()
                 if version:
                     update_dict["version"] = version
-                self.update_from_dict(update_dict)
+                return self.update_from_dict(update_dict)
 
     @property
     @lru_cache()
@@ -1030,7 +1029,7 @@ build-backend = "{1}"
         )
 
     def build(self):
-        # type: () -> None
+        # type: () -> "SetupInfo"
         dist_path = None
         try:
             dist_path = self.build_wheel()
@@ -1053,8 +1052,8 @@ build-backend = "{1}"
             if metadata:
                 self.populate_metadata(metadata)
         if not self.metadata or not self.name:
-            self.run_setup()
-        return None
+            return self.run_setup()
+        return self
 
     def reload(self):
         # type: () -> Dict[S, Any]
@@ -1074,7 +1073,7 @@ build-backend = "{1}"
         return metadata_dict
 
     def get_egg_metadata(self, metadata_dir=None, metadata_type=None):
-        # type: (Optional[AnyStr], Optional[AnyStr]) -> None
+        # type: (Optional[AnyStr], Optional[AnyStr]) -> Dict[Any, Any]
         package_indicators = [self.pyproject, self.setup_py, self.setup_cfg]
         metadata_dirs = []
         if any([fn is not None and fn.exists() for fn in package_indicators]):
@@ -1094,7 +1093,7 @@ build-backend = "{1}"
         return metadata
 
     def populate_metadata(self, metadata):
-        # type: (Dict[Any, Any]) -> None
+        # type: (Dict[Any, Any]) -> "SetupInfo"
         _metadata = ()
         for k, v in metadata.items():
             if k == "extras" and isinstance(v, dict):
@@ -1113,9 +1112,10 @@ build-backend = "{1}"
             self.update_from_dict(cleaned.copy())
         else:
             self.update_from_dict(metadata)
+        return self
 
     def run_pyproject(self):
-        # type: () -> None
+        # type: () -> "SetupInfo"
         if self.pyproject and self.pyproject.exists():
             result = get_pyproject(self.pyproject.parent)
             if result is not None:
@@ -1128,6 +1128,7 @@ build-backend = "{1}"
                     self.build_requires = tuple(set(requires) | set(self.build_requires))
                 else:
                     self.build_requires = ("setuptools", "wheel")
+        return self
 
     def get_initial_info(self):
         # type: () -> Dict[S, Any]
