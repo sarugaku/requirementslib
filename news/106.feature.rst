@@ -1,0 +1,1 @@
+Implemented an AST parser for ``setup.py`` for parsing package names and version information if available.
