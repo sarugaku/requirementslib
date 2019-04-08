@@ -1,1 +1,1 @@
-Implemented an AST parser for ``setup.py`` for parsing package names and version information if available.
+Implemented an AST parser for ``setup.py`` for parsing package names, dependencies, and version information if available.
