@@ -698,10 +698,15 @@ def run_setup(script_path, egg_base=None):
             sys.argv[0] = script_name
             sys.argv[1:] = args
             with open(script_name, "rb") as f:
-                if sys.version_info < (3, 5):
-                    exec(f.read().replace(rb"\r\n", rb"\n"), g, local_dict)
+                contents = f.read()
+                if six.PY3:
+                    contents.replace(rb"\r\n", r"\n")
                 else:
-                    exec(f.read().replace(rb"\r\n", rb"\n"), g)
+                    contents.replace(r"\r\n", r"\n")
+                if sys.version_info < (3, 5):
+                    exec(contents, g, local_dict)
+                else:
+                    exec(contents, g)
         # We couldn't import everything needed to run setup
         except NameError:
             python = os.environ.get("PIP_PYTHON_PATH", sys.executable)
