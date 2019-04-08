@@ -281,5 +281,17 @@ def profile(ctx, filepath, calltree=False):
 
 
 ns = invoke.Collection(
-    build_docs, vendoring, news, release, clean_mdchangelog, profile, typecheck
+    build_docs,
+    vendoring,
+    news,
+    release,
+    clean_mdchangelog,
+    profile,
+    typecheck,
+    build,
+    get_next_version,
+    bump_version,
+    generate_news,
+    get_changelog,
+    tag_release,
 )
