@@ -6,7 +6,6 @@ steps:
         pipenv run coverage xml -o coverage/coverage.xml
         pipenv run coverage html -d coverage
     displayName: 'Build Coverage Report'
-
   - script: |
       pipenv run python-codacy-coverage -r coverage/coverage.xml
       pipenv run codecov --file coverage/coverage.xml
@@ -14,7 +13,6 @@ steps:
       CODACY_PROJECT_TOKEN: $(CODACY_PROJECT_TOKEN)
       CODECOV_TOKEN: $(CODECOV_TOKEN)
     displayName: 'Send Coverage Report'
-
   - task: PublishCodeCoverageResults@1
     displayName: 'Publish code coverage from coverage.xml'
     inputs:
