@@ -616,7 +616,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):
                 unparsed = item.id
         else:
             unparsed = item
-    elif isinstance(item, ast.NameConstant):
+    elif six.PY3 and isinstance(item, ast.NameConstant):
         unparsed = item.value
     elif isinstance(item, ast.Call):
         unparsed = {}
