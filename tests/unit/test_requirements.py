@@ -253,95 +253,91 @@ def test_convert_from_pip_git_uri_normalize(monkeypatch):
 
 @pytest.mark.utils
 @pytest.mark.requirements
-def test_get_requirements(monkeypatch):
+def test_get_requirements(monkeypatch_if_needed):
     # Test eggs in URLs
-    with monkeypatch.context() as m:
-        # m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
-        # m.setattr(SetupInfo, "get_info", mock_run_requires)
-        url_with_egg = Requirement.from_line(
-            "https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip#egg=django-user-clipboard"
-        ).requirement
-        assert (
-            url_with_egg.url
-            == "https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip"
-        )
-        assert url_with_egg.name == "django-user-clipboard"
-        # Test URLs without eggs pointing at installable zipfiles
-        url = Requirement.from_line(
-            "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
-        ).requirement
-        assert url.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
-        wheel_line = "https://github.com/pypa/pipenv/raw/master/tests/test_artifacts/six-1.11.0+mkl-py2.py3-none-any.whl"
-        wheel = Requirement.from_line(wheel_line)
-        assert wheel.as_pipfile() == {
-            "six": {
-                "file": "https://github.com/pypa/pipenv/raw/master/tests/test_artifacts/six-1.11.0+mkl-py2.py3-none-any.whl"
-            }
+    # m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
+    # m.setattr(SetupInfo, "get_info", mock_run_requires)
+    url_with_egg = Requirement.from_line(
+        "https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip#egg=django-user-clipboard"
+    ).requirement
+    assert (
+        url_with_egg.url
+        == "https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip"
+    )
+    assert url_with_egg.name == "django-user-clipboard"
+    # Test URLs without eggs pointing at installable zipfiles
+    url = Requirement.from_line(
+        "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
+    ).requirement
+    assert url.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
+    wheel_line = "https://github.com/pypa/pipenv/raw/master/tests/test_artifacts/six-1.11.0+mkl-py2.py3-none-any.whl"
+    wheel = Requirement.from_line(wheel_line)
+    assert wheel.as_pipfile() == {
+        "six": {
+            "file": "https://github.com/pypa/pipenv/raw/master/tests/test_artifacts/six-1.11.0+mkl-py2.py3-none-any.whl"
         }
-        # Requirementslib inserts egg fragments as names when possible if we know the appropriate name
-        # this allows for custom naming
-        assert (
-            Requirement.from_pipfile(wheel.name, list(wheel.as_pipfile().values())[0])
-            .as_line()
-            .split("#")[0]
-            == wheel_line
-        )
-        # Test VCS urls with refs and eggnames
-        vcs_url = Requirement.from_line(
-            "git+https://github.com/kennethreitz/tablib.git@master#egg=tablib"
-        ).requirement
-        assert (
-            vcs_url.vcs == "git"
-            and vcs_url.name == "tablib"
-            and vcs_url.revision == "master"
-        )
-        assert vcs_url.url == "git+https://github.com/kennethreitz/tablib.git"
-        # Test normal package requirement
-        normal = Requirement.from_line("tablib").requirement
-        assert normal.name == "tablib"
-        # Pinned package  requirement
-        spec = Requirement.from_line("tablib==0.12.1").requirement
-        assert spec.name == "tablib" and spec.specs == [("==", "0.12.1")]
-        # Test complex package with both extras and markers
-        extras_markers = Requirement.from_line(
-            "requests[security]; os_name=='posix'"
-        ).requirement
-        assert list(extras_markers.extras) == ["security"]
-        assert extras_markers.name == "requests"
-        assert str(extras_markers.marker) == 'os_name == "posix"'
-        # Test VCS uris get generated correctly, retain git+git@ if supplied that way, and are named according to egg fragment
-        git_reformat = Requirement.from_line(
-            "-e git+git@github.com:pypa/pipenv.git#egg=pipenv"
-        ).requirement
-        assert git_reformat.url == "git+ssh://git@github.com/pypa/pipenv.git"
-        assert git_reformat.name == "pipenv"
-        assert git_reformat.editable
-        # Previously VCS uris were being treated as local files, so make sure these are not handled that way
-        assert not git_reformat.local_file
-        # Test regression where VCS uris were being handled as paths rather than VCS entries
-        assert git_reformat.vcs == "git"
-        assert (
-            git_reformat.link.url == "git+ssh://git@github.com/pypa/pipenv.git#egg=pipenv"
-        )
-        # Test VCS requirements being added with extras for constraint_line
-        git_extras = Requirement.from_line(
-            "-e git+https://github.com/requests/requests.git@master#egg=requests[security]"
-        )
-        assert (
-            git_extras.as_line()
-            == "-e git+https://github.com/requests/requests.git@master#egg=requests[security]"
-        )
-        assert (
-            git_extras.constraint_line
-            == "-e git+https://github.com/requests/requests.git@master#egg=requests[security]"
-        )
-        # these will fail due to not being real paths
-        # local_wheel = Requirement.from_pipfile('six', {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'})
-        # assert local_wheel.as_line() == 'file:///home/hawk/git/wheels/six/six-1.11.0-py2.py3-none-any.whl'
-        # local_wheel_from_line = Requirement.from_line('../wheels/six/six-1.11.0-py2.py3-none-any.whl')
-        # assert local_wheel_from_line.as_pipfile() == {'six': {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'}}
+    }
+    # Requirementslib inserts egg fragments as names when possible if we know the appropriate name
+    # this allows for custom naming
+    assert (
+        Requirement.from_pipfile(wheel.name, list(wheel.as_pipfile().values())[0])
+        .as_line()
+        .split("#")[0]
+        == wheel_line
+    )
+    # Test VCS urls with refs and eggnames
+    vcs_url = Requirement.from_line(
+        "git+https://github.com/kennethreitz/tablib.git@master#egg=tablib"
+    ).requirement
+    assert (
+        vcs_url.vcs == "git" and vcs_url.name == "tablib" and vcs_url.revision == "master"
+    )
+    assert vcs_url.url == "git+https://github.com/kennethreitz/tablib.git"
+    # Test normal package requirement
+    normal = Requirement.from_line("tablib").requirement
+    assert normal.name == "tablib"
+    # Pinned package  requirement
+    spec = Requirement.from_line("tablib==0.12.1").requirement
+    assert spec.name == "tablib" and spec.specs == [("==", "0.12.1")]
+    # Test complex package with both extras and markers
+    extras_markers = Requirement.from_line(
+        "requests[security]; os_name=='posix'"
+    ).requirement
+    assert list(extras_markers.extras) == ["security"]
+    assert extras_markers.name == "requests"
+    assert str(extras_markers.marker) == 'os_name == "posix"'
+    # Test VCS uris get generated correctly, retain git+git@ if supplied that way, and are named according to egg fragment
+    git_reformat = Requirement.from_line(
+        "-e git+git@github.com:pypa/pipenv.git#egg=pipenv"
+    ).requirement
+    assert git_reformat.url == "git+ssh://git@github.com/pypa/pipenv.git"
+    assert git_reformat.name == "pipenv"
+    assert git_reformat.editable
+    # Previously VCS uris were being treated as local files, so make sure these are not handled that way
+    assert not git_reformat.local_file
+    # Test regression where VCS uris were being handled as paths rather than VCS entries
+    assert git_reformat.vcs == "git"
+    assert git_reformat.link.url == "git+ssh://git@github.com/pypa/pipenv.git#egg=pipenv"
+    # Test VCS requirements being added with extras for constraint_line
+    git_extras = Requirement.from_line(
+        "-e git+https://github.com/requests/requests.git@master#egg=requests[security]"
+    )
+    assert (
+        git_extras.as_line()
+        == "-e git+https://github.com/requests/requests.git@master#egg=requests[security]"
+    )
+    assert (
+        git_extras.constraint_line
+        == "-e git+https://github.com/requests/requests.git@master#egg=requests[security]"
+    )
+    # these will fail due to not being real paths
+    # local_wheel = Requirement.from_pipfile('six', {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'})
+    # assert local_wheel.as_line() == 'file:///home/hawk/git/wheels/six/six-1.11.0-py2.py3-none-any.whl'
+    # local_wheel_from_line = Requirement.from_line('../wheels/six/six-1.11.0-py2.py3-none-any.whl')
+    # assert local_wheel_from_line.as_pipfile() == {'six': {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'}}
 
 
+@pytest.mark.needs_internet
 def test_get_ref():
     r = Requirement.from_line(
         "-e git+https://github.com/sarugaku/shellingham.git@1.2.1#egg=shellingham"
@@ -350,6 +346,7 @@ def test_get_ref():
 
 
 def test_get_local_ref(tmpdir):
+    # TODO: add this as a git submodule and don't clone it from the internet all the time
     six_dir = tmpdir.join("six")
     import vistir
 
@@ -363,10 +360,9 @@ def test_get_local_ref(tmpdir):
     assert r.commit_hash
 
 
+@pytest.mark.needs_internet
 def test_stdout_is_suppressed(capsys, tmpdir):
-    r = Requirement.from_line(
-        "git+https://github.com/sarugaku/requirementslib.git@remove-python-toml#egg=requirementslib"
-    )
+    r = Requirement.from_line("git+https://github.com/benjaminp/six.git@master#egg=six")
     r.req.get_vcs_repo(src_dir=tmpdir.strpath)
     out, err = capsys.readouterr()
     assert out.strip() == "", out
@@ -383,6 +379,7 @@ def test_local_editable_ref(monkeypatch):
         assert req.as_line() == "-e git+{0}@2.18.4#egg=requests".format(path.as_uri())
 
 
+@pytest.mark.needs_internet
 def test_pep_508():
     r = Requirement.from_line(
         "tablib@ https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"

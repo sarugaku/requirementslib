@@ -47,7 +47,13 @@ from .markers import (
     get_contained_pyversions,
     normalize_marker_str,
 )
-from .setup_info import SetupInfo, _prepare_wheel_building_kwargs
+from .setup_info import (
+    SetupInfo,
+    _prepare_wheel_building_kwargs,
+    ast_parse_setup_py,
+    get_metadata,
+    parse_setup_cfg,
+)
 from .url import URI
 from .utils import (
     DIRECT_URL_RE,
@@ -81,6 +87,7 @@ from ..utils import (
     VCS_LIST,
     add_ssh_scheme_to_git_uri,
     get_setup_paths,
+    is_installable_dir,
     is_installable_file,
     is_vcs,
     strip_ssh_from_git_uri,
@@ -508,10 +515,10 @@ class Line(object):
         :returns: Nothing
         :rtype: None
         """
-
         line, hashes = self.split_hashes(self.line)
         self.hashes = hashes
         self.line = line
+        return self
 
     def parse_extras(self):
         # type: () -> None
@@ -520,7 +527,6 @@ class Line(object):
         :returns: Nothing
         :rtype: None
         """
-
         extras = None
         if "@" in self.line or self.is_vcs or self.is_url:
             line = "{0}".format(self.line)
@@ -546,11 +552,11 @@ class Line(object):
                 extras_set |= name_extras
         if extras_set is not None:
             self.extras = tuple(sorted(extras_set))
+        return self
 
     def get_url(self):
         # type: () -> STRING_TYPE
         """Sets ``self.name`` if given a **PEP-508** style URL"""
-
         line = self.line
         try:
             parsed = URI.parse(line)
@@ -590,6 +596,10 @@ class Line(object):
             if self._name is None and not self.is_named and not self.is_wheel:
                 if self.setup_info:
                     self._name = self.setup_info.name
+            elif self.is_wheel:
+                self._name = self._parse_wheel()
+            if not self._name:
+                self._name = self.ireq.name
         return self._name
 
     @name.setter
@@ -802,6 +812,26 @@ class Line(object):
             self._vcsrepo = self._get_vcsrepo()
         return self._vcsrepo
 
+    @cached_property
+    def metadata(self):
+        if self.is_local and is_installable_dir(self.path):
+            return get_metadata(self.path)
+        return {}
+
+    @cached_property
+    def parsed_setup_cfg(self):
+        if self.is_local and is_installable_dir(self.path):
+            if self.setup_cfg:
+                return parse_setup_cfg(self.setup_cfg)
+        return {}
+
+    @cached_property
+    def parsed_setup_py(self):
+        if self.is_local and is_installable_dir(self.path):
+            if self.setup_py:
+                return ast_parse_setup_py(self.setup_py)
+        return {}
+
     @vcsrepo.setter
     def vcsrepo(self, repo):
         # type (VCSRepository) -> None
@@ -864,7 +894,6 @@ class Line(object):
 
     def _parse_name_from_link(self):
         # type: () -> Optional[STRING_TYPE]
-
         if self.link is None:
             return None
         if getattr(self.link, "egg_fragment", None):
@@ -902,6 +931,27 @@ class Line(object):
                 self._specifier = "{0}{1}".format(specifier, version)
         return name
 
+    def _parse_name_from_path(self):
+        # type: () -> Optional[S]
+        if self.path and self.is_local and is_installable_dir(self.path):
+            metadata = get_metadata(self.path)
+            if metadata:
+                name = metadata.get("name", "")
+                if name:
+                    return name
+            parsed_setup_cfg = self.parsed_setup_cfg
+            if parsed_setup_cfg:
+                name = parsed_setup_cfg.get("name", "")
+                if name:
+                    return name
+
+            parsed_setup_py = self.parsed_setup_py
+            if parsed_setup_py:
+                name = parsed_setup_py.get("name", "")
+                if name:
+                    return name
+        return None
+
     def parse_name(self):
         # type: () -> None
         if self._name is None:
@@ -916,13 +966,17 @@ class Line(object):
                     if "&" in name:
                         # subdirectory fragments might also be in here
                         name, _, _ = name.partition("&")
-            if self.is_named:
+            if name is None and self.is_named:
                 name = self._parse_name_from_line()
+            elif name is None and self.is_file or self.is_url or self.is_path:
+                if self.is_local:
+                    name = self._parse_name_from_path()
             if name is not None:
                 name, extras = pip_shims.shims._strip_extras(name)
                 if extras is not None and not self.extras:
                     self.extras = tuple(sorted(set(parse_extras(extras))))
                 self._name = name
+        return self
 
     def _parse_requirement_from_vcs(self):
         # type: () -> Optional[PackagingRequirement]
@@ -1003,6 +1057,7 @@ class Line(object):
                     "dependencies. Please install remote dependency "
                     "in the form {0}#egg=<package-name>.".format(url)
                 )
+        return self
 
     def parse_link(self):
         # type: () -> None
@@ -1054,6 +1109,7 @@ class Line(object):
                 self._link = parsed_link
             else:
                 self._link = link
+        return self
 
     def parse_markers(self):
         # type: () -> None
@@ -1131,8 +1187,7 @@ class Line(object):
 
     def parse(self):
         # type: () -> None
-        self.parse_hashes()
-        self.line, self.markers = split_markers_from_line(self.line)
+        self.line, self.markers = split_markers_from_line(self.parse_hashes().line)
         self.parse_extras()
         self.line = self.line.strip('"').strip("'").strip()
         if self.line.startswith("git+file:/") and not self.line.startswith(
@@ -1492,7 +1547,12 @@ class FileRequirement(object):
     @name.default
     def get_name(self):
         # type: () -> STRING_TYPE
-        return next(iter((self.name, self.req.name, self.parsed_line.name)), None)
+        if self.parsed_line and self.parsed_line.name:
+            return self.parsed_line.name
+        elif self.link and self.link.egg_fragment:
+            return self.link.egg_fragment
+        elif self.setup_info and self.setup_info.name:
+            return self.setup_info.name
 
     @link.default
     def get_link(self):
@@ -1833,8 +1893,9 @@ class FileRequirement(object):
                 line = "{0}&subdirectory={1}".format(line, pipfile["subdirectory"])
         if editable:
             line = "-e {0}".format(line)
-        arg_dict["line"] = line
-        return cls.create(**arg_dict)  # type: ignore
+        arg_dict["parsed_line"] = Line(line)
+        arg_dict["setup_info"] = arg_dict["parsed_line"].setup_info
+        return cls(**arg_dict)  # type: ignore
 
     @property
     def line_part(self):

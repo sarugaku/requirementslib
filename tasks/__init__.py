@@ -113,18 +113,22 @@ def _render_log():
 REL_TYPES = ("major", "minor", "patch", "post")
 
 
-def _bump_release(version, type_):
+def _bump_release(version, type_, log=False):
     if type_ not in REL_TYPES:
         raise ValueError(f"{type_} not in {REL_TYPES}")
     index = REL_TYPES.index(type_)
     next_version = version.base_version().bump_release(index=index)
-    print(f"[bump] {version} -> {next_version}")
+    if log:
+        print(f"[bump] {version} -> {next_version}")
+    print(f"{next_version}")
     return next_version
 
 
-def _prebump(version, prebump):
+def _prebump(version, prebump, log=False):
     next_version = version.bump_release(index=prebump).bump_dev()
-    print(f"[bump] {version} -> {next_version}")
+    if log:
+        print(f"[bump] {version} -> {next_version}")
+    print(f"{next_version}")
     return next_version
 
 
@@ -132,26 +136,64 @@ PREBUMP = "patch"
 
 
 @invoke.task(pre=[clean])
-def release(ctx, type_, repo, prebump=PREBUMP):
+def build(ctx):
+    ctx.run("python setup.py sdist bdist_wheel")
+
+
+@invoke.task()
+def get_next_version(ctx, type_="patch", log=False):
+    version = _read_version()
+    if type_ in ("dev", "pre"):
+        new_version = _prebump(version, type_, log=log)
+    else:
+        new_version = _bump_release(version, type_, log=log)
+    return new_version
+
+
+@invoke.task()
+def bump_version(ctx, type_="patch", log=False):
+    new_version = get_next_version(ctx, type_, log=log)
+    _write_version(new_version)
+    return new_version
+
+
+@invoke.task()
+def generate_news(ctx, yes=False):
+    command = "towncrier"
+    if yes:
+        command = f"{command} --yes"
+    ctx.run(command)
+
+
+@invoke.task()
+def get_changelog(ctx):
+    changelog = _render_log()
+    print(changelog)
+    return changelog
+
+
+@invoke.task(optional=["version", "type_"])
+def tag_release(ctx, version=None, type_="patch", yes=False):
+    if version is None:
+        version = bump_version(ctx, type_)
+    tag_content = get_changelog(ctx)
+    generate_news(ctx, yes=yes)
+    ctx.run(f'git commit -am "Release {version}"')
+    tag_content = tag_content.replace('"', '\\"')
+    ctx.run(f'git tag -a v{version} -m "Version v{version}\n\n{tag_content}"')
+
+
+@invoke.task(pre=[clean])
+def release(ctx, type_, repo, prebump=PREBUMP, yes=False):
     """Make a new release.
     """
     if prebump not in REL_TYPES:
         raise ValueError(f"{type_} not in {REL_TYPES}")
     prebump = REL_TYPES.index(prebump)
 
-    version = _read_version()
-    version = _bump_release(version, type_)
-    _write_version(version)
-
+    version = bump_version(ctx, type_, log=True)
     # Needs to happen before Towncrier deletes fragment files.
-    tag_content = _render_log()
-
-    ctx.run("towncrier")
-
-    ctx.run(f'git commit -am "Release v{version}"')
-
-    tag_content = tag_content.replace('"', '\\"')
-    ctx.run(f'git tag -a v{version} -m "Version v{version}\n\n{tag_content}"')
+    tag_release(version, yes=yes)
 
     ctx.run(f"python setup.py sdist bdist_wheel")
 
@@ -159,11 +201,12 @@ def release(ctx, type_, repo, prebump=PREBUMP):
     artifacts = list(ROOT.joinpath("dist").glob(dist_pattern))
     filename_display = "\n".join(f"  {a}" for a in artifacts)
     print(f"[release] Will upload:\n{filename_display}")
-    try:
-        input("[release] Release ready. ENTER to upload, CTRL-C to abort: ")
-    except KeyboardInterrupt:
-        print("\nAborted!")
-        return
+    if not yes:
+        try:
+            input("[release] Release ready. ENTER to upload, CTRL-C to abort: ")
+        except KeyboardInterrupt:
+            print("\nAborted!")
+            return
 
     arg_display = " ".join(f'"{n}"' for n in artifacts)
     ctx.run(f'twine upload --repository="{repo}" {arg_display}')
