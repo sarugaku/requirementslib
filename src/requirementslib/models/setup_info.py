@@ -700,7 +700,7 @@ def run_setup(script_path, egg_base=None):
             with open(script_name, "rb") as f:
                 contents = f.read()
                 if six.PY3:
-                    contents.replace(rb"\r\n", r"\n")
+                    contents.replace(rb"\r\n", rb"\n")
                 else:
                     contents.replace(r"\r\n", r"\n")
                 if sys.version_info < (3, 5):
