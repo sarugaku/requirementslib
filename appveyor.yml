@@ -71,6 +71,10 @@ install:
 
     Invoke-Expression "$py_exe --version"
 
+    Invoke-Expression "git submodule sync"
+
+    Invoke-Expression "git submodule update --init --recursive"
+
 
 cache:
 - '%LocalAppData%\pip\cache'
