@@ -676,8 +676,8 @@ def run_setup(script_path, egg_base=None):
     if not os.path.exists(script_path):
         raise FileNotFoundError(script_path)
     target_cwd = os.path.dirname(os.path.abspath(script_path))
-    # if egg_base is None:
-    #     egg_base = os.path.join(target_cwd, "reqlib-metadata")
+    if egg_base is None:
+        egg_base = os.path.join(target_cwd, "reqlib-metadata")
     with temp_path(), cd(target_cwd), _suppress_distutils_logs():
         # This is for you, Hynek
         # see https://github.com/hynek/environ_config/blob/69b1c8a/setup.py
@@ -708,7 +708,7 @@ def run_setup(script_path, egg_base=None):
                 else:
                     exec(contents, g)
         # We couldn't import everything needed to run setup
-        except NameError:
+        except Exception:
             python = os.environ.get("PIP_PYTHON_PATH", sys.executable)
             out, _ = run(
                 [python, "setup.py"] + args,
