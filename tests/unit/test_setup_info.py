@@ -40,6 +40,7 @@ def test_local_req(test_artifact):
         ],
     ],
 )
+@pytest.mark.needs_internet
 def test_remote_req(url_line, name, requires):
     r = Requirement.from_line(url_line)
     assert r.name == name
@@ -88,6 +89,7 @@ def test_no_duplicate_egg_info():
     )
 
 
+@pytest.mark.needs_internet
 def test_without_extras(pathlib_tmpdir):
     """Tests a setup.py or setup.cfg parse when extras returns None for some files"""
     setup_dir = pathlib_tmpdir.joinpath("sanitized-package")

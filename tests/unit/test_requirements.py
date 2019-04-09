@@ -338,10 +338,12 @@ def test_get_requirements(monkeypatch_if_needed):
 
 
 @pytest.mark.needs_internet
-def test_get_ref():
-    r = Requirement.from_line(
-        "-e git+https://github.com/sarugaku/shellingham.git@1.2.1#egg=shellingham"
-    )
+def test_get_ref(artifact_dir):
+    req_uri = artifact_dir.joinpath("git/shellingham").as_uri().replace("file:/", "file:///")
+    git_uri = "-e git+{0}@1.2.1#egg=shellingham".format(req_uri)
+    r = Requirement.from_line(git_uri)
+    #     "-e git+https://github.com/sarugaku/shellingham.git@1.2.1#egg=shellingham"
+    # )
     assert r.commit_hash == "9abe7464dab5cc362fe08361619d3fb15f2e16ab"
 
 
