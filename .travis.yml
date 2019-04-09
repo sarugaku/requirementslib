@@ -11,6 +11,7 @@ matrix:
   fast_finish: true
 
 install:
+  - "git submodule sync && git submodule update --init --recursive"
   - "python -m pip install --upgrade pip pytest-timeout coverage pipenv"
   - "python -m pip install -e .[tests,typing]"
   - "pipenv install --dev --deploy --system"
@@ -38,6 +39,7 @@ jobs:
       python: "3.6"
       install:
         - "pip install --upgrade pip pytest pytest-timeout pytest-cov coverage pipenv"
+        - "git submodule sync && git submodule update --init --recursive"
         - "pip install --upgrade -e .[tests,typing]"
         - "pipenv install --dev --deploy --system"
       script:
