@@ -144,23 +144,27 @@ def build(ctx):
 def get_next_version(ctx, type_="patch", log=False):
     version = _read_version()
     if type_ in ("dev", "pre"):
-        new_version = _prebump(version, type_, log=log)
+        idx = REL_TYPES.index("patch")
+        new_version = _prebump(version, idx, log=log)
     else:
         new_version = _bump_release(version, type_, log=log)
     return new_version
 
 
 @invoke.task()
-def bump_version(ctx, type_="patch", log=False):
+def bump_version(ctx, type_="patch", log=False, dry_run=False):
     new_version = get_next_version(ctx, type_, log=log)
-    _write_version(new_version)
+    if not dry_run:
+        _write_version(new_version)
     return new_version
 
 
 @invoke.task()
-def generate_news(ctx, yes=False):
+def generate_news(ctx, yes=False, dry_run=False):
     command = "towncrier"
-    if yes:
+    if dry_run:
+        command = f"{command} --draft"
+    elif yes:
         command = f"{command} --yes"
     ctx.run(command)
 
@@ -173,14 +177,23 @@ def get_changelog(ctx):
 
 
 @invoke.task(optional=["version", "type_"])
-def tag_release(ctx, version=None, type_="patch", yes=False):
+def tag_release(ctx, version=None, type_="patch", yes=False, dry_run=False):
     if version is None:
-        version = bump_version(ctx, type_)
+        version = bump_version(ctx, type_, log=not dry_run, dry_run=dry_run)
+    else:
+        _write_version(version)
     tag_content = get_changelog(ctx)
-    generate_news(ctx, yes=yes)
-    ctx.run(f'git commit -am "Release {version}"')
+    generate_news(ctx, yes=yes, dry_run=dry_run)
+    git_commit_cmd = f'git commit -am "Release {version}"'
     tag_content = tag_content.replace('"', '\\"')
-    ctx.run(f'git tag -a v{version} -m "Version v{version}\n\n{tag_content}"')
+    git_tag_cmd = f'git tag -a {version} -m "Version {version}\n\n{tag_content}"'
+    if dry_run:
+        print("Would run commands:")
+        print(f"    {git_commit_cmd}")
+        print(f"    {git_tag_cmd}")
+    else:
+        ctx.run(git_commit_cmd)
+        ctx.run(git_tag_cmd)
 
 
 @invoke.task(pre=[clean])
@@ -235,7 +248,8 @@ def build_docs(ctx):
 
 @invoke.task
 def clean_mdchangelog(ctx):
-    changelog = ROOT / "CHANGELOG.md"
+    root = news._get_git_root(ctx)
+    changelog = root / "CHANGELOG.md"
     content = changelog.read_text()
     content = re.sub(
         r"([^\n]+)\n?\s+\[[\\]+(#\d+)\]\(https://github\.com/sarugaku/[\w\-]+/issues/\d+\)",

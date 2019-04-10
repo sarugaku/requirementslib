@@ -9,13 +9,19 @@ steps:
   - script: python -m pip install pipenv --upgrade
     displayName: Install Pipenv
 
-  - script: pipenv install --dev --pre
+  - script: pipenv install --dev
     displayName: Create Development Environment
 
   - script: |
       pipenv run inv clean
       pipenv run inv build
     displayName: Build Package
+
+  - script: |
+      pipenv run pip install twine readme-renderer[md]
+      pipenv run twine check dist/*
+    displayName: check package build
+
   - task: CopyFiles@2
     inputs:
       sourceFolder: dist/
