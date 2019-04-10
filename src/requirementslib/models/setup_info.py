@@ -3,14 +3,12 @@ from __future__ import absolute_import, print_function
 
 import ast
 import atexit
-import collections
 import contextlib
 import importlib
 import os
 import shutil
 import sys
 from functools import partial
-from numbers import Number
 
 import attr
 import packaging.specifiers
