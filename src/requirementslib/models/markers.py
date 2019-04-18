@@ -19,7 +19,7 @@ from six.moves import reduce  # isort:skip
 
 
 if MYPY_RUNNING:
-    from typing import Optional, List
+    from typing import Optional, List, Generic, Type
 
 
 MAX_VERSIONS = {2: 7, 3: 10}
@@ -165,7 +165,7 @@ def _format_pyspec(specifier):
 def _get_specs(specset):
     if specset is None:
         return
-    if is_instance(specset, Specifier) or not _is_iterable(specset):
+    if is_instance(specset, Specifier):
         new_specset = SpecifierSet()
         specs = set()
         specs.add(specset)
