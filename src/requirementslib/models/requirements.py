@@ -1263,8 +1263,8 @@ class NamedRequirement(object):
         return cls(**creation_kwargs)
 
     @classmethod
-    def from_pipfile(cls, name, pipfile):  # type: S  # type: TPIPFILE
-        # type: (...) -> NamedRequirement
+    def from_pipfile(cls, name, pipfile):
+        # type: (S, TPIPFILE) -> NamedRequirement
         creation_args = {}  # type: TPIPFILE
         if hasattr(pipfile, "keys"):
             attr_fields = [field.name for field in attr.fields(cls)]
@@ -2277,7 +2277,7 @@ class VCSRequirement(FileRequirement):
             )
         if self.parsed_line and self._parsed_line:
             self._parsed_line.vcsrepo = vcsrepo
-        if self.req:
+        if self.req and not self.editable:
             self.req.specifier = SpecifierSet("=={0}".format(self.setup_info.version))
         try:
             yield self._repo

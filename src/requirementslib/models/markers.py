@@ -9,7 +9,7 @@ import six
 from packaging.markers import InvalidMarker, Marker
 from packaging.specifiers import Specifier, SpecifierSet
 from vistir.compat import Mapping, Set, lru_cache
-from vistir.misc import dedup
+from vistir.misc import _is_iterable, dedup
 
 from .utils import filter_none, validate_markers
 from ..environment import MYPY_RUNNING
@@ -19,7 +19,7 @@ from six.moves import reduce  # isort:skip
 
 
 if MYPY_RUNNING:
-    from typing import Optional
+    from typing import Optional, List
 
 
 MAX_VERSIONS = {2: 7, 3: 10}
@@ -158,10 +158,14 @@ def _format_pyspec(specifier):
 def _get_specs(specset):
     if specset is None:
         return
-    if isinstance(specset, Specifier):
-        specset = str(specset)
+    if isinstance(specset, Specifier) or not _is_iterable(specset):
+        new_specset = SpecifierSet()
+        specs = set()
+        specs.add(specset)
+        new_specset._specs = frozenset(specs)
+        specset = new_specset
     if isinstance(specset, str):
-        specset = SpecifierSet(specset.replace(".*", ""))
+        specset = SpecifierSet(specset)
     result = []
     for spec in set(specset):
         version = spec.version
