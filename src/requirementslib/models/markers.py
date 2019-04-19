@@ -9,7 +9,7 @@ import six
 from packaging.markers import InvalidMarker, Marker
 from packaging.specifiers import Specifier, SpecifierSet
 from vistir.compat import Mapping, Set, lru_cache
-from vistir.misc import _is_iterable, dedup
+from vistir.misc import dedup
 
 from .utils import filter_none, validate_markers
 from ..environment import MYPY_RUNNING
@@ -19,14 +19,14 @@ from six.moves import reduce  # isort:skip
 
 
 if MYPY_RUNNING:
-    from typing import Optional, List, Generic, Type
+    from typing import Optional, List, Type
 
 
 MAX_VERSIONS = {2: 7, 3: 10}
 
 
 def is_instance(item, cls):
-    # type: (Generic, Type) -> bool
+    # type: (Any, Type) -> bool
     if isinstance(item, cls) or item.__class__.__name__ == cls.__name__:
         return True
     return False
