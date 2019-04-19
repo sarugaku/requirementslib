@@ -202,7 +202,7 @@ def setuptools_parse_setup_cfg(path):
 
 
 def get_package_dir_from_setupcfg(parser, base_dir=None):
-    # type: (configparser.ConfigParser, S) -> Text
+    # type: (configparser.ConfigParser, STRING_TYPE) -> Text
     if not base_dir:
         package_dir = os.getcwd()
     else:
@@ -271,6 +271,8 @@ def parse_setup_cfg(setup_cfg_path):
     results = {}
     package_dir = get_package_dir_from_setupcfg(parser, base_dir=os.getcwd())
     name, version = get_name_and_version_from_setupcfg(parser, package_dir)
+    results["name"] = name
+    results["version"] = version
     install_requires = set()  # type: Set[BaseRequirement]
     if parser.has_option("options", "install_requires"):
         install_requires = make_base_requirements(
