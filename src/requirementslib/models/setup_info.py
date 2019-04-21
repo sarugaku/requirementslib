@@ -23,7 +23,7 @@ from distlib.wheel import Wheel
 from packaging.markers import Marker
 from six.moves import configparser
 from six.moves.urllib.parse import unquote, urlparse, urlunparse
-from vistir.compat import FileNotFoundError, Iterable, Mapping, Path, fs_encode, lru_cache
+from vistir.compat import FileNotFoundError, Iterable, Mapping, Path, lru_cache
 from vistir.contextmanagers import cd, temp_path
 from vistir.misc import run
 from vistir.path import create_tracked_tempdir, ensure_mkdir_p, mkdir_p, rmtree
@@ -267,7 +267,7 @@ def parse_setup_cfg(setup_cfg_path):
         },
     }
     parser = configparser.ConfigParser(default_opts)
-    parser.read(fs_encode(setup_cfg_path))
+    parser.read(setup_cfg_path)
     results = {}
     package_dir = get_package_dir_from_setupcfg(parser, base_dir=os.getcwd())
     name, version = get_name_and_version_from_setupcfg(parser, package_dir)
@@ -929,7 +929,7 @@ class SetupInfo(object):
             base = Path(self.extra_kwargs["src_dir"])
         egg_base = base.joinpath("reqlib-metadata")
         if not egg_base.exists():
-            atexit.register(rmtree, fs_encode(egg_base.as_posix()))
+            atexit.register(rmtree, egg_base.as_posix())
         egg_base.mkdir(parents=True, exist_ok=True)
         return egg_base.as_posix()
 
@@ -1174,7 +1174,7 @@ build-backend = "{1}"
         metadata = [
             get_metadata(d, pkg_name=self.name, metadata_type=metadata_type)
             for d in metadata_dirs
-            if os.path.exists(fs_encode(d))
+            if os.path.exists(d)
         ]
         metadata = next(iter(d for d in metadata if d), None)
         return metadata
