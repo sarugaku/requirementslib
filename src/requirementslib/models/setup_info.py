@@ -143,7 +143,7 @@ class HookCaller(pep517.wrappers.Pep517HookCaller):
 
 
 def parse_special_directives(setup_entry, package_dir=None):
-    # type: (S, Optional[S]) -> S
+    # type: (S, Optional[STRING_TYPE]) -> S
     rv = setup_entry
     if not package_dir:
         package_dir = os.getcwd()
