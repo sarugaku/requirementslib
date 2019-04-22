@@ -1,23 +1,26 @@
 # -*- coding=utf-8 -*-
-import requirementslib
-from requirementslib.models.requirements import Requirement
-from requirementslib.models.dependencies import (
-    AbstractDependency,
-    get_dependencies,
-    get_abstract_dependencies,
-    get_dependencies_from_json,
-    get_dependencies_from_index
-)
-
+import pytest
 from pip_shims import InstallRequirement
 
+import requirementslib
+from requirementslib.models.dependencies import (
+    AbstractDependency,
+    get_abstract_dependencies,
+    get_dependencies,
+    get_dependencies_from_index,
+    get_dependencies_from_json,
+)
+from requirementslib.models.requirements import Requirement
 
+
+@pytest.mark.needs_internet
 def test_find_all_matches():
     r = Requirement.from_line("six")
     matches = r.find_all_matches()
     assert len(matches) > 0
 
 
+@pytest.mark.needs_internet
 def test_get_dependencies():
     r = Requirement.from_line("requests==2.19.1")
     deps = r.get_dependencies()
@@ -39,19 +42,24 @@ def get_abstract_deps():
     assert sorted(set(deps_from_ireqs)) == sorted(set(abstract_deps))
 
 
+@pytest.mark.needs_internet
 def test_get_deps_from_json():
     r = Requirement.from_line("requests==2.19.1")
     deps = get_dependencies_from_json(r.as_ireq())
     assert len(deps) > 0
 
 
+@pytest.mark.needs_internet
 def test_get_deps_from_index():
     r = Requirement.from_line("requests==2.19.1")
     deps = get_dependencies_from_index(r.as_ireq())
     assert len(deps) > 0
 
 
+@pytest.mark.needs_internet
 def test_get_editable_from_index():
-    r = InstallRequirement.from_editable("git+https://github.com/requests/requests.git#egg=requests[security]")
+    r = InstallRequirement.from_editable(
+        "git+https://github.com/requests/requests.git#egg=requests[security]"
+    )
     deps = get_dependencies_from_index(r)
     assert len(deps) > 0

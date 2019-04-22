@@ -1,0 +1,5 @@
+steps:
+  - script: |
+      python -m pip install --upgrade pip setuptools wheel pipenv && pipenv install --dev
+      git submodule sync && git submodule update --init --recursive
+    displayName: Install Dependencies
