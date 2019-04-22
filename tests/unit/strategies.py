@@ -1,11 +1,14 @@
 # -*- coding=utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 
-from hypothesis import strategies as st
-import vistir
-from six.moves.urllib import parse as urllib_parse
-from collections import namedtuple
 import os
+from collections import namedtuple
+
+import vistir
+from hypothesis import strategies as st
+from six.moves.urllib import parse as urllib_parse
+
+from requirementslib.models.url import URI
 
 parsed_url = namedtuple("ParsedUrl", "scheme netloc path params query fragment")
 parsed_url.__new__.__defaults__ = ("", "", "", "", "", "")
@@ -56,9 +59,8 @@ def dns_labels():
 
 
 def valid_names():
-    return st.text(url_alphabet, min_size=1, max_size=25).filter(lambda s: not any(
-            [s.startswith("-"), s.endswith("-")]
-        )
+    return st.text(url_alphabet, min_size=1, max_size=25).filter(
+        lambda s: not any([s.startswith("-"), s.endswith("-")])
     )
 
 
@@ -74,9 +76,10 @@ def urls():
     Strategy for generating urls.
     """
     return st.builds(
-        parsed_url,
+        URI,
         scheme=st.sampled_from(uri_schemes),
-        netloc=dns_names(),
+        host=dns_names(),
+        port=st.integers(min_value=1, max_value=65535),
         path=st.lists(
             st.text(
                 max_size=64,
@@ -87,8 +90,30 @@ def urls():
             min_size=1,
             max_size=10,
         )
+        .map("".join)
         .map(vistir.misc.to_text)
         .map("".join),
+        query=st.lists(
+            st.text(
+                max_size=10,
+                alphabet=st.characters(
+                    blacklist_characters="/?#", blacklist_categories=("Cs",)
+                ),
+            ),
+            min_size=2,
+            max_size=2,
+        )
+        .map("=".join)
+        .map(vistir.misc.to_text),
+        ref=st.text(max_size=64, alphabet="abcdefghijklmnopqrstuvwxyz0123456789"),
+        subdirectory=st.text(
+            max_size=64, alphabet="abcdefghijklmnopqrstuvwxyz0123456789"
+        ),
+        extras=st.lists(
+            st.text(max_size=20, alphabet="abcdefghijklmnopqrstuvwxyz0123456789_"),
+            min_size=0,
+            max_size=10,
+        ),
     )
 
 
@@ -116,7 +141,9 @@ def legal_path_chars():
 def relative_paths():
     relative_leaders = (".", "..")
     separators = [
-        vistir.misc.to_text(sep) for sep in (os.sep, os.path.sep, os.path.altsep) if sep is not None
+        vistir.misc.to_text(sep)
+        for sep in (os.sep, os.path.sep, os.path.altsep)
+        if sep is not None
     ]
     return st.builds(
         relative_path,
@@ -136,16 +163,11 @@ def vcs_requirements():
         scheme=st.sampled_from(vcs_schemes),
         netloc=dns_names(),
         path=st.lists(
-            st.text(
-                max_size=64,
-                alphabet=url_alphabet,
-            ),
-            min_size=1,
-            max_size=10,
+            st.text(max_size=64, alphabet=url_alphabet), min_size=1, max_size=10
         )
         .map(vistir.misc.to_text)
         .map("".join),
-        fragment=valid_names()
+        fragment=valid_names(),
     )
 
 
@@ -153,7 +175,7 @@ def unparse_requirement(r):
     _r, paths, fragment = r[:-2], r[-2], r[-1]
     paths = "/".join(paths)
     fragment = "#egg={0}".format(fragment)
-    url = _r + (paths, fragment,)
+    url = _r + (paths, fragment)
     return urllib_parse.urlunparse(url)
 
 

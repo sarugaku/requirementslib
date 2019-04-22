@@ -1,3 +1,6 @@
 [submodule "tests/artifacts/git/requests"]
 	path = tests/artifacts/git/requests
 	url = https://github.com/requests/requests
+[submodule "tests/artifacts/git/shellingham"]
+	path = tests/artifacts/git/shellingham
+	url = https://github.com/sarugaku/shellingham.git

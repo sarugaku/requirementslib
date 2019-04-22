@@ -1,0 +1,20 @@
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: $(python.version)
+    displayName: Use Python $(python.version)
+
+  - template: install-dependencies.yml
+
+  - script: pipenv run pip install -e .[dev,tests] --upgrade
+    displayName: Install Package
+
+  - script: pipenv run pytest -ra --junitxml=junit/test-results.xml tests/
+    displayName: 'Run Pytest'
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: '**/test-results.xml'
+      testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
+    condition: succeededOrFailed()
+    displayName: 'Publish Test Results'

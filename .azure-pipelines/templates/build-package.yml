@@ -1,0 +1,36 @@
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.7"
+    displayName: Use Python 3.7
+
+  - template: install-dependencies.yml
+
+  - script: python -m pip install pipenv --upgrade
+    displayName: Install Pipenv
+
+  - script: pipenv install --dev
+    displayName: Create Development Environment
+
+  - script: |
+      pipenv run inv clean
+      pipenv run inv build
+    displayName: Build Package
+
+  - script: |
+      pipenv run pip install twine readme-renderer[md]
+      pipenv run twine check dist/*
+    displayName: check package build
+
+  - task: CopyFiles@2
+    inputs:
+      sourceFolder: dist/
+      contents: "**"
+      targetFolder: $(Build.ArtifactStagingDirectory)
+    displayName: Copy Artifacts
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: $(Build.ArtifactStagingDirectory)
+      artifactName: PackageArtifacts
+    displayName: Publish Artifacts

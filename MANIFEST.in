@@ -1,6 +1,7 @@
 include README.rst LICENSE HISTORY.txt CHANGELOG.rst CONTRIBUTING.rst
 recursive-include src *LICENSE* *COPYING*
 include pyproject.toml
+exclude .pre-commit-config.yaml
 exclude .coveragerc
 exclude .editorconfig
 exclude .travis.yml
@@ -8,9 +9,11 @@ exclude appveyor.yml
 exclude tox.ini
 exclude Pipfile*
 exclude CODE_OF_CONDUCT.md
+exclude azure-pipelines.yml
 
 recursive-include docs Makefile *.rst *.py *.bat
 recursive-exclude docs requirements*.txt
+recursive-exclude .azure-pipelines *.yml
 
 prune .github
 prune docs/build
