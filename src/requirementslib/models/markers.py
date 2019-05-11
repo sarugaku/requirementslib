@@ -19,7 +19,7 @@ from six.moves import reduce  # isort:skip
 
 
 if MYPY_RUNNING:
-    from typing import Optional, List, Type
+    from typing import Optional, List, Type, Any
 
 
 MAX_VERSIONS = {2: 7, 3: 10}
@@ -139,8 +139,12 @@ def _format_pyspec(specifier):
         if not any(op in specifier for op in Specifier._operators.keys()):
             specifier = "=={0}".format(specifier)
         specifier = Specifier(specifier)
-    version = specifier.version.replace(".*", "")
-    if ".*" in specifier.version:
+    version = getattr(specifier, "version", specifier).rstrip()
+    if version and version.endswith("*"):
+        if version.endswith(".*"):
+            version = version.rstrip(".*")
+        else:
+            version = version.rstrip("*")
         specifier = Specifier("{0}{1}".format(specifier.operator, version))
     try:
         op = REPLACE_RANGES[specifier.operator]
@@ -198,7 +202,10 @@ def _group_by_op(specs):
 
 @lru_cache(maxsize=128)
 def cleanup_pyspecs(specs, joiner="or"):
-    specs = {_format_pyspec(spec) for spec in specs}
+    if isinstance(specs, six.string_types):
+        specs = set([_format_pyspec(specs)])
+    else:
+        specs = {_format_pyspec(spec) for spec in specs}
     # for != operator we want to group by version
     # if all are consecutive, join as a list
     results = set()

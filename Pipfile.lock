@@ -883,8 +883,7 @@
                 "tests",
                 "typing"
             ],
-            "path": ".",
-            "version": "==1.4.3.dev0"
+            "path": "."
         },
         "retype": {
             "hashes": [
