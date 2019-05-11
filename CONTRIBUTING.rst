@@ -7,6 +7,7 @@ system.
 Now, install the development requirements::
 
     cd requirementslib
+    git submodule sync && git submodule update --init --recursive
     pipenv install --dev
 
 
