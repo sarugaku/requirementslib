@@ -75,9 +75,9 @@ def mock_unpack(
 
 
 def pytest_runtest_setup(item):
-    if item.get_marker("needs_hg") is not None and not HAS_MERCURIAL:
+    if item.get_closest_marker("needs_hg") is not None and not HAS_MERCURIAL:
         pytest.skip("requires mercurial")
-    elif item.get_marker("needs_internet") is not None and SKIP_INTERNET:
+    elif item.get_closest_marker("needs_internet") is not None and SKIP_INTERNET:
         pytest.skip("requires internet access, skipping...")
 
 
