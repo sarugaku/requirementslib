@@ -6,18 +6,10 @@ name = "pypi"
 [packages]
 
 [dev-packages]
-pytest = "*"
 sphinx = "*"
 requirementslib = {path = ".", editable = true,extras = ["tests", "dev", "typing"]}
 sphinx_rtd_theme = "*"
-pip_shims = "*"
-vistir = {version = ">=0.3", extras = ["spinner"]}
-rope = "*"
-towncrier = "*"
-parver = "*"
 ptpython = "*"
-pytest-sugar = "*"
-lxml = "*"
 
 [scripts]
 black = 'black src/requirementslib/ --exclude "/(\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist)/"'
