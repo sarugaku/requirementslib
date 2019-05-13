@@ -550,7 +550,7 @@
                 "sha256:baeeee422c17202038ccf17ca73eb97eddb65a4178a215c1ff212cfb7373eb65",
                 "sha256:ecee4162a153c8a0d2151dfc66f06ebb82e4582b0d46281798d908888bb0c9b9"
             ],
-            "markers": "python_version >= '3.4'",
+            "markers": "python_version >= '3.6'",
             "version": "==19.1.1"
         },
         "more-itertools": {
