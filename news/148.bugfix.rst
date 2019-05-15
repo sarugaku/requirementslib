@@ -1,1 +1,0 @@
-Fixed a bug which prevented the successful loading of pipfiles using ``Pipfile.load``.

@@ -1,3 +1,31 @@
+1.5.0 (2019-05-15)
+==================
+
+Features
+--------
+
+- Implemented an AST parser for ``setup.py`` for parsing package names, dependencies, and version information if available.  `#106 <https://github.com/sarugaku/requirementslib/issues/106>`_
+  
+- Fully implement marker merging and consolidation logic using ``requirement.merge_markers(markers)``.  `#153 <https://github.com/sarugaku/requirementslib/issues/153>`_
+  
+
+Bug Fixes
+---------
+
+- Updated ``attrs`` dependency to constraint ``>=18.2``.  `#142 <https://github.com/sarugaku/requirementslib/issues/142>`_
+  
+- Fixed a bug which forced early querying for dependencies via pypi or other indexes just by simply creating a ``Requirement`` instance.
+  - Added the ability to skip tests requiring internet by setting ``REQUIREMENTSLIB_SKIP_INTERNET_TESTS``.  `#145 <https://github.com/sarugaku/requirementslib/issues/145>`_
+  
+- Egg fragments on ``PEP-508`` style direct URL dependencies are now disregarded rather than merged with the leading name.  `#146 <https://github.com/sarugaku/requirementslib/issues/146>`_
+  
+- Fixed a bug which prevented the successful loading of pipfiles using ``Pipfile.load``.  `#148 <https://github.com/sarugaku/requirementslib/issues/148>`_
+  
+- Fixed a bug which prevented handling special setup.cfg directives during dependency parsing.  `#150 <https://github.com/sarugaku/requirementslib/issues/150>`_
+  
+- Fixed an issue which caused the merging of markers to inadvertently use ``or`` to merge even different variables.  `#153 <https://github.com/sarugaku/requirementslib/issues/153>`_
+
+
 1.4.2 (2019-03-04)
 ==================
 

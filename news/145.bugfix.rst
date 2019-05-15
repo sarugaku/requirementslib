@@ -1,2 +1,0 @@
-Fixed a bug which forced early querying for dependencies via pypi or other indexes just by simply creating a ``Requirement`` instance.
-- Added the ability to skip tests requiring internet by setting ``REQUIREMENTSLIB_SKIP_INTERNET_TESTS``.
