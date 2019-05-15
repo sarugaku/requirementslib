@@ -1,1 +1,0 @@
-Updated ``attrs`` dependency to constraint ``>=18.2``.

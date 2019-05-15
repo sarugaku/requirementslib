@@ -1,1 +1,0 @@
-Fully implement marker merging and consolidation logic using ``requirement.merge_markers(markers)``.
