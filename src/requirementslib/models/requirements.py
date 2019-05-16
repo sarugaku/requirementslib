@@ -939,7 +939,7 @@ class Line(object):
             metadata = get_metadata(self.path)
             if metadata:
                 name = metadata.get("name", "")
-                if name:
+                if name and not name == "wheel":
                     return name
             parsed_setup_cfg = self.parsed_setup_cfg
             if parsed_setup_cfg:
