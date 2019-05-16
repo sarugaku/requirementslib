@@ -1,0 +1,1 @@
+Fixed a bug which caused local dependencies to incorrectly return ``wheel`` as their name.
