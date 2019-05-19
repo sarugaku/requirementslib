@@ -1,1 +1,0 @@
-Wheels which are succesfully built but which contain no valid metadata will now correctly be skipped over during requirements parsing in favor of sdists.
