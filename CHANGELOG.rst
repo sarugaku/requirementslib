@@ -1,3 +1,14 @@
+1.5.1 (2019-05-19)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug which caused local dependencies to incorrectly return ``wheel`` as their name.  `#158 <https://github.com/sarugaku/requirementslib/issues/158>`_
+  
+- Wheels which are succesfully built but which contain no valid metadata will now correctly be skipped over during requirements parsing in favor of sdists.  `#160 <https://github.com/sarugaku/requirementslib/issues/160>`_
+
+
 1.5.0 (2019-05-15)
 ==================
 
