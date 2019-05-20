@@ -151,7 +151,7 @@ def parse_special_directives(setup_entry, package_dir=None):
         _, path = setup_entry.split("file:")
         path = path.strip()
         if os.path.exists(path):
-            with open(path, "r") as fh:
+            with open(path, "r", encoding="utf-8") as fh:
                 rv = fh.read()
     elif setup_entry.startswith("attr:"):
         _, resource = setup_entry.split("attr:")
@@ -706,7 +706,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
 
 def ast_parse_setup_py(path):
     # type: (S) -> Dict[Any, Any]
-    with open(path, "r") as fh:
+    with open(path, "r", encoding="utf-8") as fh:
         tree = ast.parse(fh.read())
     ast_analyzer = Analyzer()
     ast_analyzer.visit(tree)
