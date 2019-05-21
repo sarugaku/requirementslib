@@ -968,6 +968,25 @@ def get_name_variants(pkg):
     return names
 
 
+def read_source(path, encoding="utf-8"):
+    # type: (S, S) -> S
+    """
+    Read a source file and get the contents with proper encoding for Python 2/3.
+
+    :param AnyStr path: the file path
+    :param AnyStr encoding: the encoding that defaults to UTF-8
+    :returns: The contents of the source file
+    :rtype: AnyStr
+    """
+    if six.PY3:
+        with open(path, "r", encoding=encoding) as fp:
+            return fp.read()
+    else:
+        with open(path, "r") as fp:
+            return fp.read()
+
+
+
 SETUPTOOLS_SHIM = (
     "import setuptools, tokenize;__file__=%r;"
     "f=getattr(tokenize, 'open', open)(__file__);"
