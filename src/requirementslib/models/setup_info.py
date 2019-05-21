@@ -33,6 +33,7 @@ from .utils import (
     get_name_variants,
     get_pyproject,
     init_requirement,
+    read_source,
     split_vcs_method_from_uri,
     strip_extras_markers_from_requirement,
 )
@@ -112,16 +113,6 @@ def pep517_subprocess_runner(cmd, cwd=None, extra_environ=None):
         write_to_stdout=False,
         nospin=True,
     )
-
-
-def read_source(path, encoding="utf-8"):
-    # type: (S, S) -> S
-    if six.PY3:
-        with open(path, "r", encoding=encoding) as fp:
-            return fp.read()
-    else:
-        with open(path, "r") as fp:
-            return fp.read()
 
 
 class BuildEnv(pep517.envbuild.BuildEnvironment):
