@@ -665,13 +665,31 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
             unparsed = item
     elif six.PY3 and isinstance(item, ast.NameConstant):
         unparsed = item.value
+    elif isinstance(item, ast.Attribute):
+        attr_name = getattr(item, "value", None)
+        attr_attr = getattr(item, "attr", None)
+        name = unparse(attr_name) if attr_name is not None else attr_attr
+        if initial_mapping:
+            unparsed = item
+        elif name and attr_attr:
+            if not initial_mapping and isinstance(name, six.string_types):
+                unparsed = ".".join([item for item in (name, attr_attr) if item])
+            else:
+                unparsed = item
+        elif attr_attr and not name:
+            unparsed = attr_attr
+        else:
+            unparsed = name
     elif isinstance(item, ast.Call):
         unparsed = {}
         if isinstance(item.func, ast.Name):
-            name = unparse(item.func)
-            unparsed[name] = {}
+            func_name = unparse(item.func)
+        elif isinstance(item.func, ast.Attribute):
+            func_name = unparse(item.func)
+        if func_name:
+            unparsed[func_name] = {}
             for keyword in item.keywords:
-                unparsed[name].update(unparse(keyword))
+                unparsed[func_name].update(unparse(keyword))
     elif isinstance(item, ast.keyword):
         unparsed = {unparse(item.arg): unparse(item.value)}
     elif isinstance(item, ast.Assign):
@@ -712,7 +730,14 @@ def ast_parse_setup_py(path):
     ast_analyzer.visit(tree)
     setup = {}  # type: Dict[Any, Any]
     for k, v in ast_analyzer.function_map.items():
-        if isinstance(k, ast.Name) and k.id == "setup":
+        fn_name = ""
+        if isinstance(k, ast.Name):
+            fn_name = k.id
+        elif isinstance(k, ast.Attribute):
+            fn = ast_unparse(k)
+            if isinstance(fn, six.string_types):
+                _, _, fn_name = fn.rpartition(".")
+        if fn_name == "setup":
             setup = v
     cleaned_setup = ast_unparse(setup, analyzer=ast_analyzer)
     return cleaned_setup
