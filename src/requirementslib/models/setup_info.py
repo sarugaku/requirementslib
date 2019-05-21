@@ -4,7 +4,6 @@ from __future__ import absolute_import, print_function
 import ast
 import atexit
 import contextlib
-import codecs
 import importlib
 import os
 import shutil
@@ -115,6 +114,16 @@ def pep517_subprocess_runner(cmd, cwd=None, extra_environ=None):
     )
 
 
+def read_source(path, encoding="utf-8"):
+    # type: (S, S) -> S
+    if six.PY3:
+        with open(path, "r", encoding=encoding) as fp:
+            return fp.read()
+    else:
+        with open(path, "r") as fp:
+            return fp.read()
+
+
 class BuildEnv(pep517.envbuild.BuildEnvironment):
     def pip_install(self, reqs):
         cmd = [
@@ -152,8 +161,7 @@ def parse_special_directives(setup_entry, package_dir=None):
         _, path = setup_entry.split("file:")
         path = path.strip()
         if os.path.exists(path):
-            with codecs.open(path, "r", encoding="utf-8") as fh:
-                rv = fh.read()
+            rv = read_source(path)
     elif setup_entry.startswith("attr:"):
         _, resource = setup_entry.split("attr:")
         resource = resource.strip()
@@ -707,8 +715,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
 
 def ast_parse_setup_py(path):
     # type: (S) -> Dict[Any, Any]
-    with codecs.open(path, "r", encoding="utf-8") as fh:
-        tree = ast.parse(fh.read())
+    tree = ast.parse(read_source(path))
     ast_analyzer = Analyzer()
     ast_analyzer.visit(tree)
     setup = {}  # type: Dict[Any, Any]
