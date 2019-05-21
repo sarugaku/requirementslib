@@ -33,6 +33,7 @@ from .utils import (
     get_name_variants,
     get_pyproject,
     init_requirement,
+    read_source,
     split_vcs_method_from_uri,
     strip_extras_markers_from_requirement,
 )
@@ -151,8 +152,7 @@ def parse_special_directives(setup_entry, package_dir=None):
         _, path = setup_entry.split("file:")
         path = path.strip()
         if os.path.exists(path):
-            with open(path, "r") as fh:
-                rv = fh.read()
+            rv = read_source(path)
     elif setup_entry.startswith("attr:"):
         _, resource = setup_entry.split("attr:")
         resource = resource.strip()
@@ -724,8 +724,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
 
 def ast_parse_setup_py(path):
     # type: (S) -> Dict[Any, Any]
-    with open(path, "r") as fh:
-        tree = ast.parse(fh.read())
+    tree = ast.parse(read_source(path))
     ast_analyzer = Analyzer()
     ast_analyzer.visit(tree)
     setup = {}  # type: Dict[Any, Any]
