@@ -160,6 +160,19 @@ def parse_special_directives(setup_entry, package_dir=None):
             sys.path.insert(0, package_dir)
             if "." in resource:
                 resource, _, attribute = resource.rpartition(".")
+            package, _, path = resource.partition(".")
+            base_path = os.path.join(package_dir, package)
+            if path:
+                path = os.path.join(base_path, os.path.join(*path.split(".")))
+            else:
+                path = base_path
+            if not os.path.exists(path) and os.path.exists("{0}.py".format(path)):
+                path = "{0}.py".format(path)
+            elif os.path.isdir(path):
+                path = os.path.join(path, "__init__.py")
+            rv = ast_parse_attribute_from_file(path, attribute)
+            if rv:
+                return str(rv)
             module = importlib.import_module(resource)
             rv = getattr(module, attribute)
             if not isinstance(rv, six.string_types):
@@ -203,10 +216,10 @@ def setuptools_parse_setup_cfg(path):
 
 def get_package_dir_from_setupcfg(parser, base_dir=None):
     # type: (configparser.ConfigParser, STRING_TYPE) -> Text
-    if not base_dir:
-        package_dir = os.getcwd()
-    else:
+    if base_dir is not None:
         package_dir = base_dir
+    else:
+        package_dir = os.getcwd()
     if parser.has_option("options", "packages.find"):
         pkg_dir = parser.get("options", "packages.find")
         if isinstance(package_dir, Mapping):
@@ -217,6 +230,15 @@ def get_package_dir_from_setupcfg(parser, base_dir=None):
             _, pkg_dir = pkg_dir.split("find:")
             pkg_dir = pkg_dir.strip()
         package_dir = os.path.join(package_dir, pkg_dir)
+    elif os.path.exists(os.path.join(package_dir, "setup.py")):
+        setup_py = ast_parse_setup_py(os.path.join(package_dir, "setup.py"))
+        if "package_dir" in setup_py:
+            package_lookup = setup_py["package_dir"]
+            if not isinstance(package_lookup, Mapping):
+                return package_lookup
+            return package_lookup.get(
+                next(iter(list(package_lookup.keys()))), package_dir
+            )
     return package_dir
 
 
@@ -722,11 +744,37 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
     return unparsed
 
 
-def ast_parse_setup_py(path):
-    # type: (S) -> Dict[Any, Any]
+def ast_parse_attribute_from_file(path, attribute):
+    # type: (S) -> Any
+    analyzer = ast_parse_file(path)
+    target_value = None
+    for k, v in analyzer.assignments.items():
+        name = ""
+        if isinstance(k, ast.Name):
+            name = k.id
+        elif isinstance(k, ast.Attribute):
+            fn = ast_unparse(k)
+            if isinstance(fn, six.string_types):
+                _, _, name = fn.rpartition(".")
+        if name == attribute:
+            target_value = ast_unparse(v, analyzer=analyzer)
+            break
+    if isinstance(target_value, Mapping) and attribute in target_value:
+        return target_value[attribute]
+    return target_value
+
+
+def ast_parse_file(path):
+    # type: (S) -> Analyzer
     tree = ast.parse(read_source(path))
     ast_analyzer = Analyzer()
     ast_analyzer.visit(tree)
+    return ast_analyzer
+
+
+def ast_parse_setup_py(path):
+    # type: (S) -> Dict[Any, Any]
+    ast_analyzer = ast_parse_file(path)
     setup = {}  # type: Dict[Any, Any]
     for k, v in ast_analyzer.function_map.items():
         fn_name = ""

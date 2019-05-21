@@ -1,0 +1,1 @@
+Fixed an issue which caused dynamic references in ``setup.cfg`` to fail when ``package_dir`` was specified in ``setup.py``.
