@@ -675,7 +675,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
             if not initial_mapping and isinstance(name, six.string_types):
                 unparsed = ".".join([item for item in (name, attr_attr) if item])
             else:
-                unparsed = (name, attr_attr)
+                unparsed = item
         elif attr_attr and not name:
             unparsed = attr_attr
         else:

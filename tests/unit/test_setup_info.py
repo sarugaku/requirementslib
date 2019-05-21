@@ -1,6 +1,7 @@
 # -*- coding=utf-8 -*-
 
 import os
+import shutil
 import sys
 
 import pip_shims.shims
@@ -8,6 +9,7 @@ import pytest
 import vistir
 
 from requirementslib.models.requirements import Requirement
+from requirementslib.models.setup_info import ast_parse_setup_py
 
 
 @pytest.mark.parametrize(
@@ -124,52 +126,25 @@ setup(
         assert sorted(list(setup_dict.get("requires").keys())) == ["raven"]
 
 
-def test_extras(pathlib_tmpdir):
+@pytest.mark.parametrize(
+    "setup_py_name, extras, dependencies",
+    [
+        (
+            "package_with_multiple_extras",
+            ["testing", "dev"],
+            ["coverage", "flaky", "invoke", "parver", "six", "wheel"],
+        ),
+        ("package_with_one_extra", ["testing"], ["coverage", "flaky", "six"]),
+    ],
+)
+def test_extras(pathlib_tmpdir, setup_py_dir, setup_py_name, extras, dependencies):
     """Test named extras as a dependency"""
     setup_dir = pathlib_tmpdir.joinpath("test_package")
-    setup_dir.mkdir()
+    shutil.copytree(setup_py_dir.joinpath(setup_py_name).as_posix(), setup_dir.as_posix())
     assert setup_dir.is_dir()
-    setup_py = setup_dir.joinpath("setup.py")
-    setup_py.write_text(
-        u"""
-import os
-from setuptools import setup, find_packages
-
-thisdir = os.path.abspath(os.path.dirname(__file__))
-version = "1.0.0"
-
-testing_extras = [
-    'coverage',
-    'flaky',
-]
-
-setup(
-    name='test_package',
-    version=version,
-    description="The Backend HTTP Server",
-    long_description="This is a package",
-    install_requires=[
-        'six',
-    ],
-    tests_require=testing_extras,
-    extras_require={
-        'testing': testing_extras,
-    },
-    package_dir={"": "src"},
-    packages=['test_package'],
-    include_package_data=True,
-    zip_safe=False,
-)
-    """.strip()
-    )
-    src_dir = setup_dir.joinpath("src")
-    src_dir.mkdir()
-    pkg_dir = src_dir.joinpath("test_package")
-    pkg_dir.mkdir()
-    pkg_dir.joinpath("__init__.py").write_text(u"")
     pipfile_entry = {
         "path": "./{0}".format(setup_dir.name),
-        "extras": ["testing"],
+        "extras": extras,
         "editable": True,
     }
     setup_dict = None
@@ -178,8 +153,50 @@ setup(
         assert r.name == "test-package"
         r.req.setup_info.get_info()
         setup_dict = r.req.setup_info.as_dict()
-        assert sorted(list(setup_dict.get("requires").keys())) == [
-            "coverage",
-            "flaky",
-            "six",
-        ], setup_dict
+        assert sorted(list(setup_dict.get("requires").keys())) == dependencies
+
+
+def test_ast_parser_finds_variables(setup_py_dir):
+    parsed = ast_parse_setup_py(
+        setup_py_dir.joinpath("package_with_extras_as_variable/setup.py").as_posix()
+    )
+    expected = {
+        "name": "test_package",
+        "version": "1.0.0",
+        "description": "The Backend HTTP Server",
+        "long_description": "This is a package",
+        "install_requires": ["six"],
+        "tests_require": ["coverage", "flaky"],
+        "extras_require": {"testing": ["coverage", "flaky"]},
+        "package_dir": {"": "src"},
+        "packages": ["test_package"],
+        "include_package_data": True,
+        "zip_safe": False,
+    }
+    for k, v in expected.items():
+        assert k in parsed
+        assert parsed[k] == v, parsed[k]
+
+
+def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
+    parsed = ast_parse_setup_py(
+        setup_py_dir.joinpath(
+            "package_using_fully_qualified_setuptools/setup.py"
+        ).as_posix()
+    )
+    expected = {
+        "name": "test_package",
+        "version": "1.0.0",
+        "description": "The Backend HTTP Server",
+        "long_description": "This is a package",
+        "install_requires": ["six"],
+        "tests_require": ["coverage", "flaky"],
+        "extras_require": {"testing": ["coverage", "flaky"]},
+        "package_dir": {"": "src"},
+        "packages": ["test_package"],
+        "include_package_data": True,
+        "zip_safe": False,
+    }
+    for k, v in expected.items():
+        assert k in parsed
+        assert parsed[k] == v, parsed[k]
