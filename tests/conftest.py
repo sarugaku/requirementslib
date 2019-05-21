@@ -12,6 +12,8 @@ import vistir
 import requirementslib.utils
 from requirementslib.models.setup_info import SetupInfo
 
+CURRENT_FILE = vistir.compat.Path(__file__).absolute()
+
 
 def check_for_mercurial():
     c = vistir.misc.run(
@@ -118,6 +120,21 @@ def artifact_dir():
         .absolute()
         .parent.parent.parent.joinpath("tests/artifacts")
     )
+
+
+@pytest.fixture(scope="session")
+def fixture_dir():
+    return CURRENT_FILE.parent.joinpath("fixtures")
+
+
+@pytest.fixture(scope="session")
+def setup_py_dir(fixture_dir):
+    return fixture_dir / "setup_py"
+
+
+@pytest.fixture(scope="session")
+def setup_cfg_dir(fixture_dir):
+    return fixture_dir / "setup_cfg"
 
 
 @pytest.fixture
