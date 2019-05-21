@@ -203,10 +203,10 @@ def setuptools_parse_setup_cfg(path):
 
 def get_package_dir_from_setupcfg(parser, base_dir=None):
     # type: (configparser.ConfigParser, STRING_TYPE) -> Text
-    if not base_dir:
-        package_dir = os.getcwd()
-    else:
+    if base_dir is not None:
         package_dir = base_dir
+    else:
+        package_dir = os.getcwd()
     if parser.has_option("options", "packages.find"):
         pkg_dir = parser.get("options", "packages.find")
         if isinstance(package_dir, Mapping):
@@ -217,6 +217,15 @@ def get_package_dir_from_setupcfg(parser, base_dir=None):
             _, pkg_dir = pkg_dir.split("find:")
             pkg_dir = pkg_dir.strip()
         package_dir = os.path.join(package_dir, pkg_dir)
+    elif os.path.exists(os.path.join(package_dir, "setup.py")):
+        setup_py = ast_parse_setup_py(os.path.join(package_dir, "setup.py"))
+        if "package_dir" in setup_py:
+            package_lookup = setup_py["package_dir"]
+            if not isinstance(package_lookup, Mapping):
+                return package_lookup
+            return package_lookup.get(
+                next(iter(list(package_lookup.keys()))), package_dir
+            )
     return package_dir
 
 
