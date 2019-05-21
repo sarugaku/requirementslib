@@ -175,7 +175,10 @@ def test_ast_parser_finds_variables(setup_py_dir):
     }
     for k, v in expected.items():
         assert k in parsed
-        assert parsed[k] == v, parsed[k]
+        if isinstance(v, bool):
+            assert str(parsed[k]) == str(v), parsed[k]
+        else:
+            assert parsed[k] == v, parsed[k]
 
 
 def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
