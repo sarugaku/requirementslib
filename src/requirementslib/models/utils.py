@@ -541,7 +541,7 @@ def split_ref_from_uri(uri):
     parsed = urllib_parse.urlparse(uri)
     path = parsed.path
     ref = None
-    if "@" in path:
+    if parsed.scheme != "file" and "@" in path:
         path, _, ref = path.rpartition("@")
     parsed = parsed._replace(path=path)
     return (urllib_parse.urlunparse(parsed), ref)

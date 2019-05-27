@@ -1,0 +1,1 @@
+Fixed handling of ``@``-signs in  ``file:`` URLs, unbreaking the use of local packages in e.g. `Jenkins <https://jenkins.io>`_ workspaces.
