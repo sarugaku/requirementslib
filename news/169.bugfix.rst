@@ -1,0 +1,1 @@
+Fixed occassional recursion error when parsing function references using AST parser on ``setup.py`` files.
