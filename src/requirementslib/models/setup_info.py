@@ -137,10 +137,15 @@ class BuildEnv(pep517.envbuild.BuildEnvironment):
 
 
 class HookCaller(pep517.wrappers.Pep517HookCaller):
-    def __init__(self, source_dir, build_backend):
+    def __init__(self, source_dir, build_backend, backend_path=None):
         self.source_dir = os.path.abspath(source_dir)
         self.build_backend = build_backend
         self._subprocess_runner = pep517_subprocess_runner
+        if backend_path:
+            backend_path = [
+                pep517.wrappers.norm_and_check(self.source_dir, p) for p in backend_path
+            ]
+        self.backend_path = backend_path
 
 
 def parse_special_directives(setup_entry, package_dir=None):
@@ -660,7 +665,9 @@ class Analyzer(ast.NodeVisitor):
 
 def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # noqa:C901
     # type: (Any, bool, Optional[Analyzer], bool) -> Union[List[Any], Dict[Any, Any], Tuple[Any, ...], STRING_TYPE]
-    unparse = partial(ast_unparse, initial_mapping=initial_mapping, analyzer=analyzer)
+    unparse = partial(
+        ast_unparse, initial_mapping=initial_mapping, analyzer=analyzer, recurse=recurse
+    )
     if isinstance(item, ast.Dict):
         unparsed = dict(zip(unparse(item.keys), unparse(item.values)))
     elif isinstance(item, ast.List):
@@ -690,18 +697,22 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
     elif isinstance(item, ast.Attribute):
         attr_name = getattr(item, "value", None)
         attr_attr = getattr(item, "attr", None)
-        name = unparse(attr_name) if attr_name is not None else attr_attr
+        name = None
         if initial_mapping:
             unparsed = item
-        elif name and attr_attr:
+        elif attr_name and not recurse:
+            name = attr_name
+        else:
+            name = unparse(attr_name) if attr_name is not None else attr_attr
+        if name and attr_attr:
             if not initial_mapping and isinstance(name, six.string_types):
                 unparsed = ".".join([item for item in (name, attr_attr) if item])
             else:
                 unparsed = item
-        elif attr_attr and not name:
+        elif attr_attr and not name and not initial_mapping:
             unparsed = attr_attr
         else:
-            unparsed = name
+            unparsed = name if not unparsed else unparsed
     elif isinstance(item, ast.Call):
         unparsed = {}
         if isinstance(item.func, ast.Name):
@@ -721,7 +732,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
         # XXX: Original reference
         if not initial_mapping:
             target = unparse(next(iter(item.targets)), recurse=False)
-            val = unparse(item.value)
+            val = unparse(item.value, recurse=False)
             if isinstance(target, (tuple, set, list)):
                 unparsed = dict(zip(target, val))
             else:
