@@ -7,6 +7,7 @@ import warnings
 
 import pip_shims
 import pytest
+import requests
 import vistir
 
 import requirementslib.utils
@@ -53,7 +54,7 @@ def should_skip_internet():
     global HAS_INTERNET
     if os.environ.get("REQUIREMENTSLIB_SKIP_INTERNET_TESTS", None) is not None:
         return True
-    return HAS_INTERNET
+    return not HAS_INTERNET
 
 
 HAS_MERCURIAL = check_for_mercurial()
