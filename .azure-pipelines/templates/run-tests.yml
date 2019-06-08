@@ -1,5 +1,5 @@
 steps:
-- ${{ if eq(Agent.OS, 'Ubuntu-16.04') }}:
+- ${{ if eq(Agent.OS, 'Linux') }}:
   - script: |
       # When you paste this, please make sure the indentation is preserved
       # Fail out if any setups fail
