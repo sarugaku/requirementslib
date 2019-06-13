@@ -1,0 +1,4 @@
+sphinx
+-e .[dev,tests,typing]
+sphinx-rtd-theme
+ptpython

@@ -113,3 +113,5 @@ mypyhtml/
 pip-wheel-metadata/
 
 .vscode
+XDG_CACHE_HOME
+junit
