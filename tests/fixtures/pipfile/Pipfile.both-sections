@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = {extras = ["security"], version = "*"}
+
+[dev-packages]
+sphinx = "*"
+
+[pipenv]
+allow_prereleases = true
+
+[requires]
+python_version = "3.6"

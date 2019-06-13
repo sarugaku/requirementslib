@@ -176,6 +176,7 @@ def test_convert_from_pip(monkeypatch, expected, requirement):
         req = Requirement.from_line(requirement)
         assert req.as_pipfile() == expected
         assert line.line_with_prefix == req.as_line(include_hashes=False)
+        assert hash(Line(line.line_with_prefix)) == hash(Line(line.line_with_prefix))
 
 
 @pytest.mark.to_line
@@ -339,7 +340,9 @@ def test_get_requirements(monkeypatch_if_needed):
 
 @pytest.mark.needs_internet
 def test_get_ref(artifact_dir):
-    req_uri = artifact_dir.joinpath("git/shellingham").as_uri().replace("file:/", "file:///")
+    req_uri = (
+        artifact_dir.joinpath("git/shellingham").as_uri().replace("file:/", "file:///")
+    )
     git_uri = "-e git+{0}@1.2.1#egg=shellingham".format(req_uri)
     r = Requirement.from_line(git_uri)
     #     "-e git+https://github.com/sarugaku/shellingham.git@1.2.1#egg=shellingham"
