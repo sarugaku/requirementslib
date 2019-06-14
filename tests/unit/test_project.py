@@ -46,8 +46,10 @@ def test_project_file_works_if_file_exists_but_is_empty(pathlib_tmpdir):
 
 
 def test_dir_with_empty_pipfile_file_raises_exception(pathlib_tmpdir):
+    project = None
     with pytest.raises(vistir.compat.FileNotFoundError):
-        requirementslib.models.project.Project(root=pathlib_tmpdir.as_posix())
+        project = requirementslib.models.project.Project(root=pathlib_tmpdir.as_posix())
+    assert project is None
 
 
 def test_dir_with_pipfile_creates_project_file(pathlib_tmpdir):
