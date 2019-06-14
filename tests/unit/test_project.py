@@ -2,7 +2,7 @@
 from itertools import tee
 
 import pytest
-from vistir.compat import FileNotFoundError, Path
+import vistir.compat
 
 import requirementslib.models.project
 
@@ -46,7 +46,7 @@ def test_project_file_works_if_file_exists_but_is_empty(pathlib_tmpdir):
 
 
 def test_dir_with_empty_pipfile_file_raises_exception(pathlib_tmpdir):
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(vistir.compat.FileNotFoundError):
         requirementslib.models.project.Project(root=pathlib_tmpdir.as_posix())
 
 
@@ -64,10 +64,10 @@ def test_dir_with_pipfile_creates_project(pathlib_tmpdir):
     pipfile.write_text(u"")
     project = requirementslib.models.project.Project(root=pathlib_tmpdir.as_posix())
     assert project.pipfile is not None
-    assert Path(project.pipfile_location).as_posix() == pipfile.as_posix()
+    assert vistir.compat.Path(project.pipfile_location).as_posix() == pipfile.as_posix()
     assert project.lockfile is None
     assert (
-        Path(project.lockfile_location).as_posix()
+        vistir.compat.Path(project.lockfile_location).as_posix()
         == pathlib_tmpdir.joinpath("Pipfile.lock").as_posix()
     )
     project.add_line_to_pipfile("requests[security]", False)
