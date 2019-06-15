@@ -169,3 +169,40 @@ def test_get_pyversions(marker, pyversions):
 )
 def test_normalize_marker_str(marker, expected):
     assert requirementslib.models.markers.normalize_marker_str(marker) == expected
+
+
+@pytest.mark.parametrize(
+    "marker, contains_extras, contains_pyversion",
+    [
+        (Marker("os_name == 'nt'"), False, False),
+        (Marker("extra == 'security' or extra == 'socks'"), True, False),
+        (Marker("extra == 'security' and python_version >= '2.7'"), True, True),
+        (
+            Marker(
+                "python_version >= '2.7' and python_version not in '3.0.*, 3.1.*, 3.2.*, 3.3.*'"
+            ),
+            False,
+            True,
+        ),
+    ],
+)
+def test_contains_extras_or_pyversions(marker, contains_extras, contains_pyversion):
+    assert requirementslib.models.markers.contains_extra(marker) is contains_extras
+    assert requirementslib.models.markers.contains_pyversion(marker) is contains_pyversion
+
+
+@pytest.mark.parametrize(
+    "marker, expected",
+    [
+        ("!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*", 'python_version not in "3.0, 3.1, 3.2, 3.3"'),
+        # This is a broken version but we can still parse it correctly
+        ("!=3.0*,!=3.1*,!=3.2*,!=3.3*", 'python_version not in "3.0, 3.1, 3.2, 3.3"'),
+        (
+            ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,~=3.7",
+            'python_version >= "2.7" and python_version not in "3.0, 3.1, 3.2, 3.3" and python_version ~= "3.7"',
+        ),
+        ("<=3.5,>=2.7", 'python_version >= "2.7" and python_version < "3.6"'),
+    ],
+)
+def test_marker_from_specifier(marker, expected):
+    assert str(requirementslib.models.markers.marker_from_specifier(marker)) == expected

@@ -190,7 +190,10 @@ class Line(object):
                 tuple(self.extras),
                 tuple(self.hashes),
                 self.vcs,
-                self.ireq,
+                self.uri,
+                self.path,
+                self.name,
+                self._requirement,
             )
         )
 
@@ -3093,6 +3096,8 @@ class Requirement(object):
 
     def merge_markers(self, markers):
         # type: (Union[AnyStr, Marker]) -> None
+        if not markers:
+            return self
         if not isinstance(markers, Marker):
             markers = Marker(markers)
         _markers = []  # type: List[Marker]

@@ -1,5 +1,6 @@
 # -*- coding=utf-8 -*-
 import pytest
+from packaging.specifiers import Specifier, SpecifierSet
 from pip_shims import InstallRequirement
 
 import requirementslib
@@ -18,6 +19,35 @@ def test_find_all_matches():
     r = Requirement.from_line("six")
     matches = r.find_all_matches()
     assert len(matches) > 0
+
+
+@pytest.mark.needs_internet
+def test_abstract_deps():
+    abstract_deps = get_abstract_dependencies(["vistir[spinner]"])
+    assert len(abstract_deps) == 1
+    dep = abstract_deps[0]
+    assert dep.specifiers._specs == SpecifierSet()._specs
+    assert dep.requirement.name == "vistir"
+    assert dep.requirement.extras == ("spinner",)
+    assert dep.parent is None
+    assert dep.markers is None
+    assert len(dep.candidates) > 0
+    assert len(dep.version_set) > 0
+
+
+@pytest.mark.needs_internet
+def test_two_deps():
+    abstract_deps = get_abstract_dependencies(["requests>=2.14.0", "requests<=2.22.1"])
+    dep1, dep2 = abstract_deps
+    assert len(dep1.compatible_versions(dep2)) == 25
+    new_dep = dep1.compatible_abstract_dep(dep2)
+    versions = (">=2.14.0", "<=2.22.1")
+    specs = [str(spec) for spec in new_dep.specifiers._specs]
+    assert all(version in specs for version in versions)
+    chosen_candidate = new_dep.candidates[-1]
+    assert str(chosen_candidate.specifier) == "==2.22.0"
+    deps = new_dep.get_deps(chosen_candidate)
+    assert len(deps) == 4
 
 
 @pytest.mark.needs_internet
