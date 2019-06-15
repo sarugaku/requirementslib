@@ -6,9 +6,9 @@ name = "pypi"
 [packages]
 
 [dev-packages]
-sphinx = "*"
 requirementslib = {path = ".", editable = true,extras = ["tests", "dev", "typing"]}
 sphinx_rtd_theme = "*"
+sphinx = "<2.0"
 ptpython = "*"
 
 [scripts]

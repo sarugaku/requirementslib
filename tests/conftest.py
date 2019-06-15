@@ -138,6 +138,11 @@ def setup_cfg_dir(fixture_dir):
     return fixture_dir / "setup_cfg"
 
 
+@pytest.fixture(scope="session")
+def pipfile_dir(fixture_dir):
+    return fixture_dir / "pipfile"
+
+
 @pytest.fixture
 def test_artifact(artifact_dir, pathlib_tmpdir, request):
     name = request.param["name"]
