@@ -284,7 +284,7 @@ repository_fields = [
     "scheme",
     "base_url",
 ]
-if sys.version_info[:2] >= (3, 0):
+if sys.version_info[:2] >= (3, 7):
     Repository = namedtuple("Repository", repository_fields, defaults=repository_defaults)
 else:
     Repository = namedtuple("Repository", repository_fields)
