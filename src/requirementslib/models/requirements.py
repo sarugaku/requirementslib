@@ -211,6 +211,41 @@ class Line(object):
         except Exception:
             return "<Line {0}>".format(self.__dict__.values())
 
+    def __str__(self):
+        # type: () -> str
+        if self.markers:
+            return "{0}; {1}".format(self.get_line(), self.markers)
+        return self.get_line()
+
+    def get_line(self, with_prefix=False, with_markers=False, as_list=False):
+        # type: (bool, bool, bool) -> STRING_TYPE
+        line = self.line
+        if self.is_named:
+            return self.name_and_specifier
+        extras_str = extras_to_string(self.extras)
+        if self.is_direct_url:
+            line = self.link.url
+        elif extras_str:
+            if self.is_vcs:
+                line = self.link.url
+                if "git+file:/" in line and "git+file:///" not in line:
+                    line = line.replace("git+file:/", "git+file:///")
+            elif extras_str not in line:
+                line = "{0}{1}".format(line, extras_str)
+        if with_markers and self.markers:
+            line = "{0}; {1}".format(line, self.markers)
+            if not as_list:
+                line = '"{0}"'.format(line)
+        if as_list:
+            result_list = []
+            if with_prefix and self.editable:
+                result_list.append("-e")
+            result_list.append(line)
+            return result_list
+        if with_prefix and self.editable:
+            line = "-e {0}".format(line)
+        return line
+
     @property
     def name_and_specifier(self):
         name_str, spec_str = "", ""
@@ -243,22 +278,7 @@ class Line(object):
     @property
     def line_with_prefix(self):
         # type: () -> STRING_TYPE
-        line = self.line
-        if self.is_named:
-            return self.name_and_specifier
-        extras_str = extras_to_string(self.extras)
-        if self.is_direct_url:
-            line = self.link.url
-        elif extras_str:
-            if self.is_vcs:
-                line = self.link.url
-                if "git+file:/" in line and "git+file:///" not in line:
-                    line = line.replace("git+file:/", "git+file:///")
-            elif extras_str not in line:
-                line = "{0}{1}".format(line, extras_str)
-        if self.editable:
-            return "-e {0}".format(line)
-        return line
+        return self.get_line(with_prefix=True)
 
     @property
     def line_for_ireq(self):
