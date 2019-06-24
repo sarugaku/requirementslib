@@ -4,11 +4,14 @@ import os
 import pip_shims.shims
 import pytest
 from first import first
+from hypothesis import given, strategies as st
 from vistir.compat import Path
 
 from requirementslib.exceptions import RequirementError
 from requirementslib.models.requirements import Line, Requirement
 from requirementslib.models.setup_info import SetupInfo
+
+from .strategies import random_marker_str, repository_line
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DIR = os.path.dirname(UNIT_TEST_DIR)
@@ -139,6 +142,39 @@ DEP_PIP_PAIRS_LEGACY_PIPFILE = [
         "FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
     ),
 ]
+
+
+lines = [
+    ("requests",),
+    ("vistir[spinner]"),
+    ("vistir[spinner]==0.4.1"),
+    ("vistir==0.4.1"),
+    (
+        "https://files.pythonhosted.org/packages/2d/ac/e8a34d4b3d24bf554f40651b2aac549a3fc7223725bf10fbdfe2083b6372/shellingham-1.3.1-py2.py3-none-any.whl",  # noqa
+    ),
+]
+
+
+@given(repository_line())
+def test_repo_line(repo_line):
+    reformatted_line = repo_line
+    if repo_line.startswith("-e "):
+        repo_list = repo_line.split(" ", 1)
+        if "; " in repo_list[1]:
+            reformatted_line = '{0} "{1}"'.format(repo_list[0], repo_list[1])
+    else:
+        if "; " in repo_line:
+            reformatted_line = '"{0}"'.format(repo_line)
+        repo_list = [repo_line]
+    line_as_list = repo_line.split(" ", 1) if repo_line.startswith("-e ") else [repo_line]
+    assert (
+        Line(repo_line).get_line(with_prefix=True, with_markers=True, as_list=False)
+        == reformatted_line
+    )
+    assert (
+        Line(repo_line).get_line(with_prefix=True, with_markers=True, as_list=True)
+        == repo_list
+    )
 
 
 def mock_run_requires(cls):
