@@ -11,7 +11,7 @@ from requirementslib.exceptions import RequirementError
 from requirementslib.models.requirements import Line, Requirement
 from requirementslib.models.setup_info import SetupInfo
 
-from .strategies import random_marker_str, repository_line
+from .strategies import random_marker_strings, repository_line, requirements
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DIR = os.path.dirname(UNIT_TEST_DIR)
@@ -155,6 +155,18 @@ lines = [
 ]
 
 
+@given(requirements())
+def test_requirement_line(req):
+    line = Line(req.line)
+    assert line.get_line(with_markers=True, with_hashes=True) == req.line
+    assert line.get_line(with_markers=True, with_hashes=True, as_list=True) == req.as_list
+    assert line.get_line(with_markers=False, with_hashes=True) == req.line_without_markers
+    assert (
+        line.get_line(with_markers=False, with_hashes=True, as_list=True)
+        == req.list_without_markers
+    )
+
+
 @given(repository_line())
 def test_repo_line(repo_line):
     reformatted_line = repo_line
@@ -163,8 +175,6 @@ def test_repo_line(repo_line):
         if "; " in repo_list[1]:
             reformatted_line = '{0} "{1}"'.format(repo_list[0], repo_list[1])
     else:
-        if "; " in repo_line:
-            reformatted_line = '"{0}"'.format(repo_line)
         repo_list = [repo_line]
     line_as_list = repo_line.split(" ", 1) if repo_line.startswith("-e ") else [repo_line]
     assert (

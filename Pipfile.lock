@@ -929,6 +929,7 @@
                 "sha256:33cfb36601bfeb355924731d8db78fa82f3f12eb37e87236e9179d81aba97740",
                 "sha256:b64b767befbe6f5fd918603ab7d6bbff07fc4c431bae2f471e195677a0c9b327"
             ],
+            "markers": "python_version > '3.5'",
             "version": "==17.12.0"
         },
         "rope": {
