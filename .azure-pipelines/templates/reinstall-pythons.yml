@@ -8,6 +8,7 @@ steps:
       rm -rf $AGENT_TOOLSDIRECTORY/Python/2.7.16
       rm -rf $AGENT_TOOLSDIRECTORY/Python/3.5.7
       rm -rf $AGENT_TOOLSDIRECTORY/Python/3.7.3
+      [ -e $AGENT_TOOLSDIRECTORY/Python/3.7.2 ] && [ -e $AGENT_TOOLSDIRECTORY/Python/3.5.5 ] && [ -e $AGENT_TOOLSDIRECTORY/Python/2.7.15 ] && exit 0
 
       # Download new Pythons
       azcopy --recursive \
