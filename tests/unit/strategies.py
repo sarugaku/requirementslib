@@ -9,6 +9,8 @@ import six
 import vistir
 from hypothesis import strategies as st
 from packaging.markers import MARKER_OP, VARIABLE
+from packaging.specifiers import Specifier
+from packaging.version import parse as parse_version
 from six.moves.urllib import parse as urllib_parse
 
 from requirementslib.models.url import URI
@@ -19,6 +21,21 @@ relative_path = namedtuple("RelativePath", "leading_dots separator dest")
 relative_path.__new__.__defaults__ = ("", "", "")
 MarkerTuple = namedtuple("MarkerTuple", "variable op value")
 MarkerTuple.__new__.__defaults__ = ("", "", "")
+NormalRequirement = namedtuple(
+    "NormalRequirement",
+    "name specifier version extras markers hashes line line_without_markers as_list list_without_markers",
+)
+NormalRequirement.__new__.__defaults__ = (
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+)
 url_alphabet = "abcdefghijklmnopqrstuvwxyz1234567890-"
 uri_schemes = ("http", "https", "ssh", "file", "sftp", "ftp")
 vcs_schemes = (
@@ -243,33 +260,42 @@ def random_marker_ops():
     return st.sampled_from([str(m).strip('"') for m in list(MARKER_OP)])
 
 
-def randomized_marker():
+def marker_tuple_val_lists():
     return st.builds(
         MarkerTuple,
         variable=random_marker_variables(),
-        op=random_marker_ops(),
-        value=random_marker_values(),
-    )
+        op=st.sampled_from(["in", "not in"]),
+        value=st.lists(random_marker_values(), min_size=2, max_size=4)
+        .map(", ".join)
+        .map("'{0}'".format),
+    ).map(" ".join)
 
 
-def randomized_markers():
-    return st.lists(randomized_markers(), max_size=4).map(" and ".join)
+def marker_tuple():
+    return st.builds(
+        MarkerTuple,
+        variable=random_marker_variables(),
+        op=random_marker_ops().filter(lambda x: x not in ("in", "not in")),
+        value=random_marker_values().map("'{0}'".format),
+    ).map(" ".join)
 
 
 @st.composite
-def random_marker_str(
-    draw,
-    marker_vars=random_marker_variables(),
-    ops=random_marker_ops(),
-    values=random_marker_values(),
-):
-    marker_var = draw(marker_vars)
+def random_op_val_pair(draw, ops=random_marker_ops(), vals=random_marker_values()):
     op = draw(ops)
     if op in ("in", "not in"):
-        value = ", ".join(draw(st.lists(values, min_size=2, max_size=4)))
+        val = draw(
+            st.lists(vals, min_size=2, max_size=4).map(", ".join).map("'{0}'".format)
+        )
     else:
-        value = draw(values)
-    return "{0} {1} '{2}'".format(marker_var, op, value)
+        val = draw(vals)
+    return "{0} {1}".format(op, val)
+
+
+def random_marker_strings():
+    return st.lists(
+        marker_tuple() | marker_tuple_val_lists(), min_size=0, max_size=3
+    ).map(" and ".join)
 
 
 repository_defaults = (None, None, None, "master", "git", "https", "github.com")
@@ -343,11 +369,105 @@ def repository_url(draw, elements=random_repositories()):
 
 
 @st.composite
-def repository_line(draw, repositories=repository_url(), markers=random_marker_str()):
+def repository_line(draw, repositories=repository_url(), markers=random_marker_strings()):
     prefix = draw(st.sampled_from(["-e ", ""]))
     marker_selection = draw(markers)
     marker_str = ""
     if marker_selection:
         marker_str = "; {0}".format(marker_selection)
+    if prefix:
+        line = ""
     line = "{0}{1}{2}".format(prefix, draw(repositories), marker_str)
     return line
+
+
+known_requirements = (
+    (
+        "six",
+        ["1.11.0", "1.12.0"],
+        None,
+        [
+            [
+                "1.12.0",
+                [
+                    "sha256:3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c",
+                    "sha256:d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73",
+                ],
+            ]
+        ],
+    ),
+    ("vistir", ["0.4.1", "0.4.2"], ["spinner"], None),
+    ("requests", ["2.14", "2.18.4", "2.22.0", "2.21.1"], ["security", "socks"], None),
+    ("plette", [], ["validation"], None),
+    ("django", ["1.10", "1.11"], None, None),
+)
+
+
+def random_requirements():
+    return st.sampled_from(known_requirements)
+
+
+def make_version_key(value):
+    if value is None:
+        return -1
+    return parse_version(value)
+
+
+@st.composite
+def requirements(
+    draw, requirement_selection=random_requirements(), markers=random_marker_strings()
+):
+    req = draw(requirement_selection)
+    marker_selection = draw(markers)
+    name, versions, extras, hashes = req
+    line = "{0}".format(name)
+    if extras is not None:
+        extras_choice = draw(st.one_of(st.lists(st.sampled_from(extras)), st.none()))
+    else:
+        extras_choice = None
+    if versions is not None:
+        version_choice = draw(st.one_of(st.sampled_from(versions), st.none()))
+    else:
+        version_choice = None
+    hashes_option = None
+    if hashes:
+        hashes_option = next(iter(h for v, h in hashes if v == version_choice), [])
+    spec_op = ""
+    extras_list = sorted(set(extras_choice)) if extras_choice is not None else []
+    extras_str = "[{0}]".format(",".join(extras_list)) if extras_list else ""
+    if not version_choice:
+        version_str = ""
+    else:
+        spec_op = draw(st.sampled_from(list(Specifier._operators.keys())))
+        version_str = "{0}{1}".format(spec_op, version_choice)
+    line = line_without_markers = "{0}{1}{2}".format(
+        line.strip(), extras_str.strip(), version_str.strip()
+    )
+    as_list = ["{0}".format(line)]
+    list_without_markers = as_list[:]
+    marker_str = ""
+    if marker_selection:
+        marker_str = "; {0}".format(marker_selection)
+        line = "{0}{1}".format(line, marker_str)
+        as_list = ["{0}".format(line)]
+    if hashes_option:
+        hashes_list = sorted(set(hashes_option))
+        hashes_line = " ".join(["--hash={0}".format(h) for h in hashes_list])
+        line = "{0} {1}".format(line, hashes_line)
+        line_without_markers = "{0} {1}".format(line_without_markers, hashes_line)
+        as_list.extend(hashes_list)
+        list_without_markers.extend(hashes_list)
+    else:
+        hashes_list = None
+    return NormalRequirement(
+        name=name,
+        specifier=spec_op,
+        version=version_choice,
+        extras=extras_list,
+        markers=marker_selection,
+        hashes=hashes_list,
+        line=line,
+        line_without_markers=line_without_markers,
+        as_list=as_list,
+        list_without_markers=list_without_markers,
+    )
