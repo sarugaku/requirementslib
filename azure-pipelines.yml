@@ -24,7 +24,6 @@ jobs:
   variables:
   - group: CI
   steps:
-  - template: .azure-pipelines/templates/reinstall-pythons.yml
   - template: .azure-pipelines/templates/run-tests.yml
   - template: .azure-pipelines/templates/run-coverage.yml
 
