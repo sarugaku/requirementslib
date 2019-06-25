@@ -1,0 +1,1 @@
+Added enhanced ``get_line()`` functionality to ``Line`` objects and expanded test coverage to incorporate hypothesis.

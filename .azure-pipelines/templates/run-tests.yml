@@ -4,6 +4,9 @@ steps:
     versionSpec: $(python.version)
   displayName: Use Python $(python.version)
 
+- script: git submodule sync && git submodule update --init --recursive
+  displayName: 'update submodules'
+
 - template: install-dependencies.yml
 
 - script: pipenv run pip install -e .[dev,tests] --upgrade
