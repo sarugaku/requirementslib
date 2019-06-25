@@ -1,1 +1,0 @@
-Added support to the AST parser for discovering non-standard invocations of ``setup`` in ``setup.py``, e.g. using the fully qualified function name.

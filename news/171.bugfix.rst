@@ -1,1 +1,0 @@
-Fixed an intermittent issue caused by the use of ``lru_cache`` on a helper function in the translation of markers.
