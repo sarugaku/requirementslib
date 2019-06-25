@@ -1,3 +1,23 @@
+1.5.2 (2019-06-25)
+==================
+
+Bug Fixes
+---------
+
+- Added support to the AST parser for discovering non-standard invocations of ``setup`` in ``setup.py``, e.g. using the fully qualified function name.  `#163 <https://github.com/sarugaku/requirementslib/issues/163>`_
+  
+- Fixed an issue which caused dynamic references in ``setup.cfg`` to fail when ``package_dir`` was specified in ``setup.py``.  `#165 <https://github.com/sarugaku/requirementslib/issues/165>`_
+  
+- Fixed handling of ``@``-signs in  ``file:`` URLs, unbreaking the use of local packages in e.g. `Jenkins <https://jenkins.io>`_ workspaces.  `#168 <https://github.com/sarugaku/requirementslib/issues/168>`_
+  
+- Fixed occassional recursion error when parsing function references using AST parser on ``setup.py`` files.  `#169 <https://github.com/sarugaku/requirementslib/issues/169>`_
+  
+- Fixed an intermittent issue caused by the use of ``lru_cache`` on a helper function in the translation of markers.  `#171 <https://github.com/sarugaku/requirementslib/issues/171>`_
+  
+- Added enhanced ``get_line()`` functionality to ``Line`` objects and expanded test coverage to incorporate hypothesis.  `#174 <https://github.com/sarugaku/requirementslib/issues/174>`_,
+  `#77 <https://github.com/sarugaku/requirementslib/issues/77>`_
+
+
 1.5.1 (2019-05-19)
 ==================
 
