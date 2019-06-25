@@ -4,7 +4,7 @@ import os
 import pip_shims.shims
 import pytest
 from first import first
-from hypothesis import given, strategies as st
+from hypothesis import given, settings, strategies as st
 from vistir.compat import Path
 
 from requirementslib.exceptions import RequirementError
@@ -167,6 +167,7 @@ def test_requirement_line(req):
     )
 
 
+@settings(deadline=None)
 @given(repository_line())
 def test_repo_line(repo_line):
     reformatted_line = repo_line

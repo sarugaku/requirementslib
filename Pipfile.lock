@@ -864,7 +864,7 @@
             "hashes": [
                 "sha256:2d34e92f13131655725db71c16f8cc321f7c96676d28823c4439ae450377c4ee"
             ],
-            "markers": "python_version >= '3.4'",
+            "markers": "python_version >= '3.6'",
             "version": "==2019.6.21"
         },
         "pytz": {
