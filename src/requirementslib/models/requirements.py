@@ -2624,9 +2624,13 @@ class Requirement(object):
             line_parts.append(self._specifiers)
         if self.markers:
             line_parts.append("; {0}".format(self.markers))
-        if self.hashes_as_pip:
+        if self.hashes_as_pip and not (self.editable or self.vcs or self.is_vcs):
             line_parts.append(self.hashes_as_pip)
         line = "".join(line_parts)
+        if self.editable:
+            if self.markers:
+                line = '"{0}"'.format(line)
+            line = "-e {0}".format(line)
         return Line(line)
 
     @property
