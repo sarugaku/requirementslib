@@ -1229,6 +1229,7 @@ class Line(object):
 
     def parse(self):
         # type: () -> None
+        self.line = self.line.strip().strip('"')
         self.line, self.markers = split_markers_from_line(self.parse_hashes().line)
         if self.markers:
             self.markers = self.markers.replace('"', "'")
