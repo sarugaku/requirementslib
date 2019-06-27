@@ -1230,6 +1230,7 @@ class Line(object):
     def parse(self):
         # type: () -> None
         self.line, self.markers = split_markers_from_line(self.parse_hashes().line)
+        self.markers = self.markers.replace('"', "'")
         self.parse_extras()
         self.line = self.line.strip('"').strip("'").strip()
         if self.line.startswith("git+file:/") and not self.line.startswith(
