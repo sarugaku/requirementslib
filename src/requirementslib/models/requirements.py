@@ -1156,7 +1156,8 @@ class Line(object):
     def parse_markers(self):
         # type: () -> None
         if self.markers:
-            markers = PackagingRequirement("fakepkg; {0}".format(self.markers)).marker
+            marker_str = self.markers.replace('"', "'")
+            markers = PackagingRequirement("fakepkg; {0}".format(marker_str)).marker
             self.parsed_marker = markers
 
     @property
@@ -1229,7 +1230,9 @@ class Line(object):
 
     def parse(self):
         # type: () -> None
-        self.line = self.line.strip().strip('"')
+        self.line = self.line.strip()
+        if self.line.startswith('"'):
+            self.line = self.line.strip('"')
         self.line, self.markers = split_markers_from_line(self.parse_hashes().line)
         if self.markers:
             self.markers = self.markers.replace('"', "'")
