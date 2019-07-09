@@ -1,1 +1,0 @@
-Added support for parsing lists of variables as extras in `setup.py` files via ``ast.BinOp`` traversal.

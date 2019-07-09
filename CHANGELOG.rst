@@ -1,3 +1,20 @@
+1.5.3 (2019-07-09)
+==================
+
+Features
+--------
+
+- Added support for parsing lists of variables as extras in `setup.py` files via ``ast.BinOp`` traversal.  `#177 <https://github.com/sarugaku/requirementslib/issues/177>`_
+  
+
+Bug Fixes
+---------
+
+- Fixed quoting of markers when formatting requirements as pip-compatible lines.  `#173 <https://github.com/sarugaku/requirementslib/issues/173>`_
+  
+- Quotes surrounding requirement lines will now be stripped only if matching pairs are found to ensure requirements can be parsed correctly.  `#176 <https://github.com/sarugaku/requirementslib/issues/176>`_
+
+
 1.5.2 (2019-06-25)
 ==================
 
