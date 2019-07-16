@@ -712,11 +712,13 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
                     item.right = right_item
                     unparsed = item
                 else:
-                    unparsed = right_item + left_item
+                    unparsed = left_item + right_item
             else:
                 unparsed = item
         elif isinstance(item.op, ast.Sub):
             unparsed = unparse(item.left) - unparse(item.right)
+        else:
+            unparsed = item
     elif isinstance(item, ast.Name):
         if not initial_mapping:
             unparsed = item.id
