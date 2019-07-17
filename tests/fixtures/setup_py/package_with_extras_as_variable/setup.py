@@ -5,7 +5,10 @@ from setuptools import find_packages, setup
 thisdir = os.path.abspath(os.path.dirname(__file__))
 version = "1.0.0"
 
-testing_extras = ["coverage", "flaky"]
+testing_extras = ["coverage"] + ["flaky"]
+
+def print_with_bin_ops():
+    print("=" * 10)
 
 setup(
     name="test_package",
