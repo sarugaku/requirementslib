@@ -247,7 +247,7 @@ sample_values = sorted(
 
 def random_marker_variables():
     variables = sorted(
-        [str(v).strip('"') for v in list(VARIABLE) if str(v).strip('"') != "extra"]
+        [str(v).strip('"') for v in VARIABLE.exprs if str(v).strip('"') != "extra"]
     )
     return st.sampled_from(variables)
 
@@ -257,7 +257,7 @@ def random_marker_values():
 
 
 def random_marker_ops():
-    return st.sampled_from([str(m).strip('"') for m in list(MARKER_OP)])
+    return st.sampled_from([str(m).strip('"') for m in MARKER_OP.exprs])
 
 
 def marker_tuple_val_lists():
