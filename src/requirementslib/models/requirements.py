@@ -548,11 +548,11 @@ class Line(object):
         return self._pyproject_backend
 
     def parse_hashes(self):
-        # type: () -> None
+        # type: () -> "Line"
         """
         Parse hashes from *self.line* and set them on the current object.
-        :returns: Nothing
-        :rtype: None
+        :returns: Self
+        :rtype: `:class:~Line`
         """
         line, hashes = self.split_hashes(self.line)
         self.hashes = hashes
@@ -560,11 +560,11 @@ class Line(object):
         return self
 
     def parse_extras(self):
-        # type: () -> None
+        # type: () -> "Line"
         """
         Parse extras from *self.line* and set them on the current object
-        :returns: Nothing
-        :rtype: None
+        :returns: self
+        :rtype: :class:`~Line`
         """
         extras = None
         if "@" in self.line or self.is_vcs or self.is_url:
@@ -694,9 +694,10 @@ class Line(object):
     @property
     def is_artifact(self):
         # type: () -> bool
+
         if self.link is None:
             return False
-        return self.link.is_artifact
+        return not self.link.is_vcs
 
     @property
     def is_vcs(self):
@@ -881,9 +882,7 @@ class Line(object):
         ireq = self.ireq
         wheel_kwargs = self.wheel_kwargs.copy()
         wheel_kwargs["src_dir"] = repo.checkout_directory
-        ireq.source_dir = wheel_kwargs["src_dir"]
-        ireq.build_location(wheel_kwargs["build_dir"])
-        ireq._temp_build_dir.path = wheel_kwargs["build_dir"]
+        ireq.ensure_has_source_dir(wheel_kwargs["src_dir"])
         with temp_path():
             sys.path = [repo.checkout_directory, "", ".", get_python_lib(plat_specific=0)]
             setupinfo = SetupInfo.create(
@@ -1952,11 +1951,12 @@ class FileRequirement(object):
         seed = None  # type: Optional[STRING_TYPE]
         if self.link is not None:
             link_url = unquote(self.link.url_without_fragment)
+        is_vcs = getattr(self.link, "is_vcs", not self.link.is_artifact)
         if self._uri_scheme and self._uri_scheme == "path":
             # We may need any one of these for passing to pip
             seed = self.path or link_url or self.uri
         elif (self._uri_scheme and self._uri_scheme == "file") or (
-            (self.link.is_artifact or self.link.is_wheel) and self.link.url
+            (self.link.is_wheel or not is_vcs) and self.link.url
         ):
             seed = link_url or self.uri
         # add egg fragments to remote artifacts (valid urls only)
@@ -1998,6 +1998,9 @@ class FileRequirement(object):
         collision_order = ["file", "uri", "path"]  # type: List[STRING_TYPE]
         collisions = []  # type: List[STRING_TYPE]
         key_match = next(iter(k for k in collision_order if k in pipfile_dict.keys()))
+        is_vcs = None
+        if self.link is not None:
+            is_vcs = getattr(self.link, "is_vcs", not self.link.is_artifact)
         if self._uri_scheme:
             dict_key = self._uri_scheme
             target_key = dict_key if dict_key in pipfile_dict else key_match
@@ -2009,7 +2012,7 @@ class FileRequirement(object):
                 pipfile_dict[dict_key] = winning_value
         elif (
             self.is_remote_artifact
-            or (self.link is not None and self.link.is_artifact)
+            or (is_vcs is not None and not is_vcs)
             and (self._uri_scheme and self._uri_scheme == "file")
         ):
             dict_key = "file"
@@ -3100,7 +3103,7 @@ class Requirement(object):
         from .dependencies import get_finder, find_all_matches
 
         if not finder:
-            finder = get_finder(sources=sources)
+            _, finder = get_finder(sources=sources)
         return find_all_matches(finder, self.as_ireq())
 
     def run_requires(self, sources=None, finder=None):
@@ -3167,6 +3170,7 @@ def file_req_from_parsed_line(parsed_line):
     pyproject_requires = None  # type: Optional[Tuple[STRING_TYPE, ...]]
     if parsed_line.pyproject_requires is not None:
         pyproject_requires = tuple(parsed_line.pyproject_requires)
+    pyproject_path = Path(parsed_line.pyproject_toml) if parsed_line.pyproject_toml else None
     req_dict = {
         "setup_path": parsed_line.setup_py,
         "path": path,
@@ -3177,9 +3181,7 @@ def file_req_from_parsed_line(parsed_line):
         "uri": parsed_line.uri,
         "pyproject_requires": pyproject_requires,
         "pyproject_backend": parsed_line.pyproject_backend,
-        "pyproject_path": Path(parsed_line.pyproject_toml)
-        if parsed_line.pyproject_toml
-        else None,
+        "pyproject_path": pyproject_path,
         "parsed_line": parsed_line,
         "req": parsed_line.requirement,
     }

@@ -210,7 +210,7 @@ class DependencyResolver(object):
             )
 
         return {
-            self.hash_cache.get_hash(candidate.location)
+            self.hash_cache.get_hash(getattr(candidate, "location", getattr(candidate, "link", None)))
             for candidate in matching_candidates
         }
 

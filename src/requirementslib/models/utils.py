@@ -885,6 +885,15 @@ def version_from_ireq(ireq):
     return first(ireq.specifier._specs).version
 
 
+def _get_requires_python(candidate):
+    # type: (Any) -> str
+    requires_python = getattr(candidate, "requires_python", None)
+    if requires_python is not None:
+        link = getattr(candidate, "location", getattr(candidate, "link", None))
+        requires_python = getattr(link, "requires_python", None)
+    return requires_python
+
+
 def clean_requires_python(candidates):
     """Get a cleaned list of all the candidates with valid specifiers in the `requires_python` attributes."""
     all_candidates = []
@@ -893,8 +902,7 @@ def clean_requires_python(candidates):
 
     py_version = parse_version(os.environ.get("PIP_PYTHON_VERSION", sys_version))
     for c in candidates:
-        from_location = attrgetter("location.requires_python")
-        requires_python = getattr(c, "requires_python", from_location(c))
+        requires_python = _get_requires_python(c)
         if requires_python:
             # Old specifications had people setting this to single digits
             # which is effectively the same as '>=digit,<digit+1'
