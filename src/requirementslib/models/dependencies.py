@@ -103,22 +103,7 @@ def get_pip_command():
     # Use pip's parser for pip.conf management and defaults.
     # General options (find_links, index_url, extra_index_url, trusted_host,
     # and pre) are defered to pip.
-    import optparse
-
-    class PipCommand(pip_shims.shims.Command):
-        name = "PipCommand"
-
-    pip_command = PipCommand()
-    pip_command.parser.add_option(pip_shims.shims.cmdoptions.no_binary())
-    pip_command.parser.add_option(pip_shims.shims.cmdoptions.only_binary())
-    index_opts = pip_shims.shims.cmdoptions.make_option_group(
-        pip_shims.shims.cmdoptions.index_group, pip_command.parser
-    )
-    pip_command.parser.insert_option_group(0, index_opts)
-    pip_command.parser.add_option(
-        optparse.Option("--pre", action="store_true", default=False)
-    )
-
+    pip_command = pip_shims.shims.InstallCommand()
     return pip_command
 
 
@@ -250,7 +235,7 @@ class AbstractDependency(object):
         extras = requirement.ireq.extras
         is_pinned = is_pinned_requirement(requirement.ireq)
         is_constraint = bool(parent)
-        finder = get_finder(sources=None)
+        session, finder = get_finder(sources=None)
         candidates = []
         if not is_pinned and not requirement.editable:
             for r in requirement.find_all_matches(finder=finder):
@@ -261,7 +246,7 @@ class AbstractDependency(object):
                     markers=markers,
                     constraint=is_constraint,
                 )
-                req.req.link = r.location
+                req.req.link = getattr(r, "location", getattr(r, "link", None))
                 req.parent = parent
                 candidates.append(req)
                 candidates = sorted(
@@ -487,7 +472,7 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     :rtype: set(str) or None
     """
 
-    finder = get_finder(sources=sources, pip_options=pip_options)
+    session, finder = get_finder(sources=sources, pip_options=pip_options)
     if not wheel_cache:
         wheel_cache = WHEEL_CACHE
     dep.is_direct = True
@@ -496,7 +481,7 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     requirements = None
     setup_requires = {}
     with temp_environ(), start_resolver(
-        finder=finder, wheel_cache=wheel_cache
+        finder=finder, session=session, wheel_cache=wheel_cache
     ) as resolver:
         os.environ["PIP_EXISTS_ACTION"] = "i"
         dist = None
@@ -619,38 +604,40 @@ def get_finder(sources=None, pip_command=None, pip_options=None):
     """
 
     if not pip_command:
-        pip_command = get_pip_command()
+        pip_command = pip_shims.shims.InstallCommand()
     if not sources:
         sources = [{"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}]
     if not pip_options:
         pip_options = get_pip_options(sources=sources, pip_command=pip_command)
     session = pip_command._build_session(pip_options)
     atexit.register(session.close)
-    finder = pip_shims.shims.PackageFinder(
-        find_links=[],
-        index_urls=[s.get("url") for s in sources],
-        trusted_hosts=[],
-        allow_all_prereleases=pip_options.pre,
+    finder = pip_shims.shims.get_package_finder(
+        pip_shims.shims.InstallCommand(),
+        options=pip_options,
         session=session,
     )
-    return finder
+    return session, finder
 
 
 @contextlib.contextmanager
-def start_resolver(finder=None, wheel_cache=None):
+def start_resolver(finder=None, session=None, wheel_cache=None):
     """Context manager to produce a resolver.
 
     :param finder: A package finder to use for searching the index
     :type finder: :class:`~pip._internal.index.PackageFinder`
+    :param :class:`~requests.Session` session: A session instance
+    :param :class:`~pip._internal.cache.WheelCache` wheel_cache: A pip WheelCache instance
     :return: A 3-tuple of finder, preparer, resolver
     :rtype: (:class:`~pip._internal.operations.prepare.RequirementPreparer`, :class:`~pip._internal.resolve.Resolver`)
     """
 
     pip_command = get_pip_command()
     pip_options = get_pip_options(pip_command=pip_command)
-
+    session = None
     if not finder:
-        finder = get_finder(pip_command=pip_command, pip_options=pip_options)
+        session, finder = get_finder(pip_command=pip_command, pip_options=pip_options)
+    if not session:
+        session = pip_command._build_session(pip_options)
 
     if not wheel_cache:
         wheel_cache = WHEEL_CACHE
@@ -661,40 +648,23 @@ def start_resolver(finder=None, wheel_cache=None):
 
     _build_dir = create_tracked_tempdir(fs_str("build"))
     _source_dir = create_tracked_tempdir(fs_str("source"))
-    preparer = partialclass(
-        pip_shims.shims.RequirementPreparer,
-        build_dir=_build_dir,
-        src_dir=_source_dir,
-        download_dir=download_dir,
-        wheel_download_dir=WHEEL_DOWNLOAD_DIR,
-        progress_bar="off",
-        build_isolation=False,
-    )
-    resolver = partialclass(
-        pip_shims.shims.Resolver,
-        finder=finder,
-        session=finder.session,
-        upgrade_strategy="to-satisfy-only",
-        force_reinstall=True,
-        ignore_dependencies=False,
-        ignore_requires_python=True,
-        ignore_installed=True,
-        isolated=False,
-        wheel_cache=wheel_cache,
-        use_user_site=False,
-    )
     try:
-        if packaging.version.parse(
-            pip_shims.shims.pip_version
-        ) >= packaging.version.parse("18"):
-            with pip_shims.shims.RequirementTracker() as req_tracker:
-                preparer = preparer(req_tracker=req_tracker)
-                yield resolver(preparer=preparer)
-        else:
-            preparer = preparer()
-            yield resolver(preparer=preparer)
+        with pip_shims.shims.make_preparer(
+            options=pip_options, finder=finder, session=session, build_dir=_build_dir,
+            src_dir=_source_dir, download_dir=download_dir,
+            wheel_download_dir=WHEEL_DOWNLOAD_DIR, progress_bar="off", build_isolation=False,
+            install_cmd=pip_command
+        ) as preparer:
+            resolver = pip_shims.shims.get_resolver(
+                finder=finder, ignore_dependencies=False, ignore_requires_python=True,
+                preparer=preparer, session=session, options=pip_options,
+                install_cmd=pip_command, wheel_cache=wheel_cache, force_reinstall=True,
+                ignore_installed=True, upgrade_strategy="to-satisfy-only", isolated=False,
+                use_user_site=False
+            )
+            yield resolver
     finally:
-        finder.session.close()
+        session.close()
 
 
 def get_grouped_dependencies(constraints):

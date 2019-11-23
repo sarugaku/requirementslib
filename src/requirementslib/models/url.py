@@ -12,7 +12,7 @@ from urllib3.util.url import Url
 from ..environment import MYPY_RUNNING
 
 if MYPY_RUNNING:
-    from typing import List, Tuple, Text, Union, TypeVar, Optional
+    from typing import Dict, List, Optional, Text, Tuple, TypeVar, Union
     from pip_shims.shims import Link
     from vistir.compat import Path
 
@@ -62,7 +62,7 @@ def remove_password_from_url(url):
     return parsed.url
 
 
-@attr.s
+@attr.s(hash=True)
 class URI(object):
     #: The target hostname, e.g. `amazon.com`
     host = attr.ib(type=str)
@@ -158,6 +158,15 @@ class URI(object):
             password = ""
         return password
 
+    def get_username(self, unquote=False):
+        # type: (bool) -> str
+        username = self.username
+        if username and unquote:
+            username = unquote_plus(username)
+        else:
+            username = ""
+        return username
+
     @staticmethod
     def parse_subdirectory(url_part):
         # type: (str) -> Tuple[str, Optional[str]]
@@ -199,24 +208,7 @@ class URI(object):
         parsed_dict = dict(parsed._asdict()).copy()
         parsed_dict["is_direct_url"] = is_direct_url
         parsed_dict["is_implicit_ssh"] = is_implicit_ssh
-        if name_with_extras:
-            fragment = ""
-            if parsed_dict["fragment"] is not None:
-                fragment = "{0}".format(parsed_dict["fragment"])
-                if fragment.startswith("egg="):
-                    name, extras = pip_shims.shims._strip_extras(name_with_extras)
-                    fragment_name, fragment_extras = pip_shims.shims._strip_extras(fragment)
-                    if fragment_extras and not extras:
-                        name_with_extras = "{0}{1}".format(name, fragment_extras)
-                    fragment = ""
-            elif "&subdirectory" in parsed_dict["path"]:
-                path, fragment = cls.parse_subdirectory(parsed_dict["path"])
-                parsed_dict["path"] = path
-            elif ref is not None and "&subdirectory" in ref:
-                ref, fragment = cls.parse_subdirectory(ref)
-            parsed_dict["fragment"] = "egg={0}{1}".format(name_with_extras, fragment)
-        if ref is not None:
-            parsed_dict["ref"] = ref.strip()
+        parsed_dict.update(**update_url_name_and_fragment(name_with_extras, ref, parsed_dict))  # type: ignore
         return cls(**parsed_dict)._parse_auth()._parse_query()._parse_fragment()
 
     def to_string(
@@ -249,15 +241,19 @@ class URI(object):
         if direct is None:
             direct = self.is_direct_url
         if escape_password:
-            password = "----" if (self.password or self.username) else ""
+            password = "----" if self.password else ""
+            username = self.get_username(unquote=unquote) if password else "----"
         else:
             password = self.get_password(unquote=unquote)
+            username = self.get_username(unquote=unquote)
         auth = ""
-        if self.username:
+        if username:
             if password:
-                auth = "{self.username}:{password}@".format(password=password, self=self)
+                auth = "{username}:{password}@".format(
+                    password=password, username=username
+                )
             else:
-                auth = "{self.username}@".format(self=self)
+                auth = "{username}@".format(username=username)
         query = ""
         if self.query:
             query = "{query}?{self.query}".format(query=query, self=self)
@@ -298,6 +294,18 @@ class URI(object):
         if self.ref and not strip_ref:
             path = "{path}@{self.ref}".format(path=path, self=self)
         return "{host}{path}".format(host=host, path=path)
+
+    @property
+    def hidden_auth(self):
+        # type: () -> str
+        auth = ""
+        if self.username and self.password:
+            password = "****"
+            username = self.get_username(unquote=True)
+            auth = "{username}:{password}".format(username=username, password=password)
+        elif self.username and not self.password:
+            auth = "****"
+        return auth
 
     @property
     def name_with_extras(self):
@@ -373,6 +381,11 @@ class URI(object):
         return self.to_string(escape_password=False, strip_ssh=False, direct=False)
 
     @property
+    def secret(self):
+        # type: () -> str
+        return self.full_url
+
+    @property
     def safe_string(self):
         # type: () -> str
         return self.to_string(escape_password=True, unquote=True)
@@ -402,3 +415,25 @@ class URI(object):
     def __str__(self):
         # type: () -> str
         return self.to_string(escape_password=True, unquote=True)
+
+
+def update_url_name_and_fragment(name_with_extras, ref, parsed_dict):
+    # type: (Optional[str], Optional[str], Dict[str, Optional[str]]) -> Dict[str, Optional[str]]
+    if name_with_extras:
+        fragment = ""  # type: Optional[str]
+        if parsed_dict["fragment"] is not None:
+            fragment = "{0}".format(parsed_dict["fragment"])
+            if fragment.startswith("egg="):
+                name, extras = pip_shims.shims._strip_extras(name_with_extras)
+                fragment_name, fragment_extras = pip_shims.shims._strip_extras(fragment)
+                if fragment_extras and not extras:
+                    name_with_extras = "{0}{1}".format(name, fragment_extras)
+                fragment = ""
+        elif parsed_dict.get("path") is not None and "&subdirectory" in parsed_dict["path"]:
+            path, fragment = URI.parse_subdirectory(parsed_dict["path"])  # type: ignore
+            parsed_dict["path"] = path
+        elif ref is not None and "&subdirectory" in ref:
+            ref, fragment = URI.parse_subdirectory(ref)
+    if ref:
+        parsed_dict["ref"] = ref.strip()
+    return parsed_dict

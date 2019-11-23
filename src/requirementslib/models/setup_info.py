@@ -1434,8 +1434,8 @@ build-backend = "{1}"
 
     @classmethod
     @lru_cache()
-    def from_ireq(cls, ireq, subdir=None, finder=None):
-        # type: (InstallRequirement, Optional[AnyStr], Optional[PackageFinder]) -> Optional[SetupInfo]
+    def from_ireq(cls, ireq, subdir=None, finder=None, session=None):
+        # type: (InstallRequirement, Optional[AnyStr], Optional[PackageFinder], Optional[requests.Session]) -> Optional[SetupInfo]
         import pip_shims.shims
 
         if not ireq.link:
@@ -1445,7 +1445,7 @@ build-backend = "{1}"
         if not finder:
             from .dependencies import get_finder
 
-            finder = get_finder()
+            session, finder = get_finder()
         _, uri = split_vcs_method_from_uri(unquote(ireq.link.url_without_fragment))
         parsed = urlparse(uri)
         if "file" in parsed.scheme:
@@ -1461,10 +1461,17 @@ build-backend = "{1}"
             path = pip_shims.shims.url_to_path(uri)
         kwargs = _prepare_wheel_building_kwargs(ireq)
         ireq.source_dir = kwargs["src_dir"]
+        try:
+            is_vcs = ireq.link.is_vcs
+        except AttributeError:
+            try:
+                is_vcs = not ireq.link.is_artifact
+            except AttributeError:
+                is_vcs = False
         if not (
             ireq.editable
             and pip_shims.shims.is_file_url(ireq.link)
-            and not ireq.link.is_artifact
+            and ireq.link.is_vcs
         ):
             if ireq.is_wheel:
                 only_download = True
@@ -1476,17 +1483,16 @@ build-backend = "{1}"
             raise RequirementError(
                 "The file URL points to a directory not installable: {}".format(ireq.link)
             )
-        ireq.build_location(kwargs["build_dir"])
-        src_dir = ireq.ensure_has_source_dir(kwargs["src_dir"])
-        ireq._temp_build_dir.path = kwargs["build_dir"]
+        ireq.ensure_has_source_dir(kwargs["src_dir"])
+        src_dir = ireq.source_dir
 
         ireq.populate_link(finder, False, False)
-        pip_shims.shims.unpack_url(
-            ireq.link,
-            src_dir,
-            download_dir,
+        pip_shims.shims.shim_unpack(
+            link=ireq.link,
+            location=kwargs["src_dir"],
+            download_dir=download_dir,
             only_download=only_download,
-            session=finder.session,
+            session=session,
             hashes=ireq.hashes(False),
             progress_bar="off",
         )

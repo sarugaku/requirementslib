@@ -12,6 +12,7 @@ from packaging.markers import MARKER_OP, VARIABLE
 from packaging.specifiers import Specifier
 from packaging.version import parse as parse_version
 from six.moves.urllib import parse as urllib_parse
+from pyparsing import MatchFirst, Literal, ParseExpression, ParserElement
 
 from requirementslib.models.url import URI
 
@@ -63,6 +64,16 @@ vcs_schemes = (
     "bzr+ftp",
     "bzr+lp",
 )
+
+
+def flatten_pyparsing_exprs(expr):
+    exprs = set()
+    for child in expr.exprs:
+        if isinstance(child, (Literal, six.string_types)):
+            exprs.add(str(child).strip('"'))
+        elif isinstance(child, (MatchFirst, ParseExpression, ParserElement)):
+            exprs.update(flatten_pyparsing_exprs(child))
+    return exprs
 
 
 # from https://github.com/twisted/txacme/blob/master/src/txacme/test/strategies.py
@@ -247,7 +258,7 @@ sample_values = sorted(
 
 def random_marker_variables():
     variables = sorted(
-        [str(v).strip('"') for v in list(VARIABLE) if str(v).strip('"') != "extra"]
+        [v for v in flatten_pyparsing_exprs(VARIABLE) if v != "extra"]
     )
     return st.sampled_from(variables)
 
@@ -257,7 +268,7 @@ def random_marker_values():
 
 
 def random_marker_ops():
-    return st.sampled_from([str(m).strip('"') for m in list(MARKER_OP)])
+    return st.sampled_from(sorted(flatten_pyparsing_exprs(MARKER_OP)))
 
 
 def marker_tuple_val_lists():

@@ -1,0 +1,1 @@
+Fixed failed calls to ``.lower`` on ``tomlkit``'s ``Bool`` object during pipfile load as the API seems to have changed here.

@@ -1,6 +1,7 @@
 # -*- coding=utf-8 -*-
 # Copyied from pip's vendoring process
 # see https://github.com/pypa/pip/blob/95bcf8c5f6394298035a7332c441868f3b0169f4/tasks/__init__.py
+import datetime
 import enum
 import pathlib
 import re
@@ -99,6 +100,11 @@ def _render_log():
         None,
         definitions,
     )
+    project_options = {
+        "name": config["package"],
+        "version": find_version(),
+        "date": datetime.date.today().isoformat(),
+    }
     rendered = render_fragments(
         pathlib.Path(config["template"]).read_text(encoding="utf-8"),
         config["issue_format"],
@@ -106,6 +112,7 @@ def _render_log():
         definitions,
         config["underlines"][1:],
         False,  # Don't add newlines to wrapped text.
+        project_options,
     )
     return rendered
 
