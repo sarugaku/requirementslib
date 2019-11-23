@@ -9,7 +9,7 @@ trigger:
 jobs:
 - job: TestLinux
   pool:
-    vmImage: 'Ubuntu-16.04'
+    vmImage: ubuntu-latest
   strategy:
     matrix:
       Python27:
@@ -24,7 +24,6 @@ jobs:
   variables:
   - group: CI
   steps:
-  - template: .azure-pipelines/templates/reinstall-pythons.yml
   - template: .azure-pipelines/templates/run-tests.yml
   - template: .azure-pipelines/templates/run-coverage.yml
 
@@ -68,6 +67,6 @@ jobs:
     - TestWindows
     - TestMacOS
   pool:
-    vmImage: ubuntu-16.04
+    vmImage: ubuntu-latest
   steps:
   - template: .azure-pipelines/templates/build-package.yml
