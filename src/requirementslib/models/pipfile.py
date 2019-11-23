@@ -29,53 +29,6 @@ if MYPY_RUNNING:
     lockfile_type = Dict[Text, Union[package_type, meta_type]]
 
 
-# Let's start by patching plette to make sure we can validate data without being broken
-try:
-    import cerberus
-except ImportError:
-    cerberus = None
-
-VALIDATORS = plette.models.base.VALIDATORS
-
-
-# def patch_plette():
-#     # type: () -> None
-
-#     global VALIDATORS
-
-#     def validate(cls, data):
-#         # type: (Any, Dict[Text, Any]) -> None
-#         if not cerberus:  # Skip validation if Cerberus is not available.
-#             return
-#         schema = cls.__SCHEMA__
-#         key = id(schema)
-#         try:
-#             v = VALIDATORS[key]
-#         except KeyError:
-#             v = VALIDATORS[key] = cerberus.Validator(schema, allow_unknown=True)
-#         if v.validate(data, normalize=False):
-#             return
-#         raise plette.models.base.ValidationError(data, v)
-
-#     names = ["plette.models.base", plette.models.base.__name__]
-#     names = [name for name in names if name in sys.modules]
-#     for name in names:
-#         if name in sys.modules:
-#             module = sys.modules[name]
-#         else:
-#             module = plette.models.base
-#         original_fn = getattr(module, "validate")
-#         for key in ["__qualname__", "__name__", "__module__"]:
-#             original_val = getattr(original_fn, key, None)
-#             if original_val is not None:
-#                 setattr(validate, key, original_val)
-#         setattr(module, "validate", validate)
-#         sys.modules[name] = module
-
-
-# patch_plette()
-
-
 is_pipfile = optional_instance_of(plette.pipfiles.Pipfile)
 is_path = optional_instance_of(Path)
 is_projectfile = optional_instance_of(ProjectFile)
