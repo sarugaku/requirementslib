@@ -912,7 +912,7 @@
                 "sha256:3bacb09a06748f0e71848790724b11a5cf27f232b874d59c1966c476e1b6a080",
                 "sha256:ff43dd0abc144ddf4d895ea52918b5d4bbd0f96b690af205e477cb1074b6ef4e"
             ],
-            "markers": "python_version >= '3.4'",
+            "markers": "python_version >= '3.6'",
             "version": "==2019.10.17"
         },
         "pytz": {
