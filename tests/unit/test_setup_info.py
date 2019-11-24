@@ -6,6 +6,7 @@ import sys
 
 import pip_shims.shims
 import pytest
+import six
 import vistir
 
 from requirementslib.models.requirements import Requirement
@@ -99,7 +100,8 @@ def test_without_extras(pathlib_tmpdir):
     assert setup_dir.is_dir()
     setup_py = setup_dir.joinpath("setup.py")
     setup_py.write_text(
-        """
+        six.ensure_text(
+            """
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
@@ -112,6 +114,7 @@ setup(
     }
 )
     """.strip()
+        )
     )
     setup_dict = None
     with vistir.contextmanagers.cd(setup_dir.as_posix()):
