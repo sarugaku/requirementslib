@@ -208,7 +208,9 @@ class URI(object):
         parsed_dict = dict(parsed._asdict()).copy()
         parsed_dict["is_direct_url"] = is_direct_url
         parsed_dict["is_implicit_ssh"] = is_implicit_ssh
-        parsed_dict.update(**update_url_name_and_fragment(name_with_extras, ref, parsed_dict))  # type: ignore
+        parsed_dict.update(
+            **update_url_name_and_fragment(name_with_extras, ref, parsed_dict)
+        )  # type: ignore
         return cls(**parsed_dict)._parse_auth()._parse_query()._parse_fragment()
 
     def to_string(
@@ -429,7 +431,9 @@ def update_url_name_and_fragment(name_with_extras, ref, parsed_dict):
                 if fragment_extras and not extras:
                     name_with_extras = "{0}{1}".format(name, fragment_extras)
                 fragment = ""
-        elif parsed_dict.get("path") is not None and "&subdirectory" in parsed_dict["path"]:
+        elif (
+            parsed_dict.get("path") is not None and "&subdirectory" in parsed_dict["path"]
+        ):
             path, fragment = URI.parse_subdirectory(parsed_dict["path"])  # type: ignore
             parsed_dict["path"] = path
         elif ref is not None and "&subdirectory" in ref:

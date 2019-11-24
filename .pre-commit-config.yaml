@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/ambv/black
-    rev: 19.3b0
+    rev: 19.10b0
     hooks:
       - id: black
 
@@ -10,7 +10,7 @@ repos:
       #- id: flake8
 
   - repo: https://github.com/asottile/seed-isort-config
-    rev: v1.9.1
+    rev: v1.9.3
     hooks:
       - id: seed-isort-config
 

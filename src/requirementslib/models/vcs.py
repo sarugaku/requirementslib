@@ -1,16 +1,16 @@
 # -*- coding=utf-8 -*-
 from __future__ import absolute_import, print_function
 
-import attr
 import importlib
 import os
-import pip_shims
-import six
 import sys
 
-from .url import URI
-from ..environment import MYPY_RUNNING
+import attr
+import pip_shims
+import six
 
+from ..environment import MYPY_RUNNING
+from .url import URI
 
 if MYPY_RUNNING:
     from typing import Any, Optional, Tuple
@@ -43,6 +43,7 @@ class VCSRepository(object):
         else:
             default_run_args = self.DEFAULT_RUN_ARGS
         from pip_shims.shims import VcsSupport
+
         VCS_SUPPORT = VcsSupport()
         backend = VCS_SUPPORT.get_backend(self.vcs_type)
         # repo = backend(url=self.url)
@@ -54,8 +55,8 @@ class VCSRepository(object):
     def is_local(self):
         # type: () -> bool
         url = self.url
-        if '+' in url:
-            url = url.split('+')[1]
+        if "+" in url:
+            url = url.split("+")[1]
         return url.startswith("file")
 
     def obtain(self):
@@ -63,8 +64,9 @@ class VCSRepository(object):
         lte_pip_19 = (
             pip_shims.parsed_pip_version.parsed_version < pip_shims.parse_version("19.0")
         )
-        if (os.path.exists(self.checkout_directory) and not
-                self.repo_backend.is_repository_directory(self.checkout_directory)):
+        if os.path.exists(
+            self.checkout_directory
+        ) and not self.repo_backend.is_repository_directory(self.checkout_directory):
             self.repo_backend.unpack(self.checkout_directory)
         elif not os.path.exists(self.checkout_directory):
             if lte_pip_19:
@@ -80,14 +82,21 @@ class VCSRepository(object):
     def checkout_ref(self, ref):
         # type: (str) -> None
         rev_opts = self.repo_backend.make_rev_options(ref)
-        if not self.repo_backend.is_commit_id_equal(self.checkout_directory, ref) and not self.repo_backend.is_commit_id_equal(self.checkout_directory, rev_opts):
-            if not self.is_local:
-                self.update(ref)
+        if not any(
+            [
+                self.repo_backend.is_commit_id_equal(self.checkout_directory, ref),
+                self.repo_backend.is_commit_id_equal(self.checkout_directory, rev_opts),
+                self.is_local,
+            ]
+        ):
+            self.update(ref)
 
     def update(self, ref):
         # type: (str) -> None
         target_ref = self.repo_backend.make_rev_options(ref)
-        if pip_shims.parse_version(pip_shims.pip_version) > pip_shims.parse_version("18.0"):
+        if pip_shims.parse_version(pip_shims.pip_version) > pip_shims.parse_version(
+            "18.0"
+        ):
             self.repo_backend.update(self.checkout_directory, self.url, target_ref)
         else:
             self.repo_backend.update(self.checkout_directory, target_ref)
@@ -104,7 +113,7 @@ class VCSRepository(object):
         pip_vcs = importlib.import_module(target_module)
         run_command_defaults = pip_vcs.VersionControl.run_command.__defaults__
         # set the default to not write stdout, the first option sets this value
-        new_defaults = [False,] + list(run_command_defaults)[1:]
+        new_defaults = [False] + list(run_command_defaults)[1:]
         new_defaults = tuple(new_defaults)
         if six.PY3:
             try:
