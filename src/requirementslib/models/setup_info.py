@@ -1183,13 +1183,15 @@ class SetupInfo(object):
         if not self.pyproject.exists():
             build_requires = ", ".join(['"{0}"'.format(r) for r in self.build_requires])
             self.pyproject.write_text(
-                u"""
+                six.text_type(
+                    """
 [build-system]
 requires = [{0}]
 build-backend = "{1}"
-            """.format(
-                    build_requires, self.build_backend
-                ).strip()
+                """.format(
+                        build_requires, self.build_backend
+                    ).strip()
+                )
             )
         return build_pep517(
             self.base_dir,
@@ -1209,13 +1211,15 @@ build-backend = "{1}"
                     ['"{0}"'.format(r) for r in self.build_requires]
                 )
             self.pyproject.write_text(
-                u"""
+                six.text_type(
+                    """
 [build-system]
 requires = [{0}]
 build-backend = "{1}"
-            """.format(
-                    build_requires, self.build_backend
-                ).strip()
+                """.format(
+                        build_requires, self.build_backend
+                    ).strip()
+                )
             )
         return build_pep517(
             self.base_dir,
@@ -1468,11 +1472,7 @@ build-backend = "{1}"
                 is_vcs = not ireq.link.is_artifact
             except AttributeError:
                 is_vcs = False
-        if not (
-            ireq.editable
-            and pip_shims.shims.is_file_url(ireq.link)
-            and ireq.link.is_vcs
-        ):
+        if not (ireq.editable and pip_shims.shims.is_file_url(ireq.link) and is_vcs):
             if ireq.is_wheel:
                 only_download = True
                 download_dir = kwargs["wheel_download_dir"]

@@ -39,6 +39,17 @@ from vistir.path import (
     normalize_path,
 )
 
+from ..environment import MYPY_RUNNING
+from ..exceptions import RequirementError
+from ..utils import (
+    VCS_LIST,
+    add_ssh_scheme_to_git_uri,
+    get_setup_paths,
+    is_installable_dir,
+    is_installable_file,
+    is_vcs,
+    strip_ssh_from_git_uri,
+)
 from .markers import (
     cleanup_pyspecs,
     contains_pyversion,
@@ -79,17 +90,6 @@ from .utils import (
     validate_path,
     validate_specifiers,
     validate_vcs,
-)
-from ..environment import MYPY_RUNNING
-from ..exceptions import RequirementError
-from ..utils import (
-    VCS_LIST,
-    add_ssh_scheme_to_git_uri,
-    get_setup_paths,
-    is_installable_dir,
-    is_installable_file,
-    is_vcs,
-    strip_ssh_from_git_uri,
 )
 
 if MYPY_RUNNING:
@@ -3170,7 +3170,9 @@ def file_req_from_parsed_line(parsed_line):
     pyproject_requires = None  # type: Optional[Tuple[STRING_TYPE, ...]]
     if parsed_line.pyproject_requires is not None:
         pyproject_requires = tuple(parsed_line.pyproject_requires)
-    pyproject_path = Path(parsed_line.pyproject_toml) if parsed_line.pyproject_toml else None
+    pyproject_path = (
+        Path(parsed_line.pyproject_toml) if parsed_line.pyproject_toml else None
+    )
     req_dict = {
         "setup_path": parsed_line.setup_py,
         "path": path,

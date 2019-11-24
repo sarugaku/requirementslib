@@ -18,6 +18,8 @@ from vistir.contextmanagers import cd, temp_environ
 from vistir.misc import partialclass
 from vistir.path import create_tracked_tempdir
 
+from ..environment import MYPY_RUNNING
+from ..utils import _ensure_dir, prepare_pip_source_args
 from .cache import CACHE_DIR, DependencyCache
 from .utils import (
     clean_requires_python,
@@ -30,8 +32,6 @@ from .utils import (
     name_from_req,
     version_from_ireq,
 )
-from ..environment import MYPY_RUNNING
-from ..utils import _ensure_dir, prepare_pip_source_args
 
 if MYPY_RUNNING:
     from typing import (
@@ -235,7 +235,7 @@ class AbstractDependency(object):
         extras = requirement.ireq.extras
         is_pinned = is_pinned_requirement(requirement.ireq)
         is_constraint = bool(parent)
-        session, finder = get_finder(sources=None)
+        _, finder = get_finder(sources=None)
         candidates = []
         if not is_pinned and not requirement.editable:
             for r in requirement.find_all_matches(finder=finder):
@@ -612,9 +612,7 @@ def get_finder(sources=None, pip_command=None, pip_options=None):
     session = pip_command._build_session(pip_options)
     atexit.register(session.close)
     finder = pip_shims.shims.get_package_finder(
-        pip_shims.shims.InstallCommand(),
-        options=pip_options,
-        session=session,
+        pip_shims.shims.InstallCommand(), options=pip_options, session=session
     )
     return session, finder
 
@@ -650,17 +648,31 @@ def start_resolver(finder=None, session=None, wheel_cache=None):
     _source_dir = create_tracked_tempdir(fs_str("source"))
     try:
         with pip_shims.shims.make_preparer(
-            options=pip_options, finder=finder, session=session, build_dir=_build_dir,
-            src_dir=_source_dir, download_dir=download_dir,
-            wheel_download_dir=WHEEL_DOWNLOAD_DIR, progress_bar="off", build_isolation=False,
-            install_cmd=pip_command
+            options=pip_options,
+            finder=finder,
+            session=session,
+            build_dir=_build_dir,
+            src_dir=_source_dir,
+            download_dir=download_dir,
+            wheel_download_dir=WHEEL_DOWNLOAD_DIR,
+            progress_bar="off",
+            build_isolation=False,
+            install_cmd=pip_command,
         ) as preparer:
             resolver = pip_shims.shims.get_resolver(
-                finder=finder, ignore_dependencies=False, ignore_requires_python=True,
-                preparer=preparer, session=session, options=pip_options,
-                install_cmd=pip_command, wheel_cache=wheel_cache, force_reinstall=True,
-                ignore_installed=True, upgrade_strategy="to-satisfy-only", isolated=False,
-                use_user_site=False
+                finder=finder,
+                ignore_dependencies=False,
+                ignore_requires_python=True,
+                preparer=preparer,
+                session=session,
+                options=pip_options,
+                install_cmd=pip_command,
+                wheel_cache=wheel_cache,
+                force_reinstall=True,
+                ignore_installed=True,
+                upgrade_strategy="to-satisfy-only",
+                isolated=False,
+                use_user_site=False,
             )
             yield resolver
     finally:
