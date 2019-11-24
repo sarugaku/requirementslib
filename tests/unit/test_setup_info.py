@@ -9,7 +9,7 @@ import pytest
 import vistir
 
 from requirementslib.models.requirements import Requirement
-from requirementslib.models.setup_info import ast_parse_setup_py
+from requirementslib.models.setup_info import ast_parse_setup_py, parse_setup_cfg
 
 
 @pytest.mark.parametrize(
@@ -99,7 +99,7 @@ def test_without_extras(pathlib_tmpdir):
     assert setup_dir.is_dir()
     setup_py = setup_dir.joinpath("setup.py")
     setup_py.write_text(
-        u"""
+        """
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
@@ -206,3 +206,11 @@ def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
             assert str(parsed[k]) == str(v), parsed[k]
         else:
             assert parsed[k] == v, parsed[k]
+
+
+def test_setup_cfg_parser(setup_cfg_dir):
+    result = parse_setup_cfg(
+        (setup_cfg_dir / "package_with_multiple_extras/setup.cfg").as_posix()
+    )
+    assert result["version"] == "0.5.0"
+    assert result["name"] == "test_package"

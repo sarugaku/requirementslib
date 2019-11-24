@@ -225,10 +225,11 @@ def get_package_dir_from_setupcfg(parser, base_dir=None):
         package_dir = base_dir
     else:
         package_dir = os.getcwd()
-    if parser.has_option("options", "packages.find"):
-        pkg_dir = parser.get("options", "packages.find")
-        if isinstance(package_dir, Mapping):
-            package_dir = os.path.join(package_dir, pkg_dir.get("where"))
+    if parser.has_option("options.packages.find", "where"):
+        pkg_dir = parser.get("options.packages.find", "where")
+        if isinstance(pkg_dir, Mapping):
+            pkg_dir = pkg_dir.get("where")
+        package_dir = os.path.join(package_dir, pkg_dir)
     elif parser.has_option("options", "packages"):
         pkg_dir = parser.get("options", "packages")
         if "find:" in pkg_dir:
@@ -408,14 +409,11 @@ def _prepare_wheel_building_kwargs(
 
     wheel_download_dir = os.path.join(CACHE_DIR, "wheels")  # type: STRING_TYPE
     mkdir_p(wheel_download_dir)
-
     if src_dir is None:
         if editable and src_root is not None:
             src_dir = src_root
-        elif ireq is None and src_root is not None and not editable:
+        elif src_root is not None:
             src_dir = _get_src_dir(root=src_root)  # type: STRING_TYPE
-        elif ireq is not None and ireq.editable and src_root is not None:
-            src_dir = _get_src_dir(root=src_root)
         else:
             src_dir = create_tracked_tempdir(prefix="reqlib-src")
 
