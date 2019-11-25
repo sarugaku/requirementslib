@@ -41,6 +41,8 @@ def _get_parsed_url(url):
         auth, _, url = url.rpartition("@")
         url = "{scheme}://{url}".format(scheme=scheme, url=url)
         parsed = urllib3_parse(url)._replace(auth=auth)
+    if parsed.auth and unquote_plus(parsed.auth) != parsed.auth:
+        return parsed._replace(auth=unquote_plus(parsed.auth))
     return parsed
 
 
@@ -145,7 +147,10 @@ class URI(object):
         # type: () -> URI
         if self._auth:
             username, _, password = self._auth.partition(":")
-            password = quote_plus(password)
+            if password:
+                password = quote_plus(password)
+            elif username and not password:
+                username = quote_plus(username)
             return attr.evolve(self, username=username, password=password)
         return self
 
@@ -160,11 +165,9 @@ class URI(object):
 
     def get_username(self, unquote=False):
         # type: (bool) -> str
-        username = self.username
+        username = self.username if self.username else ""
         if username and unquote:
             username = unquote_plus(username)
-        else:
-            username = ""
         return username
 
     @staticmethod
@@ -175,6 +178,22 @@ class URI(object):
             url_part, _, subdir = url_part.rpartition("&")
             subdir = "&{0}".format(subdir.strip())
         return url_part.strip(), subdir
+
+    @classmethod
+    def get_parsed_url(cls, url):
+        # if there is a "#" in the auth section, this could break url parsing
+        parsed_url = _get_parsed_url(url)
+        if "@" in url and "#" in url:
+            scheme = "{0}://".format(parsed_url.scheme)
+            if parsed_url.scheme == "file":
+                scheme = "{0}/".format(scheme)
+            url_without_scheme = url.replace(scheme, "")
+            maybe_auth, _, maybe_url = url_without_scheme.partition("@")
+            if "#" in maybe_auth and (not parsed_url.host or "." not in parsed_url.host):
+                new_parsed_url = _get_parsed_url("{0}{1}".format(scheme, maybe_url))
+                new_parsed_url = new_parsed_url._replace(auth=maybe_auth)
+                return new_parsed_url
+        return parsed_url
 
     @classmethod
     def parse(cls, url):
@@ -196,8 +215,9 @@ class URI(object):
         url, ref = split_ref_from_uri(url.strip())
         if "file:/" in url and "file:///" not in url:
             url = url.replace("file:/", "file:///")
-        parsed = _get_parsed_url(url)
-        if not (parsed.scheme and parsed.host and parsed.path):
+        parsed = cls.get_parsed_url(url)
+        # if there is a "#" in the auth section, this could break url parsing
+        if not (parsed.scheme and parsed.host):
             # check if this is a file uri
             if not (
                 parsed.scheme
@@ -290,7 +310,7 @@ class URI(object):
     def get_host_port_path(self, strip_ref=False):
         # type: (bool) -> str
         host = self.host if self.host else ""
-        if self.port:
+        if self.port is not None:
             host = "{host}:{self.port!s}".format(host=host, self=self)
         path = "{self.path}".format(self=self)
         if self.ref and not strip_ref:

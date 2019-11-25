@@ -1,18 +1,20 @@
 # -*- coding=utf-8 -*-
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+import string
 import sys
 from collections import namedtuple
 
 import six
 import vistir
-from hypothesis import strategies as st
+from hypothesis import assume, strategies as st
+from hypothesis.provisional import URL_SAFE_CHARACTERS, domains, urls as url_strategy
 from packaging.markers import MARKER_OP, VARIABLE
 from packaging.specifiers import Specifier
 from packaging.version import parse as parse_version
+from pyparsing import Literal, MatchFirst, ParseExpression, ParserElement
 from six.moves.urllib import parse as urllib_parse
-from pyparsing import MatchFirst, Literal, ParseExpression, ParserElement
 
 from requirementslib.models.url import URI
 
@@ -76,56 +78,26 @@ def flatten_pyparsing_exprs(expr):
     return exprs
 
 
-# from https://github.com/twisted/txacme/blob/master/src/txacme/test/strategies.py
-def dns_labels():
-    """
-    Strategy for generating limited charset DNS labels.
-    """
-    # This is too limited, but whatever
-    return st.text(
-        "abcdefghijklmnopqrstuvwxyz0123456789-", min_size=1, max_size=25
-    ).filter(
-        lambda s: not any(
-            [s.startswith("-"), s.endswith("-"), s.isdigit(), s[2:4] == "--"]
-        )
-    )
-
-
 def valid_names():
     return st.text(url_alphabet, min_size=1, max_size=25).filter(
         lambda s: not any([s.startswith("-"), s.endswith("-")])
     )
 
 
-def dns_names():
-    """
-    Strategy for generating limited charset DNS names.
-    """
-    return st.lists(dns_labels(), min_size=1, max_size=10).map(".".join)
-
-
 def urls():
     """
     Strategy for generating urls.
     """
+
+    def url_encode(s):
+        return "".join(c if c in URL_SAFE_CHARACTERS else "%%%02X" % ord(c) for c in s)
+
     return st.builds(
         URI,
         scheme=st.sampled_from(uri_schemes),
-        host=dns_names(),
+        host=domains(),
         port=st.integers(min_value=1, max_value=65535),
-        path=st.lists(
-            st.text(
-                max_size=64,
-                alphabet=st.characters(
-                    blacklist_characters="/?#", blacklist_categories=("Cs",)
-                ),
-            ),
-            min_size=1,
-            max_size=10,
-        )
-        .map("".join)
-        .map(vistir.misc.to_text)
-        .map("".join),
+        path=st.lists(st.text(string.printable).map(url_encode)).map("/".join),
         query=st.lists(
             st.text(
                 max_size=10,
@@ -143,7 +115,7 @@ def urls():
             max_size=64, alphabet="abcdefghijklmnopqrstuvwxyz0123456789"
         ),
         extras=st.lists(
-            st.text(max_size=20, alphabet="abcdefghijklmnopqrstuvwxyz0123456789_"),
+            st.text(max_size=20, alphabet="abcdefghijklmnopqrstuvwxyz0123456789_-."),
             min_size=0,
             max_size=10,
         ),
@@ -191,17 +163,130 @@ def unparsed_urls():
 
 
 def vcs_requirements():
+    def url_encode(s):
+        return "".join(c if c in URL_SAFE_CHARACTERS else "%%%02X" % ord(c) for c in s)
+
     return st.builds(
         parsed_url,
         scheme=st.sampled_from(vcs_schemes),
-        netloc=dns_names(),
-        path=st.lists(
-            st.text(max_size=64, alphabet=url_alphabet), min_size=1, max_size=10
-        )
-        .map(vistir.misc.to_text)
-        .map("".join),
+        netloc=domains(),
+        path=st.lists(st.text(string.printable).map(url_encode)).map("/".join),
         fragment=valid_names(),
     )
+
+
+def auth_list():
+    return st.lists(st.text(string.printable), min_size=0, max_size=2)
+
+
+@st.composite
+def auth_strings(draw, auth=auth_list()):
+    def url_encode(s):
+        if not s:
+            return ""
+        chars = []
+        for c in s:
+            if not c:
+                continue
+            elif c in URL_SAFE_CHARACTERS:
+                chars.append(c)
+            else:
+                chars.append("%%%02X" % ord(c))
+        return "".join(chars)
+
+    auth_section = draw(auth)
+    if auth_section and len(auth_section) == 2:
+        user, password = auth_section
+        if user and password:
+            result = "{0}:{1}".format(
+                "".join([url_encode(s) for s in user]),
+                "".join([url_encode(s) for s in password]),
+            )
+        elif user and not password:
+            result = "".join([url_encode(s) for s in user])
+        elif password and not user:
+            result = "".join([url_encode(s) for s in password])
+        else:
+            result = ""
+    elif auth_section and len(auth_section) == 1:
+        result = "{0}".format("".join([url_encode(s) for s in auth_section]))
+    else:
+        result = ""
+    return result
+
+
+@st.composite
+def auth_url(draw, auth_string=auth_strings()):
+    # taken from the hypothesis provisional url generation strategy
+    def url_encode(s):
+        return "".join(c if c in URL_SAFE_CHARACTERS else "%%%02X" % ord(c) for c in s)
+
+    path = draw(
+        st.lists(
+            st.text(string.printable).map(url_encode).filter(lambda x: x not in ["", "."])
+        ).map("/".join)
+    )
+    port = draw(st.integers(min_value=0, max_value=65535))
+    port_str = ""
+    if port:
+        port_str = ":{0!s}".format(port)
+    auth = draw(auth_string)
+    if auth:
+        auth = "{0}@".format(auth)
+    if auth == ":@":
+        auth = ""
+    # none of the python url parsers can handle auth strings ending with "/"
+    # assume(not any(auth.startswith(c) for c in ["/", ":", "@"]))
+    assume(not any(auth.endswith(c) for c in [":", ":@"]))
+    # assume(not all(["#" in auth, ":" not in auth]))
+    domain = draw(domains().map(lambda x: x.lower()).filter(lambda x: x != ""))
+    scheme = draw(
+        st.sampled_from(uri_schemes).filter(lambda x: not x.startswith("file:"))
+    )
+    return "{}://{}{}{}/{}".format(scheme, auth, domain, port_str, path)
+
+
+def repo_url_strategy():
+    def url_encode(s):
+        return "".join(c if c in URL_SAFE_CHARACTERS else "%%%02X" % ord(c) for c in s)
+
+    paths = st.lists(st.text(string.printable).map(url_encode)).map("/".join)
+    ports = st.integers(min_value=0, max_value=65535).map(":{}".format)
+    fragments = (
+        st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789_-.")
+        .map(url_encode)
+        .map("#egg={}".format)
+        .map(lambda x: "" if x == "#egg=" else x)
+    )
+    refs = (
+        st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789_-")
+        .map(url_encode)
+        .map("@{}".format)
+        .map(lambda x: "" if x == "@" else x)
+    )
+    scheme = (
+        st.sampled_from(vcs_schemes)
+        .filter(lambda x: "+" in x)
+        .map("{}://".format)
+        .map(lambda x: x.replace("file://", "file:///"))
+    )
+    auth = (
+        auth_string()
+        .map("{}@".format)
+        .map(lambda x: "" if x == "@" else x)
+        .map(lambda x: x.replace(":@", "@") if x.endswith(":@") else x)
+    )
+    domain = domains().map(lambda x: x.lower())
+    return st.builds(
+        "{}{}{}{}{}{}{}".format,
+        scheme,
+        auth,
+        domain,
+        st.just("|") | ports,
+        paths,
+        refs,
+        fragments,
+    ).map(lambda x: x.replace("|", ":") if "git+git@" in x else x.replace("|", "/"))
 
 
 def unparse_requirement(r):
@@ -257,9 +342,7 @@ sample_values = sorted(
 
 
 def random_marker_variables():
-    variables = sorted(
-        [v for v in flatten_pyparsing_exprs(VARIABLE) if v != "extra"]
-    )
+    variables = sorted([v for v in flatten_pyparsing_exprs(VARIABLE) if v != "extra"])
     return st.sampled_from(variables)
 
 
@@ -352,6 +435,11 @@ def random_repositories():
 @st.composite
 def repository_url(draw, elements=random_repositories()):
     repo = draw(elements)
+    scheme = draw(
+        st.sampled_from(vcs_schemes)
+        .filter(lambda s: "+" in s)
+        .filter(lambda s: "file" not in s)
+    )
     repo_dict = dict(repo._asdict())
     ref = repo_dict.pop("ref", None)
     extras = repo_dict.pop("extras", None)
@@ -370,10 +458,16 @@ def repository_url(draw, elements=random_repositories()):
         extras_str = "[{0}]".format(",".join(extras))
     if subdir:
         subdir_str = "&subdirectory={0}".format(subdir)
+    if scheme == "git+git":
+        repo_dict["scheme"] = "{0}@".format(scheme)
+        repo_dict["pathsep"] = ":"
+    else:
+        repo_dict["scheme"] = "{0}://".format(scheme)
+        repo_dict["pathsep"] = "/"
     repo_dict.update(
         {"ref": ref_str, "extras": extras_str, "subdir": subdir_str, "pkg_name": pkg_name}
     )
-    line = "{vcs_type}+{scheme}://{base_url}/{user}/{repo}.git{ref}#egg={pkg_name}{subdir}".format(
+    line = "{scheme}{base_url}{pathsep}{user}/{repo}.git{ref}#egg={pkg_name}{subdir}".format(
         **repo_dict
     )
     return line
