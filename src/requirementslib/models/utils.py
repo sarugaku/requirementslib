@@ -22,6 +22,8 @@ from six.moves.urllib import parse as urllib_parse
 from tomlkit.container import Container
 from tomlkit.items import AoT, Array, Bool, InlineTable, Item, String, Table
 from urllib3 import util as urllib3_util
+from urllib3.util import parse_url as urllib3_parse
+from urllib3.util.url import Url
 from vistir.compat import lru_cache
 from vistir.misc import dedup
 from vistir.path import is_valid_url
@@ -280,6 +282,29 @@ def build_vcs_uri(
     if subdirectory:
         uri = "{0}&subdirectory={1}".format(uri, subdirectory)
     return uri
+
+
+def _get_parsed_url(url):
+    # type: (S) -> Url
+    """
+    This is a stand-in function for `urllib3.util.parse_url`
+
+    The orignal function doesn't handle special characters very well, this simply splits
+    out the authentication section, creates the parsed url, then puts the authentication
+    section back in, bypassing validation.
+
+    :return: The new, parsed URL object
+    :rtype: :class:`~urllib3.util.url.Url`
+    """
+
+    try:
+        parsed = urllib3_parse(url)
+    except ValueError:
+        scheme, _, url = url.partition("://")
+        auth, _, url = url.rpartition("@")
+        url = "{scheme}://{url}".format(scheme=scheme, url=url)
+        parsed = urllib3_parse(url)._replace(auth=auth)
+    return parsed
 
 
 def convert_direct_url_to_url(direct_url):
@@ -544,13 +569,14 @@ def split_ref_from_uri(uri):
     """
     if not isinstance(uri, six.string_types):
         raise TypeError("Expected a string, received {0!r}".format(uri))
-    parsed = urllib_parse.urlparse(uri)
-    path = parsed.path
+    parsed = _get_parsed_url(uri)
+    path = parsed.path if parsed.path else ""
+    scheme = parsed.scheme if parsed.scheme else ""
     ref = None
-    if parsed.scheme != "file" and "@" in path:
+    if scheme != "file" and "@" in path:
         path, _, ref = path.rpartition("@")
     parsed = parsed._replace(path=path)
-    return (urllib_parse.urlunparse(parsed), ref)
+    return (parsed.url, ref)
 
 
 def validate_vcs(instance, attr_, value):
