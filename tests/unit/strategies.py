@@ -2,6 +2,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+import re
 import string
 import sys
 from collections import namedtuple
@@ -228,7 +229,7 @@ def auth_url(draw, auth_string=auth_strings()):
     )
     port = draw(st.integers(min_value=0, max_value=65535))
     port_str = ""
-    if port:
+    if port and int(port) != 0:
         port_str = ":{0!s}".format(port)
     auth = draw(auth_string)
     if auth:
@@ -240,10 +241,9 @@ def auth_url(draw, auth_string=auth_strings()):
     assume(not any(auth.endswith(c) for c in [":", ":@"]))
     # assume(not all(["#" in auth, ":" not in auth]))
     domain = draw(domains().map(lambda x: x.lower()).filter(lambda x: x != ""))
-    scheme = draw(
-        st.sampled_from(uri_schemes).filter(lambda x: not x.startswith("file:"))
-    )
-    return "{}://{}{}{}/{}".format(scheme, auth, domain, port_str, path)
+    scheme = draw(st.sampled_from(uri_schemes))
+    scheme_sep = "://" if not scheme.startswith("file") else ":///"
+    return "{}{}{}{}{}/{}".format(scheme, scheme_sep, auth, domain, port_str, path)
 
 
 def repo_url_strategy():
@@ -576,3 +576,47 @@ def requirements(
         as_list=as_list,
         list_without_markers=list_without_markers,
     )
+
+
+url_regex = re.compile(
+    (
+        "^"
+        # protocol identifier (optional)
+        # short syntax // still required
+        "(?:(?:(?:https?|ftp):)?\\/\\/)"
+        # user:pass BasicAuth (optional)
+        "(?:\\S+(?::\\S*)?@)?"
+        "(?:"
+        # IP address exclusion
+        # private & local networks
+        "(?!(?:10|127)(?:\\.\\d{1,3}){3})"
+        "(?!(?:169\\.254|192\\.168)(?:\\.\\d{1,3}){2})"
+        "(?!172\\.(?:1[6-9]|2\\d|3[0-1])(?:\\.\\d{1,3}){2})"
+        # IP address dotted notation octets
+        # excludes loopback network 0.0.0.0
+        # excludes reserved space >= 224.0.0.0
+        # excludes network & broadcast addresses
+        # (first & last IP address of each class)
+        "(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])"
+        "(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}"
+        "(?:\\.(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))"
+        "|"
+        # host & domain names, may end with dot
+        # can be replaced by a shortest alternative
+        # (?![-_])(?:[-\\w\\u00a1-\\uffff]{0,63}[^-_]\\.)+
+        "(?:"
+        "(?:"
+        "[a-z0-9\\u00a1-\\uffff]"
+        "[a-z0-9\\u00a1-\\uffff_-]{0,62}"
+        ")?" + "[a-z0-9\\u00a1-\\uffff]\\."
+        ")+" +
+        # TLD identifier name, may end with dot
+        "(?:[a-z\\u00a1-\\uffff]{2,}\\.?)"
+        ")"
+        # port number (optional)
+        "(?::\\d{2,5})?"
+        # resource path (optional)
+        "(?:[/?#]\\S*)?"
+        "$"
+    )
+)

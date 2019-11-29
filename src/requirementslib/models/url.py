@@ -312,7 +312,7 @@ class URI(object):
         host = self.host if self.host else ""
         if self.port is not None:
             host = "{host}:{self.port!s}".format(host=host, self=self)
-        path = "{self.path}".format(self=self)
+        path = "{self.path}".format(self=self) if self.path else ""
         if self.ref and not strip_ref:
             path = "{path}@{self.ref}".format(path=path, self=self)
         return "{host}{path}".format(host=host, path=path)

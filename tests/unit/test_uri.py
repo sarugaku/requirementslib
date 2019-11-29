@@ -1,17 +1,16 @@
 # -*- coding=utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
-from hypothesis import assume, given
+from hypothesis import assume, given, strategies as st
 from six.moves.urllib_parse import quote_plus, unquote_plus, urlsplit, urlunsplit
 
 from requirementslib.models.url import URI
 
-from .strategies import auth_url, repository_url
+from .strategies import auth_url, repository_url, url_regex
 
 
 @given(auth_url())
 def test_uri(url):
-    assume(not url.startswith("file:"))
     parsed_url = URI.parse(url)
     result = urlsplit(url)
     assume(result.scheme and result.netloc)
