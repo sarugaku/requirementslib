@@ -177,7 +177,7 @@ def vcs_requirements():
 
 
 def auth_list():
-    return st.lists(st.text(string.printable), min_size=0, max_size=2)
+    return st.lists(st.text(URL_SAFE_CHARACTERS), min_size=0, max_size=2)
 
 
 @st.composite
@@ -223,10 +223,6 @@ def auth_url(draw, auth_string=auth_strings()):
         auth = "{0}@".format(auth)
     else:
         auth = ""
-    # none of the python url parsers can handle auth strings ending with "/"
-    # assume(not any(auth.startswith(c) for c in ["/", ":", "@"]))
-    assume(not any(auth.endswith(c) for c in [":", ":@"]))
-    # assume(not all(["#" in auth, ":" not in auth]))
     domain = draw(domains().map(lambda x: x.lower()).filter(lambda x: x != ""))
     scheme = draw(st.sampled_from(uri_schemes))
     scheme_sep = "://" if not scheme.startswith("file") else ":///"

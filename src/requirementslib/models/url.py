@@ -98,6 +98,8 @@ class URI(object):
     is_implicit_ssh = attr.ib(default=False, type=bool)
     _auth = attr.ib(default=None, type=str, repr=False)
     _fragment_dict = attr.ib(factory=dict, type=dict)
+    _username_is_quoted = attr.ib(type=bool, default=False)
+    _password_is_quoted = attr.ib(type=bool, default=False)
 
     def _parse_query(self):
         # type: () -> URI
@@ -147,26 +149,34 @@ class URI(object):
         # type: () -> URI
         if self._auth:
             username, _, password = self._auth.partition(":")
+            username_is_quoted, password_is_quoted = False, False
+            quoted_username, quoted_password = "", ""
             if password:
-                password = quote_plus(password)
-            elif username and not password:
-                username = quote_plus(username)
-            return attr.evolve(self, username=username, password=password)
+                quoted_password = quote_plus(password)
+                password_is_quoted = quoted_password != password
+            if username:
+                quoted_username = quote_plus(username)
+                username_is_quoted = quoted_username != username
+            return attr.evolve(
+                self,
+                username=quoted_username,
+                password=quoted_password,
+                username_is_quoted=username_is_quoted,
+                password_is_quoted=password_is_quoted,
+            )
         return self
 
     def get_password(self, unquote=False, include_token=True):
         # type: (bool, bool) -> str
-        password = self.password
-        if password and unquote:
+        password = self.password if self.password else ""
+        if password and unquote and self._password_is_quoted:
             password = unquote_plus(password)
-        else:
-            password = ""
         return password
 
     def get_username(self, unquote=False):
         # type: (bool) -> str
         username = self.username if self.username else ""
-        if username and unquote:
+        if username and unquote and self._username_is_quoted:
             username = unquote_plus(username)
         return username
 
@@ -394,7 +404,10 @@ class URI(object):
     def base_url(self):
         # type: () -> str
         return self.to_string(
-            escape_password=False, strip_ssh=self.is_implicit_ssh, direct=False
+            escape_password=False,
+            strip_ssh=self.is_implicit_ssh,
+            direct=False,
+            unquote=False,
         )
 
     @property
