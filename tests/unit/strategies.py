@@ -182,35 +182,22 @@ def auth_list():
 
 @st.composite
 def auth_strings(draw, auth=auth_list()):
-    def url_encode(s):
-        if not s:
-            return ""
-        chars = []
-        for c in s:
-            if not c:
-                continue
-            elif c in URL_SAFE_CHARACTERS:
-                chars.append(c)
-            else:
-                chars.append("%%%02X" % ord(c))
-        return "".join(chars)
-
     auth_section = draw(auth)
     if auth_section and len(auth_section) == 2:
         user, password = auth_section
         if user and password:
             result = "{0}:{1}".format(
-                "".join([url_encode(s) for s in user]),
-                "".join([url_encode(s) for s in password]),
+                urllib_parse.quote_plus(user.encode()),
+                urllib_parse.quote_plus(password.encode()),
             )
         elif user and not password:
-            result = "".join([url_encode(s) for s in user])
+            result = urllib_parse.quote_plus(user.encode())
         elif password and not user:
-            result = "".join([url_encode(s) for s in password])
+            result = urllib_parse.quote_plus(password.encode())
         else:
             result = ""
     elif auth_section and len(auth_section) == 1:
-        result = "{0}".format("".join([url_encode(s) for s in auth_section]))
+        result = "{0}".format(urllib_parse.quote_plus(next(iter(auth_section)).encode()))
     else:
         result = ""
     return result
@@ -232,9 +219,9 @@ def auth_url(draw, auth_string=auth_strings()):
     if port and int(port) != 0:
         port_str = ":{0!s}".format(port)
     auth = draw(auth_string)
-    if auth:
+    if auth and auth != ":":
         auth = "{0}@".format(auth)
-    if auth == ":@":
+    else:
         auth = ""
     # none of the python url parsers can handle auth strings ending with "/"
     # assume(not any(auth.startswith(c) for c in ["/", ":", "@"]))
