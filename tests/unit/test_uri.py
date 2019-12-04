@@ -17,7 +17,6 @@ def test_uri(url):
     result = urlsplit(url)
     rewritten_url = urlunsplit(result._replace(path=os.path.abspath(result.path)))
     assume(result.scheme and result.netloc)
-    # rewritten_url = urlunsplit(result._replace(netloc=unquote_plus(result.netloc)))
     assert parsed_url.base_url == rewritten_url
     if parsed_url.username or parsed_url.password:
         assert "----" in parsed_url.safe_string
