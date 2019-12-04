@@ -1,6 +1,8 @@
 # -*- coding=utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
+
 from hypothesis import assume, given, strategies as st
 from six.moves.urllib_parse import quote_plus, unquote_plus, urlsplit, urlunsplit
 
@@ -13,8 +15,9 @@ from .strategies import auth_url, repository_url, url_regex
 def test_uri(url):
     parsed_url = URI.parse(url)
     result = urlsplit(url)
+    rewritten_url = urlunsplit(result._replace(path=os.path.abspath(result.path)))
     assume(result.scheme and result.netloc)
-    rewritten_url = urlunsplit(result._replace(netloc=unquote_plus(result.netloc)))
+    # rewritten_url = urlunsplit(result._replace(netloc=unquote_plus(result.netloc)))
     assert parsed_url.base_url == rewritten_url
     if parsed_url.username or parsed_url.password:
         assert "----" in parsed_url.safe_string
