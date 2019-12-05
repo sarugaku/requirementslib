@@ -5,17 +5,25 @@ import os
 
 from hypothesis import assume, given, strategies as st
 from six.moves.urllib_parse import quote_plus, unquote_plus, urlsplit, urlunsplit
+from vistir.compat import Path
 
 from requirementslib.models.url import URI
 
-from .strategies import auth_url, repository_url, url_regex
+from .strategies import auth_url, auth_url_strategy, repository_url, url_regex
 
 
-@given(auth_url())
-def test_uri(url):
+@given(auth_url_strategy())
+def test_uri(authurl):
+    auth = "{}".format(authurl.auth) if authurl.auth != ":" else ""
+    port = ":{}".format(authurl.port) if authurl.port != 0 else ""
+    path = "" if not authurl.path else "/{}".format(authurl.path)
+    url = "{}{}{}{}{}".format(authurl.scheme, auth, authurl.domain, port, path)
     parsed_url = URI.parse(url)
     result = urlsplit(url)
-    rewritten_url = urlunsplit(result._replace(path=os.path.abspath(result.path)))
+    new_path = ""
+    if result.path:
+        _, new_path = os.path.splitdrive(Path(result.path).absolute().as_posix())
+    rewritten_url = urlunsplit(result._replace(path=new_path))
     assume(result.scheme and result.netloc)
     assert parsed_url.base_url == rewritten_url
     if parsed_url.username or parsed_url.password:

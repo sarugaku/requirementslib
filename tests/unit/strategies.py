@@ -23,6 +23,7 @@ parsed_url = namedtuple("ParsedUrl", "scheme netloc path params query fragment")
 parsed_url.__new__.__defaults__ = ("", "", "", "", "", "")
 relative_path = namedtuple("RelativePath", "leading_dots separator dest")
 relative_path.__new__.__defaults__ = ("", "", "")
+AuthUrl = namedtuple("AuthUrl", "scheme auth domain port path")
 MarkerTuple = namedtuple("MarkerTuple", "variable op value")
 MarkerTuple.__new__.__defaults__ = ("", "", "")
 NormalRequirement = namedtuple(
@@ -224,9 +225,31 @@ def auth_url(draw, auth_string=auth_strings()):
     else:
         auth = ""
     domain = draw(domains().map(lambda x: x.lower()).filter(lambda x: x != ""))
-    scheme = draw(st.sampled_from(uri_schemes))
-    scheme_sep = "://" if not scheme.startswith("file") else ":///"
-    return "{}{}{}{}{}/{}".format(scheme, scheme_sep, auth, domain, port_str, path)
+    schemes = ["{0}://".format(scheme) for scheme in uri_schemes if scheme != "file"]
+    schemes.append("file:///")
+    scheme = draw(st.sampled_from(schemes))
+    return "{}{}{}{}/{}".format(scheme, auth, domain, port_str, path)
+
+
+def auth_url_strategy():
+    # taken from the hypothesis provisional url generation strategy
+    def url_encode(s):
+        return "".join(c if c in URL_SAFE_CHARACTERS else "%%%02X" % ord(c) for c in s)
+
+    schemes = ["{0}://".format(scheme) for scheme in uri_schemes if scheme != "file"]
+    schemes.append("file:///")
+    return st.builds(
+        AuthUrl,
+        scheme=st.sampled_from(schemes),
+        auth=auth_strings()
+        .filter(lambda x: x != ":")
+        .map(lambda x: "" if not x else "{0}@".format(x)),
+        domain=domains().filter(lambda x: x != "").map(lambda x: x.lower()),
+        port=st.integers(min_value=0, max_value=65535),
+        path=st.lists(
+            st.text(string.printable).map(url_encode).filter(lambda x: x not in ["", "."])
+        ).map("/".join),
+    )
 
 
 def repo_url_strategy():
