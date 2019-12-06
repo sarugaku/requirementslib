@@ -22,10 +22,12 @@ def test_uri(authurl):
     result = urlsplit(url)
     new_path = ""
     if result.path:
-        _, new_path = os.path.splitdrive(Path(result.path).absolute().as_posix())
+        _, new_path = os.path.splitdrive(Path(result.path).as_posix())
     rewritten_url = urlunsplit(result._replace(path=new_path))
     assume(result.scheme and result.netloc)
-    assert parsed_url.base_url == rewritten_url
+    assert parsed_url.base_url == rewritten_url, "{} {} {}".format(
+        result.path, new_path, Path(result.path).as_posix()
+    )
     if parsed_url.username or parsed_url.password:
         assert "----" in parsed_url.safe_string
         assert "****" in parsed_url.hidden_auth
