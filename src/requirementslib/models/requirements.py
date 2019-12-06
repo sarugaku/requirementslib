@@ -27,7 +27,7 @@ from packaging.specifiers import (
 from packaging.utils import canonicalize_name
 from six.moves.urllib import parse as urllib_parse
 from six.moves.urllib.parse import unquote
-from vistir.compat import FileNotFoundError, Mapping, Path, lru_cache
+from vistir.compat import FileNotFoundError, Path, lru_cache
 from vistir.contextmanagers import temp_path
 from vistir.misc import dedup
 from vistir.path import (

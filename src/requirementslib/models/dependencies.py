@@ -15,7 +15,6 @@ from first import first
 from packaging.utils import canonicalize_name
 from vistir.compat import JSONDecodeError, fs_str
 from vistir.contextmanagers import cd, temp_environ
-from vistir.misc import partialclass
 from vistir.path import create_tracked_tempdir
 
 from ..environment import MYPY_RUNNING

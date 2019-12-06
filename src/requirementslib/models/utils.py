@@ -8,7 +8,6 @@ import string
 import sys
 from collections import defaultdict
 from itertools import chain, groupby
-from operator import attrgetter
 
 import six
 import tomlkit
@@ -18,12 +17,10 @@ from packaging.markers import InvalidMarker, Marker, Op, Value, Variable
 from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 from packaging.version import parse as parse_version
 from plette.models import Package, PackageCollection
-from six.moves.urllib import parse as urllib_parse
 from tomlkit.container import Container
 from tomlkit.items import AoT, Array, Bool, InlineTable, Item, String, Table
 from urllib3 import util as urllib3_util
 from urllib3.util import parse_url as urllib3_parse
-from urllib3.util.url import Url
 from vistir.compat import lru_cache
 from vistir.misc import dedup
 from vistir.path import is_valid_url
@@ -32,6 +29,16 @@ from ..environment import MYPY_RUNNING
 from ..utils import SCHEME_LIST, VCS_LIST, is_star
 
 if MYPY_RUNNING:
+    from attr import _ValidatorType  # noqa
+    from packaging.requirements import Requirement as PackagingRequirement
+    from pip_shims.shims import Link
+    from pkg_resources import Requirement as PkgResourcesRequirement
+    from pkg_resources.extern.packaging.markers import (
+        Op as PkgResourcesOp,
+        Variable as PkgResourcesVariable,
+        Value as PkgResourcesValue,
+        Marker as PkgResourcesMarker,
+    )
     from typing import (
         Union,
         Optional,
@@ -47,16 +54,7 @@ if MYPY_RUNNING:
         Match,
         Iterable,  # noqa
     )
-    from attr import _ValidatorType  # noqa
-    from packaging.requirements import Requirement as PackagingRequirement
-    from pkg_resources import Requirement as PkgResourcesRequirement
-    from pkg_resources.extern.packaging.markers import (
-        Op as PkgResourcesOp,
-        Variable as PkgResourcesVariable,
-        Value as PkgResourcesValue,
-        Marker as PkgResourcesMarker,
-    )
-    from pip_shims.shims import Link
+    from urllib3.util.url import Url
     from vistir.compat import Path
 
     _T = TypeVar("_T")

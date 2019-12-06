@@ -9,7 +9,7 @@ from vistir.compat import Path
 
 from requirementslib.models.url import URI
 
-from .strategies import auth_url, auth_url_strategy, repository_url, url_regex
+from .strategies import auth_url_strategy, repository_url, url_regex
 
 
 @given(auth_url_strategy())
