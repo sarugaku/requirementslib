@@ -204,33 +204,6 @@ def auth_strings(draw, auth=auth_list()):
     return result
 
 
-@st.composite
-def auth_url(draw, auth_string=auth_strings()):
-    # taken from the hypothesis provisional url generation strategy
-    def url_encode(s):
-        return "".join(c if c in URL_SAFE_CHARACTERS else "%%%02X" % ord(c) for c in s)
-
-    path = draw(
-        st.lists(
-            st.text(string.printable).map(url_encode).filter(lambda x: x not in ["", "."])
-        ).map("/".join)
-    )
-    port = draw(st.integers(min_value=0, max_value=65535))
-    port_str = ""
-    if port and int(port) != 0:
-        port_str = ":{0!s}".format(port)
-    auth = draw(auth_string)
-    if auth and auth != ":":
-        auth = "{0}@".format(auth)
-    else:
-        auth = ""
-    domain = draw(domains().map(lambda x: x.lower()).filter(lambda x: x != ""))
-    schemes = ["{0}://".format(scheme) for scheme in uri_schemes if scheme != "file"]
-    schemes.append("file:///")
-    scheme = draw(st.sampled_from(schemes))
-    return "{}{}{}{}/{}".format(scheme, auth, domain, port_str, path)
-
-
 def auth_url_strategy():
     # taken from the hypothesis provisional url generation strategy
     def url_encode(s):
@@ -277,7 +250,7 @@ def repo_url_strategy():
         .map(lambda x: x.replace("file://", "file:///"))
     )
     auth = (
-        auth_string()
+        auth_strings()
         .map("{}@".format)
         .map(lambda x: "" if x == "@" else x)
         .map(lambda x: x.replace(":@", "@") if x.endswith(":@") else x)

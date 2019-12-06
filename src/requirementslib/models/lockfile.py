@@ -40,7 +40,7 @@ class Lockfile(object):
 
     @path.default
     def _get_path(self):
-        return Path(os.curdir).absolute()
+        return Path(os.curdir).joinpath("Pipfile.lock").absolute()
 
     @projectfile.default
     def _get_projectfile(self):
@@ -48,7 +48,7 @@ class Lockfile(object):
 
     @_lockfile.default
     def _get_lockfile(self):
-        return self.projectfile.lockfile
+        return self.projectfile.model
 
     @property
     def lockfile(self):

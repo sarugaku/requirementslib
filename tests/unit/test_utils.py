@@ -1,7 +1,7 @@
 # -*- coding=utf-8 -*-
 import pip_shims.shims
-
-from pytest import raises
+import pytest
+from vistir.compat import Path, fs_decode
 
 from requirementslib import utils as base_utils
 from requirementslib.models import utils
@@ -13,7 +13,15 @@ def mock_run_requires(cls):
     return {}
 
 
-def mock_unpack(link, source_dir, download_dir, only_download=False, session=None, hashes=None, progress_bar="off"):
+def mock_unpack(
+    link,
+    source_dir,
+    download_dir,
+    only_download=False,
+    session=None,
+    hashes=None,
+    progress_bar="off",
+):
     return
 
 
@@ -44,8 +52,18 @@ def test_extras_to_string():
 
 
 def test_build_vcs_uri():
-    uri = utils.build_vcs_uri("git", "https://github.com/sarugaku/plette.git", name="passa", ref="master", subdirectory="subdir", extras="validation")
-    assert uri == "git+https://github.com/sarugaku/plette.git@master#egg=passa[validation]&subdirectory=subdir"
+    uri = utils.build_vcs_uri(
+        "git",
+        "https://github.com/sarugaku/plette.git",
+        name="passa",
+        ref="master",
+        subdirectory="subdir",
+        extras="validation",
+    )
+    assert (
+        uri
+        == "git+https://github.com/sarugaku/plette.git@master#egg=passa[validation]&subdirectory=subdir"
+    )
 
 
 def test_strip_ssh_from_git_url():
@@ -57,23 +75,33 @@ def test_strip_ssh_from_git_url():
 
 def test_split_markers_from_line():
     line = "test_requirement; marker=='something'"
-    assert utils.split_markers_from_line(line) == ("test_requirement", "marker=='something'")
+    assert utils.split_markers_from_line(line) == (
+        "test_requirement",
+        "marker=='something'",
+    )
     line = "test_requirement"
     assert utils.split_markers_from_line(line) == ("test_requirement", None)
 
 
 def test_split_vcs_method_from_uri():
     url = "git+https://github.com/sarugaku/plette.git"
-    assert utils.split_vcs_method_from_uri(url) == ("git", "https://github.com/sarugaku/plette.git")
+    assert utils.split_vcs_method_from_uri(url) == (
+        "git",
+        "https://github.com/sarugaku/plette.git",
+    )
     url = "https://github.com/sarugaku/plette.git"
-    assert utils.split_vcs_method_from_uri(url) == (None, "https://github.com/sarugaku/plette.git")
+    assert utils.split_vcs_method_from_uri(url) == (
+        None,
+        "https://github.com/sarugaku/plette.git",
+    )
 
 
 # tests from pip-tools
 
+
 def test_format_requirement():
-    ireq = Requirement.from_line('test==1.2').as_ireq()
-    assert utils.format_requirement(ireq) == 'test==1.2'
+    ireq = Requirement.from_line("test==1.2").as_ireq()
+    assert utils.format_requirement(ireq) == "test==1.2"
 
 
 def test_format_requirement_editable(monkeypatch):
@@ -81,47 +109,94 @@ def test_format_requirement_editable(monkeypatch):
         m.setattr(SetupInfo, "get_info", mock_run_requires)
         m.setattr(Requirement, "run_requires", mock_run_requires)
         m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
-        ireq = Requirement.from_line('-e git+git://fake.org/x/y.git#egg=y').as_ireq()
-        assert utils.format_requirement(ireq) == '-e git+git://fake.org/x/y.git#egg=y'
+        ireq = Requirement.from_line("-e git+git://fake.org/x/y.git#egg=y").as_ireq()
+        assert utils.format_requirement(ireq) == "-e git+git://fake.org/x/y.git#egg=y"
 
 
 def test_format_specifier():
-    ireq = Requirement.from_line('foo').as_ireq()
-    assert utils.format_specifier(ireq) == '<any>'
+    ireq = Requirement.from_line("foo").as_ireq()
+    assert utils.format_specifier(ireq) == "<any>"
 
-    ireq = Requirement.from_line('foo==1.2').as_ireq()
-    assert utils.format_specifier(ireq) == '==1.2'
+    ireq = Requirement.from_line("foo==1.2").as_ireq()
+    assert utils.format_specifier(ireq) == "==1.2"
 
-    ireq = Requirement.from_line('foo>1.2,~=1.1,<1.5').as_ireq()
-    assert utils.format_specifier(ireq) == '~=1.1,>1.2,<1.5'
-    ireq = Requirement.from_line('foo~=1.1,<1.5,>1.2').as_ireq()
-    assert utils.format_specifier(ireq) == '~=1.1,>1.2,<1.5'
+    ireq = Requirement.from_line("foo>1.2,~=1.1,<1.5").as_ireq()
+    assert utils.format_specifier(ireq) == "~=1.1,>1.2,<1.5"
+    ireq = Requirement.from_line("foo~=1.1,<1.5,>1.2").as_ireq()
+    assert utils.format_specifier(ireq) == "~=1.1,>1.2,<1.5"
 
 
 def test_as_tuple():
-    ireq = Requirement.from_line('foo==1.1').as_ireq()
+    ireq = Requirement.from_line("foo==1.1").as_ireq()
     name, version, extras = utils.as_tuple(ireq)
-    assert name == 'foo'
-    assert version == '1.1'
+    assert name == "foo"
+    assert version == "1.1"
     assert extras == ()
 
-    ireq = Requirement.from_line('foo[extra1,extra2]==1.1').as_ireq()
+    ireq = Requirement.from_line("foo[extra1,extra2]==1.1").as_ireq()
     name, version, extras = utils.as_tuple(ireq)
-    assert name == 'foo'
-    assert version == '1.1'
+    assert name == "foo"
+    assert version == "1.1"
     assert extras == ("extra1", "extra2")
 
     # Non-pinned versions aren't accepted
     should_be_rejected = [
-        'foo==1.*',
-        'foo~=1.1,<1.5,>1.2',
-        'foo',
+        "foo==1.*",
+        "foo~=1.1,<1.5,>1.2",
+        "foo",
     ]
     for spec in should_be_rejected:
         ireq = Requirement.from_line(spec).as_ireq()
-        with raises(TypeError):
+        with pytest.raises(TypeError):
             utils.as_tuple(ireq)
 
 
 def test_flat_map():
     assert [1, 2, 4, 1, 3, 9] == list(utils.flat_map(lambda x: [1, x, x * x], [2, 3]))
+
+
+@pytest.mark.parametrize(
+    "entry, expected",
+    [
+        (
+            {"file": Path("fakefile").absolute().as_uri()},
+            Path("fakefile").absolute().as_posix(),
+        ),
+        (
+            {"path": Path("fakefile").absolute().as_posix()},
+            Path("fakefile").absolute().as_posix(),
+        ),
+        ({"path": "."}, "."),
+        ({"path": "../otherfakefile"}, "../otherfakefile"),
+    ],
+)
+def test_convert_to_path(entry, expected):
+    assert fs_decode(base_utils.convert_entry_to_path(entry)) == expected
+
+
+def test_convert_to_path_failures():
+    with pytest.raises(TypeError):
+        base_utils.convert_entry_to_path("some_string")
+    with pytest.raises(ValueError):
+        base_utils.convert_entry_to_path(
+            {"git": "https://github.com/sarugaku/vistir.git", "editable": True}
+        )
+
+
+@pytest.mark.parametrize(
+    "input, expected",
+    [
+        ({"file": Path("fakefile").absolute().as_uri()}, False),
+        ({"path": Path("fakefile").absolute()}, False),
+        ({"path": ".", "editable": True}, True),
+        ({"path": "../otherfakefile"}, False),
+        ({"git": "https://github.com/sarugaku/vistir.git", "editable": True}, True),
+        ({"git": "https://github.com/sarugaku/shellingham.git"}, False),
+        ("-e .", True),
+        (".", False),
+        ("-e git+https://github.com/pypa/pip.git", True),
+        ("git+https://github.com/pypa/pip.git", False),
+    ],
+)
+def test_editable_check(input, expected):
+    assert base_utils.is_editable(input) is expected
