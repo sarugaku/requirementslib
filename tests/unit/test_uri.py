@@ -22,7 +22,11 @@ def test_uri(authurl):
     result = urlsplit(url)
     new_path = ""
     if result.path:
-        _, new_path = os.path.splitdrive(Path(result.path).as_posix())
+        new_path = Path(result.path).resolve().as_posix()
+        if os.name == "nt":
+            # because windows will put a drive here even if it was
+            # just an empty string
+            new_path = new_path[2:]
     rewritten_url = urlunsplit(result._replace(path=new_path))
     assume(result.scheme and result.netloc)
     assert parsed_url.base_url == rewritten_url, "{} {} {}".format(
