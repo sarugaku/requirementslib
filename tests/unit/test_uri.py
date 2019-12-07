@@ -19,18 +19,22 @@ def test_uri(authurl):
     path = "" if not authurl.path else "/{}".format(authurl.path)
     url = "{}{}{}{}{}".format(authurl.scheme, auth, authurl.domain, port, path)
     parsed_url = URI.parse(url)
-    result = urlsplit(url)
-    new_path = ""
-    if result.path:
-        new_path = Path(result.path).resolve().as_posix()
-        if os.name == "nt":
-            # because windows will put a drive here even if it was
-            # just an empty string
-            new_path = new_path[2:]
-    rewritten_url = urlunsplit(result._replace(path=new_path))
-    assume(result.scheme and result.netloc)
-    assert parsed_url.base_url == rewritten_url, "{} {} {}".format(
-        result.path, new_path, Path(result.path).as_posix()
+    # result = urlsplit(url)
+    # new_path = ""
+    # if result.path:
+    #     new_path = Path(result.path).resolve().as_posix()
+    #     if os.name == "nt":
+    #         # because windows will put a drive here even if it was
+    #         # just an empty string
+    #         new_path = new_path[2:]
+    # rewritten_url = urlunsplit(result._replace(path=new_path))
+    # assume(result.scheme and result.netloc)
+    assume(authurl.scheme and authurl.domain)
+    # assert parsed_url.base_url == rewritten_url, "{} {} {}".format(
+    #     result.path, new_path, Path(result.path).as_posix()
+    # )
+    assert parsed_url.base_url == url, "{} {} {!s}".format(
+        parsed_url.base_url, url, authurl
     )
     if parsed_url.username or parsed_url.password:
         assert "----" in parsed_url.safe_string
