@@ -28,7 +28,7 @@ def test_lockfile_requirements(pathlib_tmpdir):
     lockfile = pathlib_tmpdir.joinpath("Pipfile.lock")
     lockfile.write_text(
         textwrap.dedent(
-            """
+            u"""
     {
         "_meta": {
             "hash": {
