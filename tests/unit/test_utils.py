@@ -1,7 +1,7 @@
 # -*- coding=utf-8 -*-
 import pip_shims.shims
 import pytest
-from vistir.compat import Path, fs_decode
+from vistir.compat import Path
 
 from requirementslib import utils as base_utils
 from requirementslib.models import utils
@@ -171,7 +171,7 @@ def test_flat_map():
     ],
 )
 def test_convert_to_path(entry, expected):
-    assert fs_decode(base_utils.convert_entry_to_path(entry)) == expected
+    assert base_utils.convert_entry_to_path(entry) == expected
 
 
 def test_convert_to_path_failures():
