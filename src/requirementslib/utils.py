@@ -180,7 +180,7 @@ def convert_entry_to_path(path):
 
     elif "path" in path:
         path = path["path"]
-    if not os_name == "nt":
+    if not os.name == "nt":
         return fs_decode(path)
     return Path(fs_decode(path)).as_posix()
 
