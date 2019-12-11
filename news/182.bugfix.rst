@@ -1,0 +1,1 @@
+Fixed an issue with loading ``Pipfile`` data due to ``plette`` model misalignment.

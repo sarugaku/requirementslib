@@ -60,11 +60,11 @@ DEP_PIP_PAIRS = [
         # Extras in url
         {
             "discord.py": {
-                "file": "https://github.com/Rapptz/discord.py/archive/rewrite.zip",
+                "file": "https://github.com/Rapptz/discord.py/archive/async.zip",
                 "extras": ["voice"],
             }
         },
-        "https://github.com/Rapptz/discord.py/archive/rewrite.zip#egg=discord.py[voice]",
+        "https://github.com/Rapptz/discord.py/archive/async.zip#egg=discord.py[voice]",
     ),
     (
         {
@@ -210,6 +210,7 @@ def test_convert_from_pip(monkeypatch, expected, requirement):
     with monkeypatch.context() as m:
         m.setattr(Requirement, "run_requires", mock_run_requires)
         m.setattr(SetupInfo, "get_info", mock_run_requires)
+        m.setattr(Line, "get_setup_info", mock_run_requires)
         m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
         pkg_name = first(expected.keys())
         pkg_pipfile = expected[pkg_name]
@@ -439,7 +440,7 @@ def test_pep_508():
     assert r.specifiers == "==0.12.1"
     assert (
         r.req.link.url
-        == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1#egg=tablib"
+        == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
     )
     assert r.req.req.name == "tablib"
     assert r.req.req.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"

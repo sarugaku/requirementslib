@@ -1,0 +1,1 @@
+Fixed a bug in parsing of ``Pipfiles`` with missing or misnamed ``source`` sections which could cause ``tomlkit`` errors when loading legacy ``Pipfiles``.
