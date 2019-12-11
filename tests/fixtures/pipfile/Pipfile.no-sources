@@ -1,0 +1,11 @@
+[packages]
+
+[dev-packages]
+sphinx = "*"
+requests = {extras = ["security"], version = "*"}
+
+[pipenv]
+allow_prereleases = true
+
+[requires]
+python_version = "3.6"

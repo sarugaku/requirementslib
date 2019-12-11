@@ -225,10 +225,11 @@ def get_package_dir_from_setupcfg(parser, base_dir=None):
         package_dir = base_dir
     else:
         package_dir = os.getcwd()
-    if parser.has_option("options", "packages.find"):
-        pkg_dir = parser.get("options", "packages.find")
-        if isinstance(package_dir, Mapping):
-            package_dir = os.path.join(package_dir, pkg_dir.get("where"))
+    if parser.has_option("options.packages.find", "where"):
+        pkg_dir = parser.get("options.packages.find", "where")
+        if isinstance(pkg_dir, Mapping):
+            pkg_dir = pkg_dir.get("where")
+        package_dir = os.path.join(package_dir, pkg_dir)
     elif parser.has_option("options", "packages"):
         pkg_dir = parser.get("options", "packages")
         if "find:" in pkg_dir:
@@ -408,14 +409,11 @@ def _prepare_wheel_building_kwargs(
 
     wheel_download_dir = os.path.join(CACHE_DIR, "wheels")  # type: STRING_TYPE
     mkdir_p(wheel_download_dir)
-
     if src_dir is None:
         if editable and src_root is not None:
             src_dir = src_root
-        elif ireq is None and src_root is not None and not editable:
+        elif src_root is not None:
             src_dir = _get_src_dir(root=src_root)  # type: STRING_TYPE
-        elif ireq is not None and ireq.editable and src_root is not None:
-            src_dir = _get_src_dir(root=src_root)
         else:
             src_dir = create_tracked_tempdir(prefix="reqlib-src")
 
@@ -1183,13 +1181,15 @@ class SetupInfo(object):
         if not self.pyproject.exists():
             build_requires = ", ".join(['"{0}"'.format(r) for r in self.build_requires])
             self.pyproject.write_text(
-                u"""
+                six.text_type(
+                    """
 [build-system]
 requires = [{0}]
 build-backend = "{1}"
-            """.format(
-                    build_requires, self.build_backend
-                ).strip()
+                """.format(
+                        build_requires, self.build_backend
+                    ).strip()
+                )
             )
         return build_pep517(
             self.base_dir,
@@ -1209,13 +1209,15 @@ build-backend = "{1}"
                     ['"{0}"'.format(r) for r in self.build_requires]
                 )
             self.pyproject.write_text(
-                u"""
+                six.text_type(
+                    """
 [build-system]
 requires = [{0}]
 build-backend = "{1}"
-            """.format(
-                    build_requires, self.build_backend
-                ).strip()
+                """.format(
+                        build_requires, self.build_backend
+                    ).strip()
+                )
             )
         return build_pep517(
             self.base_dir,
@@ -1434,8 +1436,8 @@ build-backend = "{1}"
 
     @classmethod
     @lru_cache()
-    def from_ireq(cls, ireq, subdir=None, finder=None):
-        # type: (InstallRequirement, Optional[AnyStr], Optional[PackageFinder]) -> Optional[SetupInfo]
+    def from_ireq(cls, ireq, subdir=None, finder=None, session=None):
+        # type: (InstallRequirement, Optional[AnyStr], Optional[PackageFinder], Optional[requests.Session]) -> Optional[SetupInfo]
         import pip_shims.shims
 
         if not ireq.link:
@@ -1445,7 +1447,7 @@ build-backend = "{1}"
         if not finder:
             from .dependencies import get_finder
 
-            finder = get_finder()
+            session, finder = get_finder()
         _, uri = split_vcs_method_from_uri(unquote(ireq.link.url_without_fragment))
         parsed = urlparse(uri)
         if "file" in parsed.scheme:
@@ -1461,11 +1463,14 @@ build-backend = "{1}"
             path = pip_shims.shims.url_to_path(uri)
         kwargs = _prepare_wheel_building_kwargs(ireq)
         ireq.source_dir = kwargs["src_dir"]
-        if not (
-            ireq.editable
-            and pip_shims.shims.is_file_url(ireq.link)
-            and not ireq.link.is_artifact
-        ):
+        try:
+            is_vcs = ireq.link.is_vcs
+        except AttributeError:
+            try:
+                is_vcs = not ireq.link.is_artifact
+            except AttributeError:
+                is_vcs = False
+        if not (ireq.editable and pip_shims.shims.is_file_url(ireq.link) and is_vcs):
             if ireq.is_wheel:
                 only_download = True
                 download_dir = kwargs["wheel_download_dir"]
@@ -1476,17 +1481,16 @@ build-backend = "{1}"
             raise RequirementError(
                 "The file URL points to a directory not installable: {}".format(ireq.link)
             )
-        ireq.build_location(kwargs["build_dir"])
-        src_dir = ireq.ensure_has_source_dir(kwargs["src_dir"])
-        ireq._temp_build_dir.path = kwargs["build_dir"]
+        ireq.ensure_has_source_dir(kwargs["src_dir"])
+        src_dir = ireq.source_dir
 
         ireq.populate_link(finder, False, False)
-        pip_shims.shims.unpack_url(
-            ireq.link,
-            src_dir,
-            download_dir,
+        pip_shims.shims.shim_unpack(
+            link=ireq.link,
+            location=kwargs["src_dir"],
+            download_dir=download_dir,
             only_download=only_download,
-            session=finder.session,
+            session=session,
             hashes=ireq.hashes(False),
             progress_bar="off",
         )
