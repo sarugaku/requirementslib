@@ -9,14 +9,14 @@ trigger:
     - master
   paths:
     exclude:
-    - appveyor.yml
-    - *.md
-    - *.rst
-    - *.txt
-    - .github/*
-    - LICENSE
-    - news/*
-    - docs/*
+    - 'appveyor.yml'
+    - '*.md'
+    - '*.rst'
+    - '*.txt'
+    - '.github/*'
+    - 'LICENSE'
+    - 'news/*'
+    - 'docs/*'
 
 jobs:
 - job: TestLinux
