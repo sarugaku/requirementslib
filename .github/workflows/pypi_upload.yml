@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: pip-shims PyPI Upload
+    name: requirementslib PyPI Upload
     runs-on: ubuntu-latest
     env:
       CI: "1"
