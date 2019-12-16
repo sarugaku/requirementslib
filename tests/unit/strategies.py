@@ -220,7 +220,9 @@ def auth_url_strategy():
         domain=domains().filter(lambda x: x != "").map(lambda x: x.lower()),
         port=st.integers(min_value=0, max_value=65535),
         path=st.lists(
-            st.text(string.printable).map(url_encode).filter(lambda x: x not in ["", "."])
+            st.text(string.printable)
+            .map(url_encode)
+            .filter(lambda x: x not in ["", ".", ".."])
         ).map("/".join),
     )
 
