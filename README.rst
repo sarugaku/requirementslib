@@ -200,3 +200,36 @@ requirement itself via the property ``requirement.req.dependencies``:
 * `Pip <https://github.com/pypa/pip>`_
 * `Pipenv <https://github.com/pypa/pipenv>`_
 * `Pipfile`_
+
+🐉 Contributing
+===============
+
+1. Fork the repository and clone the fork to your local machine: ``git clone git@github.com:yourusername/requirementslib.git``
+
+2. Move into the repository directory and update the submodules: ``git submodule update --init --recursive``
+
+3. Install the package locally in a virtualenv using `pipenv <https://github.com/pypa/pipenv>`_: ``pipenv install --dev``
+
+   a. You can also install the package into a `virtualenv <https://github.com/pypa/virtualenv>`_ by running ``pip install -e .[dev,tests,typing]``
+      to ensure all the development and test dependencies are installed
+
+4. Before making any changes to the code, make sure to file an issue. The best way to ensure a smooth collaboration is to communicate *before*
+   investing significant time and energy into any changes! Make sure to consider not just your own use case but others who might be using the library
+
+5. Create a new branch. For bugs, you can simply branch to ``bugfix/<issuenumber>``. Features can be branched to ``feature/<issuenumber>``. This convention
+   is to streamline the branching process and to encourage good practices around filing issues and associating pull requests with specific issues. If you
+   find yourself addressing many issues in one pull request, that should give you pause
+
+6. Make your desired changes. Don't forget to add additional tests to account for your new code -- continuous integration **will** fail without it
+
+7. Test your changes by running ``pipenv run pytest -ra tests`` or simply ``pytest -ra tests`` if you are inside an activated virtual environment
+
+8. Create a corresponding ``.rst`` file in the ``news`` directory with a one sentence description of your change, e.g. ``Resolved an issue which sometimes prevented requirements from being converted from Pipfile entries to pip lines correctly``
+
+9. Commit your changes. The first line of your commit should be a summary of your changes, no longer than 72 characters, followed by a blank line, followed by a bulleted description of your changes.
+   Don't forget to add seperate lines with the phrase ``- Fixes #<issuenumber>`` for each issue you are addressing in your pull request
+
+10. Before submitting your pull request, make sure to ``git remote add upstream git@github.com:sarugaku/requirementslib.git`` and then ``git fetch upstream && git pull upstream master`` to ensure your code is in sync with the latest version of the master branch,
+
+11. Create a pull request describing your fix, referencing the issues in question. If your commit message from step 8 was detailed, you should be able to copy and paste it
+

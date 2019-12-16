@@ -4,7 +4,19 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
 trigger:
-- master
+  branches:
+    include:
+    - master
+  paths:
+    exclude:
+    - 'appveyor.yml'
+    - '*.md'
+    - '*.rst'
+    - '*.txt'
+    - '.github/*'
+    - 'LICENSE'
+    - 'news/*'
+    - 'docs/*'
 
 jobs:
 - job: TestLinux
@@ -20,6 +32,8 @@ jobs:
         python.version: '3.6'
       Python37:
         python.version: '3.7'
+      Python38:
+        python.version: '3.8'
     maxParallel: 4
   variables:
   - group: CI
