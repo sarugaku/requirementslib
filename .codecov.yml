@@ -1,0 +1,34 @@
+codecov:
+  branch: master
+
+comment: off
+
+coverage:
+  precision: 2
+  round: nearest
+  range: "50...100"
+
+  status:
+    project: yes
+    patch:
+      default:
+        target: '50'
+    changes: no
+
+ignore:
+  - ".github"
+  - "docs"
+  - "tests"
+  - "tasks"
+  - "news"
+  - "*.yml"
+  - "*.ini"
+  - "*.md"
+  - "*.rst"
+  - "*.txt"
+  - "MANIFEST.in"
+  - "*.cfg"
+  - "*.toml"
+  - "Pipfile"
+  - "LICENSE"
+  - "Pipfile.lock"
