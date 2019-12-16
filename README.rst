@@ -210,7 +210,7 @@ requirement itself via the property ``requirement.req.dependencies``:
 
 3. Install the package locally in a virtualenv using `pipenv <https://github.com/pypa/pipenv>`_: ``pipenv install --dev``
 
-   a. You can also install the package into a `virtualenv <https://github.com/pypa/virtualenv`_ by running ``pip install -e .[dev,tests,typing]``
+   a. You can also install the package into a `virtualenv <https://github.com/pypa/virtualenv>`_ by running ``pip install -e .[dev,tests,typing]``
       to ensure all the development and test dependencies are installed
 
 4. Before making any changes to the code, make sure to file an issue. The best way to ensure a smooth collaboration is to communicate *before*
