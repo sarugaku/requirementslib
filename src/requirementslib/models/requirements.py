@@ -83,6 +83,7 @@ from .utils import (
     make_install_requirement,
     normalize_name,
     parse_extras,
+    read_source,
     specs_to_string,
     split_markers_from_line,
     split_ref_from_uri,
@@ -863,8 +864,10 @@ class Line(object):
     def parsed_setup_cfg(self):
         # type: () -> Dict[Any, Any]
         if self.is_local and self.path and is_installable_dir(self.path):
+            setup_content = read_source(self.setup_cfg)
+            base_dir = os.path.dirname(os.path.abspath(self.setup_cfg))
             if self.setup_cfg:
-                return parse_setup_cfg(self.setup_cfg)
+                return parse_setup_cfg(setup_content, base_dir)
         return {}
 
     @cached_property
