@@ -5,6 +5,7 @@ import ast
 import atexit
 import contextlib
 import importlib
+import io
 import os
 import shutil
 import sys
@@ -294,7 +295,11 @@ def parse_setup_cfg(setup_cfg_contents, base_dir):
         },
     }
     parser = configparser.ConfigParser(default_opts)
-    parser.read_string(setup_cfg_contents)
+    if six.PY2:
+        buff = io.BytesIO(setup_cfg_contents)
+        parser.readfp(buff)
+    else:
+        parser.read_string(setup_cfg_contents)
     results = {}
     package_dir = get_package_dir_from_setupcfg(parser, base_dir=base_dir)
     name, version = get_name_and_version_from_setupcfg(parser, package_dir)
@@ -1111,6 +1116,8 @@ class SetupInfo(object):
             try:
                 parsed = setuptools_parse_setup_cfg(self.setup_cfg.as_posix())
             except Exception:
+                if six.PY2:
+                    contents = self.setup_cfg.read_bytes()
                 parsed = parse_setup_cfg(contents, base_dir)
             if not parsed:
                 return {}
