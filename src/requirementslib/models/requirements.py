@@ -863,12 +863,16 @@ class Line(object):
     @cached_property
     def parsed_setup_cfg(self):
         # type: () -> Dict[Any, Any]
-        if self.is_local and self.path and is_installable_dir(self.path):
-            setup_content = read_source(self.setup_cfg)
-            base_dir = os.path.dirname(os.path.abspath(self.setup_cfg))
-            if self.setup_cfg:
-                return parse_setup_cfg(setup_content, base_dir)
-        return {}
+        if not (
+            self.is_local
+            and self.path
+            and is_installable_dir(self.path)
+            and self.setup_cfg
+        ):
+            return {}
+        base_dir = os.path.dirname(os.path.abspath(self.setup_cfg))
+        setup_content = read_source(self.setup_cfg)
+        return parse_setup_cfg(setup_content, base_dir)
 
     @cached_property
     def parsed_setup_py(self):
