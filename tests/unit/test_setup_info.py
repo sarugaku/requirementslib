@@ -212,8 +212,11 @@ def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
 
 
 def test_setup_cfg_parser(setup_cfg_dir):
-    result = parse_setup_cfg(
-        (setup_cfg_dir / "package_with_multiple_extras/setup.cfg").as_posix()
-    )
+    setup_path = setup_cfg_dir / "package_with_multiple_extras/setup.cfg"
+    if six.PY2:
+        contents = setup_path.read_bytes()
+    else:
+        contents = setup_path.read_text()
+    result = parse_setup_cfg(contents, setup_path.parent.as_posix())
     assert result["version"] == "0.5.0"
     assert result["name"] == "test_package"
