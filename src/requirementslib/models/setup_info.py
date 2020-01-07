@@ -5,6 +5,7 @@ import ast
 import atexit
 import contextlib
 import importlib
+import io
 import os
 import shutil
 import sys
@@ -280,14 +281,8 @@ def get_extras_from_setupcfg(parser):
     return extras
 
 
-def parse_setup_cfg(setup_cfg_path):
-    # type: (S) -> Dict[S, Union[S, None, Set[BaseRequirement], List[S], Dict[STRING_TYPE, Tuple[BaseRequirement]]]]
-    if not os.path.exists(setup_cfg_path):
-        raise FileNotFoundError(setup_cfg_path)
-    try:
-        return setuptools_parse_setup_cfg(setup_cfg_path)
-    except Exception:
-        pass
+def parse_setup_cfg(setup_cfg_contents, base_dir):
+    # type: (S, S) -> Dict[S, Union[S, None, Set[BaseRequirement], List[S], Dict[STRING_TYPE, Tuple[BaseRequirement]]]]
     default_opts = {
         "metadata": {"name": "", "version": ""},
         "options": {
@@ -300,9 +295,12 @@ def parse_setup_cfg(setup_cfg_path):
         },
     }
     parser = configparser.ConfigParser(default_opts)
-    parser.read(setup_cfg_path)
+    if six.PY2:
+        buff = io.BytesIO(setup_cfg_contents)
+        parser.readfp(buff)
+    else:
+        parser.read_string(setup_cfg_contents)
     results = {}
-    base_dir = os.path.dirname(os.path.abspath(setup_cfg_path))
     package_dir = get_package_dir_from_setupcfg(parser, base_dir=base_dir)
     name, version = get_name_and_version_from_setupcfg(parser, package_dir)
     results["name"] = name
@@ -1031,11 +1029,6 @@ class SetupInfo(object):
             self._version = info.get("version", None)
         return self._version
 
-    @classmethod
-    def get_setup_cfg(cls, setup_cfg_path):
-        # type: (S) -> Dict[S, Union[S, None, Set[BaseRequirement], List[S], Tuple[S, Tuple[BaseRequirement]]]]
-        return parse_setup_cfg(setup_cfg_path)
-
     @property
     def egg_base(self):
         # type: () -> S
@@ -1118,7 +1111,14 @@ class SetupInfo(object):
     def parse_setup_cfg(self):
         # type: () -> Dict[STRING_TYPE, Any]
         if self.setup_cfg is not None and self.setup_cfg.exists():
-            parsed = self.get_setup_cfg(self.setup_cfg.as_posix())
+            contents = self.setup_cfg.read_text()
+            base_dir = self.setup_cfg.absolute().parent.as_posix()
+            try:
+                parsed = setuptools_parse_setup_cfg(self.setup_cfg.as_posix())
+            except Exception:
+                if six.PY2:
+                    contents = self.setup_cfg.read_bytes()
+                parsed = parse_setup_cfg(contents, base_dir)
             if not parsed:
                 return {}
             return parsed
@@ -1481,6 +1481,12 @@ build-backend = "{1}"
             raise RequirementError(
                 "The file URL points to a directory not installable: {}".format(ireq.link)
             )
+        # this ensures the build dir is treated as the temporary build location
+        # and the source dir is treated as permanent / not deleted by pip
+        build_location_func = getattr(ireq, "build_location", None)
+        if build_location_func is None:
+            build_location_func = getattr(ireq, "ensure_build_location", None)
+        build_location_func(kwargs["build_dir"])
         ireq.ensure_has_source_dir(kwargs["src_dir"])
         src_dir = ireq.source_dir
 
