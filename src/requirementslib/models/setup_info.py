@@ -47,6 +47,10 @@ except ImportError:
     import distutils
     from distutils.core import Distribution
 
+try:
+    from contextlib import ExitStack
+except ImportError:
+    from contextlib2 import ExitStack
 
 try:
     from os import scandir

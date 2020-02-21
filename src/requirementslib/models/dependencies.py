@@ -11,7 +11,6 @@ import packaging.markers
 import packaging.version
 import pip_shims.shims
 import requests
-from first import first
 from packaging.utils import canonicalize_name
 from vistir.compat import JSONDecodeError, fs_str
 from vistir.contextmanagers import cd, temp_environ
@@ -144,9 +143,9 @@ class AbstractDependency(object):
         :rtype: set(str)
         """
 
-        if len(self.candidates) == 1 and first(self.candidates).editable:
+        if len(self.candidates) == 1 and next(iter(self.candidates)).editable:
             return self
-        elif len(other.candidates) == 1 and first(other.candidates).editable:
+        elif len(other.candidates) == 1 and next(iter(other.candidates)).editable:
             return other
         return self.version_set & other.version_set
 
@@ -163,9 +162,9 @@ class AbstractDependency(object):
 
         from .requirements import Requirement
 
-        if len(self.candidates) == 1 and first(self.candidates).editable:
+        if len(self.candidates) == 1 and next(iter(self.candidates)).editable:
             return self
-        elif len(other.candidates) == 1 and first(other.candidates).editable:
+        elif len(other.candidates) == 1 and next(iter(other.candidates)).editable:
             return other
         new_specifiers = self.specifiers & other.specifiers
         markers = set(self.markers) if self.markers else set()
@@ -694,10 +693,10 @@ def get_grouped_dependencies(constraints):
     # then we take the loose match (which _is_ flexible) and start moving backwards in
     # versions by popping them off of a stack and checking for the conflicting package
     for _, ireqs in full_groupby(constraints, key=key_from_ireq):
-        ireqs = list(ireqs)
-        editable_ireq = first(ireqs, key=lambda ireq: ireq.editable)
+        ireqs = sorted(ireqs, key=lambda ireq: ireq.editable)
+        editable_ireq = next(iter(ireq for ireq in ireqs if ireq.editable), None)
         if editable_ireq:
-            yield editable_ireq  # ignore all the other specs: the editable one is the one that counts
+            yield editable_ireq  # only the editable match mattters, ignore all others
             continue
         ireqs = iter(ireqs)
         # deepcopy the accumulator so as to not modify the self.our_constraints invariant

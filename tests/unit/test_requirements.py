@@ -3,7 +3,6 @@ import os
 
 import pip_shims.shims
 import pytest
-from first import first
 from hypothesis import given, settings, strategies as st
 from vistir.compat import Path
 
@@ -212,7 +211,7 @@ def test_convert_from_pip(monkeypatch, expected, requirement):
         m.setattr(SetupInfo, "get_info", mock_run_requires)
         m.setattr(Line, "get_setup_info", mock_run_requires)
         m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
-        pkg_name = first(expected.keys())
+        pkg_name = next(iter(expected.keys()))
         pkg_pipfile = expected[pkg_name]
         line = Line(requirement)
         if (
@@ -236,7 +235,7 @@ def test_convert_from_pipfile(monkeypatch, requirement, expected):
         m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
         m.setattr(SetupInfo, "get_info", mock_run_requires)
         m.setattr(Requirement, "run_requires", mock_run_requires)
-        pkg_name = first(requirement.keys())
+        pkg_name = next(iter(requirement.keys()))
         pkg_pipfile = requirement[pkg_name]
         req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
         if " (" in expected and expected.endswith(")"):
@@ -283,7 +282,7 @@ def test_convert_non_installable_dir_fail(pathlib_tmpdir):
 def test_one_way_editable_extras():
     dep = "-e .[socks]"
     dep = Requirement.from_line(dep).as_pipfile()
-    k = first(dep.keys())
+    k = next(iter(dep.keys()))
     assert dep[k]["extras"] == ["socks"]
 
 
@@ -438,10 +437,7 @@ def test_pep_508():
         "tablib@ https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
     )
     assert r.specifiers == "==0.12.1"
-    assert (
-        r.req.link.url
-        == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
-    )
+    assert r.req.link.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
     assert r.req.req.name == "tablib"
     assert r.req.req.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
     requires, setup_requires, build_requires = r.req.dependencies
