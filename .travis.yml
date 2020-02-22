@@ -1,6 +1,6 @@
 language: python
 sudo: false
-dist: trusty
+dist: bionic
 cache:
     directories:
         - $HOME/.cache/pipenv
@@ -12,7 +12,7 @@ matrix:
 
 install:
   - "git submodule sync && git submodule update --init --recursive"
-  - "python -m pip install --upgrade pip pytest-timeout coverage pipenv"
+  - "python -m pip install --upgrade pip pytest-timeout coverage pipenv --upgrade-strategy=eager"
   - "python -m pip install -e .[tests,typing]"
   - "pipenv install --dev --deploy --system"
 script:
@@ -22,11 +22,12 @@ jobs:
   include:
     - stage: test
     - python: "3.7"
-      dist: xenial
+      dist: bionic
       sudo: required
     - python: "3.6"
     - python: "2.7"
     - python: "3.5"
+      dist: xenial
     - stage: packaging
       python: "3.6"
       install:
@@ -37,7 +38,7 @@ jobs:
     - stage: coverage
       python: "3.6"
       install:
-        - "pip install --upgrade pip pytest pytest-timeout pytest-cov coverage pipenv"
+        - "pip install --upgrade pip pytest pytest-timeout pytest-cov coverage pipenv --upgrade-strategy=eager"
         - "git submodule sync && git submodule update --init --recursive"
         - "pip install --upgrade -e .[tests,typing]"
         - "pipenv install --dev --deploy --system"
