@@ -148,9 +148,8 @@ def _format_pyspec(specifier):
     version = getattr(specifier, "version", specifier).rstrip()
     if version and version.endswith("*"):
         if version.endswith(".*"):
-            version = version.rstrip(".*")
-        else:
-            version = version.rstrip("*")
+            version = version[:-2]
+        version = version.rstrip("*")
         specifier = Specifier("{0}{1}".format(specifier.operator, version))
     try:
         op = REPLACE_RANGES[specifier.operator]
@@ -228,10 +227,10 @@ def normalize_specifier_set(specs):
         return {_format_pyspec(spec) for spec in specs}
     spec_list = []
     for spec in specs.split(","):
+        spec = spec.strip()
         if spec.endswith(".*"):
-            spec = spec.rstrip(".*")
-        elif spec.endswith("*"):
-            spec = spec.rstrip("*")
+            spec = spec[:-2]
+        spec = spec.rstrip("*")
         spec_list.append(spec)
     return normalize_specifier_set(SpecifierSet(",".join(spec_list)))
 
@@ -582,9 +581,10 @@ def get_specset(marker_list):
     specset = set()
     _last_str = "and"
     for marker_parts in marker_list:
-        specset.update(marker_parts)
         if isinstance(marker_parts, str):
             _last_str = marker_parts  # noqa
+        else:
+            specset.update(_get_specifiers_from_markers(marker_parts))
     specifiers = SpecifierSet()
     specifiers._specs = frozenset(specset)
     return specifiers

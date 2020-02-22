@@ -136,7 +136,7 @@ def test_get_extras(marker, extras):
             Marker(
                 "os_name == 'posix' and python_version >= '2.7' and python_version not in '3.0.*,3.1.*,3.2.*,3.3.*'"
             ),
-            SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3,>=2.7"),
+            SpecifierSet("!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"),
         ),
     ],
 )
