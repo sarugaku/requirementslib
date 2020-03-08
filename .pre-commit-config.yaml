@@ -17,8 +17,6 @@ repos:
         args: [
           --application-directories=src/requirementslib,
           --settings-path=./,
-          # --exclude=tests/.*\.py,
-          # --exclude=src/requirementslib/models/setup_info.py
         ]
 
   - repo: https://github.com/timothycrosley/isort
