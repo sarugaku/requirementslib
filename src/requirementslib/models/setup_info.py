@@ -19,7 +19,6 @@ import packaging.utils
 import packaging.version
 import pep517.envbuild
 import pep517.wrappers
-import pkg_resources.extern.packaging.requirements as pkg_resources_requirements
 import six
 from appdirs import user_cache_dir
 from distlib.wheel import Wheel
@@ -42,6 +41,11 @@ from .utils import (
     split_vcs_method_from_uri,
     strip_extras_markers_from_requirement,
 )
+
+try:
+    import pkg_resources.extern.packaging.requirements as pkg_resources_requirements
+except ImportError:
+    pkg_resources_requirements = None
 
 try:
     from setuptools.dist import distutils, Distribution
@@ -201,7 +205,9 @@ def make_base_requirements(reqs):
     for req in reqs:
         if isinstance(req, BaseRequirement):
             requirements.add(req)
-        elif isinstance(req, pkg_resources_requirements.Requirement):
+        elif pkg_resources_requirements is not None and isinstance(
+            req, pkg_resources_requirements.Requirement
+        ):
             requirements.add(BaseRequirement.from_req(req))
         elif req and isinstance(req, six.string_types) and not req.startswith("#"):
             requirements.add(BaseRequirement.from_string(req))
