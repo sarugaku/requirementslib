@@ -1,10 +1,15 @@
 # -*- coding=utf-8 -*-
 from __future__ import absolute_import, print_function
 
+import contextlib
+import io
+import json
 import os
+import random
 import shutil
 import warnings
 
+import distlib.wheel
 import pip_shims
 import pytest
 import requests
@@ -141,6 +146,70 @@ def setup_cfg_dir(fixture_dir):
 @pytest.fixture(scope="session")
 def pipfile_dir(fixture_dir):
     return fixture_dir / "pipfile"
+
+
+@pytest.fixture
+def package_json(fixture_dir, request):
+    name = request.param["name"]
+    json_path = fixture_dir / "{0}.json".format(name)
+    return json.loads(json_path.read_text())
+
+
+@pytest.fixture
+def monkeypatch_wheel_download(monkeypatch, fixture_dir):
+    @contextlib.contextmanager
+    def open_file(link, session=None, stream=True):
+        link_filename = os.path.basename(link)
+        dirname = distlib.wheel.Wheel(link_filename).name
+        wheel_path = fixture_dir / "wheels" / dirname / link_filename
+        buff = io.BytesIO(wheel_path.read_bytes())
+        yield buff
+
+    with monkeypatch.context() as m:
+        m.setattr(vistir.contextmanagers, "open_file", open_file)
+        yield
+
+
+@pytest.fixture
+def gen_metadata(request):
+    name = request.param.get("name", "test-package")
+    version = request.param.get(
+        version,
+        "{0}.{1}.{2}".format(
+            random.randint(0, 5), random.randint(0, 10), random.randint(0, 10)
+        ),
+    )
+    default_packages = ['enum34 ; python_version < "3.4"', "six", "requests"]
+    packages = "\n".join(
+        [
+            "Requires-Dist: {0}".format(pkg)
+            for pkg in request.param.get("packages", default_packages)
+        ]
+    )
+    return """
+Metadata-Version: 2.1
+Name: {name}
+Version: {version}
+Summary: This is a test package
+Home-page: http://test-package.test
+Author: Test Author
+Author-email: Fake-Author@test-package.test
+License: MIT
+Download-URL: https://github.com/this-is-fake/fake
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+{packages}
+""".format(
+        name=name, version=version, packages=packages
+    )
 
 
 @pytest.fixture
