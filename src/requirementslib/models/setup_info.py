@@ -642,35 +642,39 @@ def get_metadata_from_dist(dist):
     }
 
 
-AST_BINOP_MAP = dict((
-    (ast.Add, operator.add),
-    (ast.Sub, operator.sub),
-    (ast.Mult, operator.mul),
-    (ast.Div, operator.floordiv),
-    (ast.Mod, operator.mod),
-    (ast.Pow, operator.pow),
-    (ast.LShift, operator.lshift),
-    (ast.RShift, operator.rshift),
-    (ast.BitAnd, operator.and_),
-    (ast.BitOr, operator.or_),
-    (ast.BitXor, operator.xor),
-))
+AST_BINOP_MAP = dict(
+    (
+        (ast.Add, operator.add),
+        (ast.Sub, operator.sub),
+        (ast.Mult, operator.mul),
+        (ast.Div, operator.floordiv),
+        (ast.Mod, operator.mod),
+        (ast.Pow, operator.pow),
+        (ast.LShift, operator.lshift),
+        (ast.RShift, operator.rshift),
+        (ast.BitAnd, operator.and_),
+        (ast.BitOr, operator.or_),
+        (ast.BitXor, operator.xor),
+    )
+)
 
 
-AST_COMPARATORS = dict((
-    (ast.Lt, operator.lt),
-    (ast.LtE, operator.le),
-    (ast.Eq, operator.eq),
-    (ast.Gt, operator.gt),
-    (ast.GtE, operator.ge),
-    (ast.NotEq, operator.ne),
-    (ast.Is, operator.is_),
-    (ast.IsNot, operator.is_not),
-    (ast.And, operator.and_),
-    (ast.Or, operator.or_),
-    (ast.Not, operator.not_),
-    (ast.In, operator.contains),
-))
+AST_COMPARATORS = dict(
+    (
+        (ast.Lt, operator.lt),
+        (ast.LtE, operator.le),
+        (ast.Eq, operator.eq),
+        (ast.Gt, operator.gt),
+        (ast.GtE, operator.ge),
+        (ast.NotEq, operator.ne),
+        (ast.Is, operator.is_),
+        (ast.IsNot, operator.is_not),
+        (ast.And, operator.and_),
+        (ast.Or, operator.or_),
+        (ast.Not, operator.not_),
+        (ast.In, operator.contains),
+    )
+)
 
 
 class Analyzer(ast.NodeVisitor):
@@ -724,6 +728,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
         constant = (ast.Constant, ast.Ellipsis)
     else:
         constant = ast.Ellipsis
+    unparsed = item
     if isinstance(item, ast.Dict):
         unparsed = dict(zip(unparse(item.keys), unparse(item.values)))
     elif isinstance(item, ast.List):
@@ -789,13 +794,20 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
                     name, _, val = right.rpartition(".")
                     right = getattr(importlib.import_module(name), val, right)
                 comparators.append(right)
-        unparsed = (left, unparse(item.ops), comparators)
+            unparsed = (left, unparse(item.ops), comparators)
     elif isinstance(item, ast.IfExp):
         if initial_mapping:
             unparsed = item
         else:
-            left, ops, right = unparse(item.test)
-            truth_vals = []
+            ops, truth_vals = [], []
+            if isinstance(item.test, ast.Compare):
+                left, ops, right = unparse(item.test)
+            else:
+                result = ast_unparse(item.test)
+                if isinstance(result, dict):
+                    k, v = result.popitem()
+                    if not v:
+                        truth_vals = [False]
             for i, op in enumerate(ops):
                 if i == 0:
                     truth_vals.append(op(left, right[i]))
@@ -869,8 +881,6 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
         unparsed = type(item)([unparse(el) for el in item])
     elif isinstance(item, six.string_types):
         unparsed = item
-    else:
-        return item
     return unparsed
 
 
