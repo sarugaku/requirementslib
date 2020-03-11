@@ -741,6 +741,8 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
         unparsed = unparse(item.value)
     elif any(isinstance(item, k) for k in AST_BINOP_MAP.keys()):
         unparsed = AST_BINOP_MAP[type(item)]
+    elif isinstance(item, ast.Num):
+        unparsed = item.n
     elif isinstance(item, ast.BinOp):
         if analyzer and item in analyzer.binOps_map:
             unparsed = analyzer.binOps_map[item]
