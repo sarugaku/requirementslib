@@ -1169,8 +1169,12 @@ class Package(object):
         lockfile.update({self.info.name: self.releases.get_latest_lockfile()})
         return lockfile
 
-    def serialize(self):
+    def as_dict(self):
         # type: () -> Dict[str, Any]
+        return json.loads(self.serialize())
+
+    def serialize(self):
+        # type: () -> str
         return json.dumps(attr.asdict(self), cls=PackageEncoder, indent=4)
 
 
