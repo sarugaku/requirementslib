@@ -10,9 +10,6 @@ import pytest
 import requests
 import vistir
 
-import requirementslib.utils
-from requirementslib.models.setup_info import SetupInfo
-
 CURRENT_FILE = vistir.compat.Path(__file__).absolute()
 
 
@@ -107,6 +104,8 @@ def pip_src_dir(request, pathlib_tmpdir):
 
 @pytest.fixture(autouse=True)
 def monkeypatch_if_needed(monkeypatch):
+    from requirementslib.models.setup_info import SetupInfo
+
     with monkeypatch.context() as m:
         if SKIP_INTERNET:
             m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
@@ -116,6 +115,8 @@ def monkeypatch_if_needed(monkeypatch):
 
 @pytest.fixture(scope="session")
 def artifact_dir():
+    import requirementslib.utils
+
     return (
         vistir.compat.Path(requirementslib.utils.__file__)
         .absolute()
@@ -145,6 +146,8 @@ def pipfile_dir(fixture_dir):
 
 @pytest.fixture
 def test_artifact(artifact_dir, pathlib_tmpdir, request):
+    import requirementslib.utils
+
     name = request.param["name"]
     as_artifact = request.param.get("as_artifact", False)
     target = artifact_dir.joinpath(name)

@@ -43,7 +43,7 @@ jobs:
 
 - job: TestWindows
   pool:
-    vmImage: windows-2019
+    vmImage: windows-latest
   strategy:
     matrix:
       Python27:
@@ -54,13 +54,15 @@ jobs:
         python.version: '3.6'
       Python37:
         python.version: '3.7'
+      Python38:
+        python.version: '3.8'
     maxParallel: 4
   steps:
   - template: .azure-pipelines/templates/run-tests.yml
 
 - job: TestMacOS
   pool:
-    vmImage: macOS-10.13
+    vmImage: macOS-latest
   strategy:
     matrix:
       Python27:
@@ -71,6 +73,8 @@ jobs:
         python.version: '3.6'
       Python37:
         python.version: '3.7'
+      Python38:
+        python.version: '3.8'
     maxParallel: 4
   steps:
   - template: .azure-pipelines/templates/run-tests.yml
