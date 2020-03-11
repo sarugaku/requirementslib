@@ -1,0 +1,1 @@
+Fixed an issue which caused mappings of binary operators to fail to evaluate when parsing ``setup.py`` files.

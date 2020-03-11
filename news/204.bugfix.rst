@@ -1,0 +1,1 @@
+Fixed an issue in binary operator mapping in the ``ast_parse_setup_py`` functionality of the dependency parser which could cause dependency resolution to fail.
