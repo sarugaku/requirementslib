@@ -13,6 +13,7 @@ import sys
 from functools import partial
 
 import attr
+import chardet
 import packaging.specifiers
 import packaging.utils
 import packaging.version
@@ -908,7 +909,15 @@ def ast_parse_attribute_from_file(path, attribute):
 
 def ast_parse_file(path):
     # type: (S) -> Analyzer
-    tree = ast.parse(read_source(path))
+    try:
+        tree = ast.parse(read_source(path))
+    except SyntaxError:
+        # The source may be encoded strangely, e.g. azure-storage
+        # which has a setup.py encoded with utf-8-sig
+        with open(path, "rb") as fh:
+            contents = fh.read()
+        encoding = chardet.detect(contents)["encoding"]
+        tree = ast.parse(contents.decode(encoding))
     ast_analyzer = Analyzer()
     ast_analyzer.visit(tree)
     return ast_analyzer
