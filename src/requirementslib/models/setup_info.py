@@ -1489,17 +1489,17 @@ build-backend = "{1}"
         build_location_func(kwargs["build_dir"])
         ireq.ensure_has_source_dir(kwargs["src_dir"])
         src_dir = ireq.source_dir
-
-        ireq.populate_link(finder, False, False)
-        pip_shims.shims.shim_unpack(
-            link=ireq.link,
-            location=kwargs["src_dir"],
-            download_dir=download_dir,
-            only_download=only_download,
-            session=session,
-            hashes=ireq.hashes(False),
-            progress_bar="off",
-        )
+        with pip_shims.shims.global_tempdir_manager():
+            ireq.populate_link(finder, False, False)
+            pip_shims.shims.shim_unpack(
+                link=ireq.link,
+                location=kwargs["src_dir"],
+                download_dir=download_dir,
+                only_download=only_download,
+                session=session,
+                hashes=ireq.hashes(False),
+                progress_bar="off",
+            )
         created = cls.create(src_dir, subdirectory=subdir, ireq=ireq, kwargs=kwargs)
         return created
 
