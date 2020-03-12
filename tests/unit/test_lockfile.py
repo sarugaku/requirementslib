@@ -17,11 +17,11 @@ def test_lockfile(tmpdir):
         os.environ["PIPENV_CACHE_DIR"] = tmpdir.strpath
         lockfile = Lockfile.create(".")
 
-        requires = lockfile.as_requirements(dev=False)
-        assert requires == []
-
         requires = lockfile.as_requirements(dev=True)
         assert any(req.startswith("attrs") for req in requires)
+
+        requires = lockfile.as_requirements(dev=False)
+        assert requires == []
 
 
 def test_lockfile_requirements(pathlib_tmpdir):
