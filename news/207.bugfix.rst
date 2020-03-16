@@ -1,0 +1,1 @@
+Fixed mapping and evaluation of boolean operators and comparisons when evaluating ``setup.py`` files with AST parser to discover dependencies.

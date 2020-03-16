@@ -211,6 +211,23 @@ def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
             assert parsed[k] == v, parsed[k]
 
 
+def test_ast_parser_handles_binops(setup_py_dir):
+    parsed = ast_parse_setup_py(
+        setup_py_dir.joinpath(
+            "package_with_conditional_install_requires/setup.py"
+        ).as_posix()
+    )
+    expected = [
+        "azure-common>=1.1.5",
+        "cryptography",
+        "python-dateutil",
+        "requests",
+    ]
+    if six.PY2:
+        expected.append("futures")
+    assert list(sorted(parsed["install_requires"])) == list(sorted(expected))
+
+
 def test_setup_cfg_parser(setup_cfg_dir):
     setup_path = setup_cfg_dir / "package_with_multiple_extras/setup.cfg"
     if six.PY2:

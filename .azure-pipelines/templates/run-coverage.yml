@@ -3,6 +3,7 @@ steps:
     displayName: 'Install Coverage Reporters'
 
   - script: |
+        pipenv run coverage combine
         pipenv run coverage xml -o coverage/coverage.xml
         pipenv run coverage html -d coverage
     displayName: 'Build Coverage Report'
