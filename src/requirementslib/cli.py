@@ -68,7 +68,7 @@ def get_deps_from_req(req, allowed=None):
     pkg, allowed_versions = get_package_from_requirement(ireq)
     pkg = pkg.get_dependencies()
     deps.append(req.as_line(include_hashes=False))
-    deps, constraints_dict = pkg.pin_dependencies(ireq.extras)
+    _, constraints_dict = pkg.pin_dependencies(include_extras=ireq.extras)
     for name, spec_list in constraints_dict.items():
         if name not in allowed:
             specset = next(iter(spec_list))
@@ -93,7 +93,7 @@ def get_deps_from_req(req, allowed=None):
                     allowed[name] = initial_specset & specset
                 else:
                     allowed[name] &= specset
-        #  deps.append(dep.as_line())
+    deps.extend(["{0}{1}".format(k, v if v else "") for k, v in allowed.items()])
     # lock = pkg.get_latest_lockfile()
     lock = pkg.releases.get_latest_lockfile()
     return deps, lock, allowed
@@ -203,9 +203,14 @@ def resolve(requirements):
         new_constraints = updated_constraints
     resolved.update(constraint_resolution)
     new_deps = [Requirement.from_pipfile(name, val) for name, val in resolved.items()]
-    dep_lines.extend(new_deps)
-    dep_lines = list(set(dep_lines))
-    return dep_lines, resolved
+    resolved_lines = []
+    for dep in new_deps:
+        resolved_lines.append(dep.as_line(include_hashes=False))
+    print("current dependency lines:")
+    for line in resolved_lines:
+        print("    {0}".format(line))
+    resolved_lines = list(set(resolved_lines))
+    return resolved_lines, resolved
 
 
 def test_main():
