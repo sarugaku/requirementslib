@@ -1,5 +1,5 @@
 steps:
-  - script: python -m pip install codacy-coverage codecov
+  - script: pipenv run pip install codacy-coverage codecov
     displayName: 'Install Coverage Reporters'
 
   - script: |

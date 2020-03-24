@@ -511,7 +511,7 @@ def requirements(
         extras_choice = draw(st.one_of(st.lists(st.sampled_from(extras)), st.none()))
     else:
         extras_choice = None
-    if versions is not None:
+    if versions:
         version_choice = draw(st.one_of(st.sampled_from(versions), st.none()))
     else:
         version_choice = None
