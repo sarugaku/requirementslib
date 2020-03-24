@@ -405,11 +405,11 @@
         },
         "flake8-bugbear": {
             "hashes": [
-                "sha256:a3ddc03ec28ba2296fc6f89444d1c946a6b76460f859795b35b77d4920a51b63",
-                "sha256:bd02e4b009fb153fe6072c31c52aeab5b133d508095befb2ffcf3b41c4823162"
+                "sha256:d8c466ea79d5020cb20bf9f11cf349026e09517a42264f313d3f6fddb83e0571",
+                "sha256:ded4d282778969b5ab5530ceba7aa1a9f1b86fa7618fc96a19a1d512331640f8"
             ],
             "markers": "python_version >= '3.5'",
-            "version": "==20.1.4"
+            "version": "==19.8.0"
         },
         "funcsigs": {
             "hashes": [
