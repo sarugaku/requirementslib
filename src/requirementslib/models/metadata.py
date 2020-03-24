@@ -4,6 +4,7 @@ import functools
 import hashlib
 import io
 import json
+import logging
 import operator
 import os
 import zipfile
@@ -40,6 +41,12 @@ from six.moves import Sequence  # type: ignore  # isort:skip
 from six.moves import reduce  # type: ignore # isort:skip
 # fmt: on # isort:skip
 
+
+ch = logging.StreamHandler()
+formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
+ch.setFormatter(formatter)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 if MYPY_RUNNING:
@@ -153,8 +160,12 @@ def get_local_wheel_metadata(wheel_file):
 def get_remote_sdist_metadata(line):
     # type: (str) -> SetupInfo
     req = Requirement.from_line(line)
-    _ = req.run_requires()
-    return req.line_instance.setup_info
+    try:
+        _ = req.run_requires()
+    except SystemExit:
+        raise RuntimeError("Failed to compute metadata for dependency {0}".format(line))
+    else:
+        return req.line_instance.setup_info
 
 
 def get_remote_wheel_metadata(whl_file):
@@ -276,7 +287,6 @@ class Dependency(object):
             raise RuntimeError(
                 "Failed to resolve {0} ({1!s})".format(self.name, self.specifier)
             )
-        print("getting pkg: {0}=={1}".format(self.name, version))
         match = get_package_version(self.name, version)
         return match
 
@@ -585,8 +595,12 @@ class ReleaseUrl(object):
                 if not self.requires_python:
                     results["requires_python"] = metadata._legacy.get("Requires-Python")
         else:
-            metadata = get_remote_sdist_metadata(self.pep508_url)
-            results["requires_dist"] = [str(v) for v in metadata.requires.values()]
+            try:
+                metadata = get_remote_sdist_metadata(self.pep508_url)
+            except Exception:
+                results["requires_dist"] = []
+            else:
+                results["requires_dist"] = [str(v) for v in metadata.requires.values()]
         requires_python = getattr(self, "requires_python", results["requires_python"])
         return attr.evolve(self, requires_python=requires_python), results
 
@@ -714,6 +728,7 @@ def convert_release_urls_to_collection(urls=None, name=None):
     # type: (Optional[TReleasesList], Optional[str]) -> ReleaseUrlCollection
     if urls is None:
         urls = []
+    urls = create_release_urls_from_list(urls, name=name)
     return ReleaseUrlCollection.create(urls, name=name)
 
 
@@ -958,11 +973,7 @@ class PackageInfo(object):
             if dep not in deps:
                 deps.append(dep)
         deps = [dep for dep in deps if dep is not None]
-        try:
-            deps = tuple(sorted(deps))
-        except TypeError:
-            print(deps)
-            raise
+        deps = tuple(sorted(deps))
         return attr.evolve(self, dependencies=tuple(sorted(deps)))
 
 
@@ -1000,11 +1011,14 @@ class Package(object):
     # XXX: Note: sometimes releases have no urls at the top level (e.g. pyrouge)
     urls = attr.ib(
         type=ReleaseUrlCollection,
-        factory=convert_release_urls_to_collection,
         converter=instance_check_converter(
             ReleaseUrlCollection, convert_release_urls_to_collection
         ),
     )
+
+    @urls.default
+    def _get_urls_collection(self):
+        return functools.partial(convert_release_urls_to_collection, urls=[], name=self.name)
 
     @property
     def name(self):
@@ -1049,11 +1063,12 @@ class Package(object):
             for url in self.urls:
                 try:
                     url, dep_dict = url.get_dependencies()
-                except TypeError:
+                except (RuntimeError, TypeError):
                     # This happens if we are parsing `setup.py` and we fail
                     if url.is_sdist:
                         continue
-                    raise
+                    else:
+                        raise
                 markers = url.markers
                 dep_list = dep_dict.get("requires_dist", [])
                 for dep in dep_list:
@@ -1107,16 +1122,13 @@ class Package(object):
     def get_latest_lockfile(self):
         # type: () -> Dict[str, Dict[str, Union[List[str], str]]]
         lockfile = {}
-        breakpoint()
         constraints = {dep.name: dep.specifier for dep in self.dependencies}
-        if "certifi" in constraints:
-            print("{0}: {1}".format("ceritif", constraints["certifi"]))
         deps, _ = self.pin_dependencies()
         for dep in deps:
             dep = dep.get_dependencies()
             for sub_dep in dep.dependencies:
                 if sub_dep.name not in constraints:
-                    print(
+                    logger.info(
                         "Adding {0} (from {1}) {2!s}".format(
                             sub_dep.name, dep.name, sub_dep.specifier
                         )
@@ -1128,7 +1140,7 @@ class Package(object):
                     )
                     new_specifier = sub_dep.specifier
                     merged = constraints[sub_dep.name] & new_specifier
-                    print(
+                    logger.info(
                         "Updating: {0}{1!s} = {2!s}".format(
                             existing, new_specifier, merged
                         )
@@ -1141,7 +1153,7 @@ class Package(object):
                 sub_dep_pkg = get_package(sub_dep)
             except requests.exceptions.HTTPError:
                 continue
-            print("Getting package: {0} ({1!s})".format(sub_dep, specset))
+            logger.info("Getting package: {0} ({1!s})".format(sub_dep, specset))
             sorted_releases = list(
                 sorted(
                     sub_dep_pkg.releases,
@@ -1152,8 +1164,8 @@ class Package(object):
             try:
                 version = next(iter(specset.filter((r.version for r in sorted_releases))))
             except StopIteration:
-                print("No version of {0} matches specifier: {1}".format(sub_dep, specset))
-                print(
+                logger.info("No version of {0} matches specifier: {1}".format(sub_dep, specset))
+                logger.info(
                     "Available versions: {0}".format(
                         " ".join([r.version for r in sorted_releases])
                     )
