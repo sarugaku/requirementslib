@@ -1,1 +1,0 @@
-Fix AST parsing when ``setup.py`` contains binary operators other than ``+`` and ``-``.

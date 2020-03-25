@@ -1,1 +1,0 @@
-Fixed an issue in ``Lockfile`` path and model auto-detection when called without the ``load`` classmethod which caused initialization to fail due to an ``AttributeError``.

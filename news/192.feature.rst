@@ -1,1 +1,0 @@
-Added support for hiding tokens from URLs when printing them to the screen.

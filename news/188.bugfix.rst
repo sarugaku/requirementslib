@@ -1,1 +1,0 @@
-Fixed an issue which prevented loading ``Lockfile``-based references to local paths when calling ``as_requirements()`` on a ``requirementslib.models.lockfile.Lockfile`` instance.

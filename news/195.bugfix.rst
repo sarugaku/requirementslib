@@ -1,1 +1,0 @@
-Corrected an unexpected behavior which resulted in a ``KeyError`` when attempting to call ``__getitem__`` on a ``Pipfile`` instance with a section that was not present.

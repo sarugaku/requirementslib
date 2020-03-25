@@ -1,1 +1,0 @@
-Added import guards to prevent ``ImportErrors`` which could occur when attempting to import now-removed ``pkg_resources.extern.requirements``.

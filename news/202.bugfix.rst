@@ -1,1 +1,0 @@
-Fixed a bug which could cause parsing to fail for ``setup.cfg`` files on python 2.

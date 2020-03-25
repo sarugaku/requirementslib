@@ -1,5 +1,0 @@
-Updated all references to newly shimmed code to fix breakages due to ``pip 19.3`` release:
-- Fixed references to ``Command`` object from ``pip`` in favor of ``InstallCommand`` which is now properly shimmed via ``pip-shims``
-- Fixed invocation of ``VcsSupport`` and ``VersionControl`` objects for compatibility
-- Removed addition of options to ``Command`` as they are redundant when using ``InstallCommand``
-- Cut ``get_finder`` and ``start_resolver`` over to newly shimmed approaches in ``pip-shims``

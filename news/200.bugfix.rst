@@ -1,1 +1,0 @@
-Fixed an issue which caused build directories to be deleted before dependencies could be determined for editable source reqiurements.

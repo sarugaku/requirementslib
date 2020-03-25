@@ -1,1 +1,0 @@
-Updated references to ``Link`` instances which no longer have the ``is_artifact`` property.
