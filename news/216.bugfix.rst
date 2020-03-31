@@ -1,0 +1,1 @@
+Fixed an issue which prevented parsing of ``setup.cfg`` files using the ``setuptools`` native configuration reader.
