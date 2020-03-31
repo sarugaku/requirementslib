@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+requirementslib = {editable = true, extras = ["dev", "tests"], path = "."}
 
 [dev-packages]
 requirementslib = {path = ".", editable = true,extras = ["tests", "dev", "typing"]}
