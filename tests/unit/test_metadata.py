@@ -27,7 +27,6 @@ def test_metadata(monkeypatch_wheel_download, package_json):
             "backports.lzma",
             "billiard<4.0,>=3.6.1",
             "boto3>=1.9.125",
-            "boto3>=1.9.125",
             "boto3>=1.9.178",
             'brotli>=1.0.0; platform_python_implementation == "CPython"',
             'brotlipy>=0.7.0; platform_python_implementation == "PyPy"',
