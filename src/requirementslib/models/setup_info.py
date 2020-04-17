@@ -789,7 +789,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
     elif isinstance(item, constant):
         unparsed = item.value
     elif isinstance(item, ast.Compare):
-        if isinstance(item.left, ast.Attribute):
+        if isinstance(item.left, ast.Attribute) or isinstance(item.left, ast.Str):
             import importlib
 
             left = unparse(item.left)
