@@ -679,7 +679,7 @@ AST_COMPARATORS = dict(
         (ast.And, operator.and_),
         (ast.Or, operator.or_),
         (ast.Not, operator.not_),
-        (ast.In, operator.contains),
+        (ast.In, lambda a, b: operator.contains(b, a)),
     )
 )
 
