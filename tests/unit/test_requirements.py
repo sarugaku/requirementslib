@@ -437,7 +437,10 @@ def test_pep_508():
         "tablib@ https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
     )
     assert r.specifiers == "==0.12.1"
-    assert r.req.link.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
+    assert (
+        r.req.link.url
+        == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1#egg=tablib"
+    )
     assert r.req.req.name == "tablib"
     assert r.req.req.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
     requires, setup_requires, build_requires = r.req.dependencies

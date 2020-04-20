@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import itertools
 import operator
+import re
 
 import attr
 import distlib.markers
@@ -200,7 +201,9 @@ def _get_specs(specset):
 def _group_by_op(specs):
     # type: (Union[Set[Specifier], SpecifierSet]) -> Iterator
     specs = [_get_specs(x) for x in list(specs)]
-    flattened = [(op, version) for spec in specs for op, version in spec]
+    flattened = [
+        ((op, len(version) > 2), version) for spec in specs for op, version in spec
+    ]
     specs = sorted(flattened)
     grouping = itertools.groupby(specs, key=operator.itemgetter(0))
     return grouping
@@ -282,7 +285,8 @@ def cleanup_pyspecs(specs, joiner="or"):
         "==": lambda x: "in" if len(x) > 1 else "==",
     }
     translation_keys = list(translation_map.keys())
-    for op, versions in _group_by_op(tuple(specs)):
+    for op_and_version_type, versions in _group_by_op(tuple(specs)):
+        op = op_and_version_type[0]
         versions = [version[1] for version in versions]
         versions = sorted(dedup(versions))
         op_key = next(iter(k for k in translation_keys if op in k), None)
@@ -291,8 +295,8 @@ def cleanup_pyspecs(specs, joiner="or"):
             version_value = translation_map[op_key][joiner](versions)
         if op in op_translations:
             op = op_translations[op](versions)
-        results[op] = version_value
-    return sorted([(k, v) for k, v in results.items()], key=operator.itemgetter(1))
+        results[(op, op_and_version_type[1])] = version_value
+    return sorted([(k[0], v) for k, v in results.items()], key=operator.itemgetter(1))
 
 
 # TODO: Rename this to something meaningful
@@ -668,9 +672,16 @@ def parse_marker_dict(marker_dict):
         return specset, finalized_marker
 
 
+def _contains_micro_version(version_string):
+    return re.search("\d+\.\d+\.\d+", version_string) is not None
+
+
 def format_pyversion(parts):
     op, val = parts
-    return "python_version {0} '{1}'".format(op, val)
+    version_marker = (
+        "python_full_version" if _contains_micro_version(val) else "python_version"
+    )
+    return "{0} {1} '{2}'".format(version_marker, op, val)
 
 
 def normalize_marker_str(marker):

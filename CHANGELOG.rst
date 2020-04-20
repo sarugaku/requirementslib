@@ -1,3 +1,14 @@
+1.5.5 (2020-03-31)
+==================
+
+Bug Fixes
+---------
+
+- Fixed an issue which prevented parsing of ``setup.cfg`` files using the ``setuptools`` native configuration reader.  `#216 <https://github.com/sarugaku/requirementslib/issues/216>`_
+  
+- URI instances will no longer print masked username fields when neither a username or password is supplied.  `#220 <https://github.com/sarugaku/requirementslib/issues/220>`_
+
+
 1.5.4 (2020-03-25)
 ==================
 
