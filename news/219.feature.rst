@@ -1,0 +1,1 @@
+Added ``requirementslib.models.metadata`` module with ``get_package``, ``get_package_version``, and ``get_package_from_requirement`` interfaces.
