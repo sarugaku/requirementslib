@@ -16,7 +16,7 @@ def test_metadata(monkeypatch_wheel_download, package_json):
     package = package.get_dependencies()
     deps = sorted([str(d.requirement) for d in package.dependencies])
     if package.name == "llvmlite":
-        assert list(deps) == ["enum34"]
+        assert list(set(deps)) == ["enum34"]
     elif package.name == "celery":
         assert list(deps) == [
             "Django>=1.11",

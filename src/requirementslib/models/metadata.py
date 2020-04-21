@@ -121,6 +121,14 @@ class PackageEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
+def validate_extras(inst, attrib, value):
+    # type: ("Dependency", Attribute, Tuple[str, ...]) -> None
+    duplicates = [k for k in value if value.count(k) > 1]
+    if duplicates:
+        raise ValueError("Found duplicate keys: {0}".format(", ".join(duplicates)))
+    return None
+
+
 def validate_digest(inst, attrib, value):
     # type: ("Digest", Attribute, str) -> None
     expected_length = VALID_ALGORITHMS[inst.algorithm.lower()]
@@ -215,7 +223,7 @@ class Dependency(object):
     #: The specifier defined in the dependency definition
     specifier = attr.ib(type=SpecifierSet, converter=create_specifierset, eq=False)
     #: Any extras this dependency declares
-    extras = attr.ib(factory=set)  # type: Set[str]
+    extras = attr.ib(factory=tuple, validator=validate_extras)  # type: Tuple[str, ...]
     #: The name of the extra meta-dependency this one came from (e.g. 'security')
     from_extras = attr.ib(default=None, eq=False)  # type: Optional[str]
     #: The declared specifier set of allowable python versions for this dependency
@@ -303,7 +311,7 @@ class Dependency(object):
         return cls(
             name=req.name,
             specifier=req.specifier,
-            extras=req.extras,
+            extras=tuple(sorted(set(req.extras))) if req.extras is not None else req.extras,
             requirement=req,
             from_extras=from_extras,
             python_version=python_version,
@@ -349,7 +357,7 @@ class Dependency(object):
         return cls(
             name=info.name,
             specifier=req.specifier,
-            extras=req.extras,
+            extras=tuple(sorted(set(req.extras))) if req.extras is not None else req.extras,
             requirement=req,
             from_extras=None,
             python_version=SpecifierSet(requires_python_str),
@@ -890,12 +898,12 @@ def create_dependencies(
     # type: (...) -> Optional[List[Dependency]]
     if requires_dist is None:
         return None
-    dependencies = []
+    dependencies = set()
     for req in requires_dist:
         if not isinstance(req, Dependency):
-            dependencies.append(Dependency.from_str(req, parent=parent))
+            dependencies.add(Dependency.from_str(req, parent=parent))
         else:
-            dependencies.append(req)
+            dependencies.add(req)
     return dependencies
 
 
@@ -953,16 +961,14 @@ class PackageInfo(object):
                 return attr.evolve(self, dependencies=tuple())
             return self
         self_dependency = self.to_dependency()
-        deps = []
+        deps = set()
         self_dependencies = tuple() if not self.dependencies else self.dependencies
         for dep in self_dependencies:
             new_dep = dep.add_parent(self_dependency)
-            if new_dep not in deps:
-                deps.append(new_dep)
+            deps.add(new_dep)
         created_deps = create_dependencies(self.requires_dist, parent=self_dependency)
         for dep in created_deps:
-            if dep not in deps:
-                deps.append(dep)
+            deps.add(dep)
         deps = [dep for dep in deps if dep is not None]
         deps = tuple(sorted(deps))
         return attr.evolve(self, dependencies=tuple(sorted(deps)))
