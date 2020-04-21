@@ -1,5 +1,5 @@
 # -*- coding=utf-8 -*-
-
+import contextlib
 import os
 import shutil
 import sys
@@ -237,3 +237,30 @@ def test_setup_cfg_parser(setup_cfg_dir):
     result = parse_setup_cfg(contents, setup_path.parent.as_posix())
     assert result["version"] == "0.5.0"
     assert result["name"] == "test_package"
+
+
+@pytest.mark.parametrize(
+    "env_vars, expected_install_requires",
+    [({"NOTHING": "1"}, []), ({"READTHEDOCS": "1"}, ["sphinx", "sphinx-argparse"]),],
+)
+def test_ast_parser_handles_dependency_on_env_vars(
+    env_vars, expected_install_requires, setup_py_dir
+):
+    @contextlib.contextmanager
+    def modified_environ(**update):
+        env = os.environ
+        try:
+            env.update(update)
+            yield
+        finally:
+            [env.pop(k) for k in update]
+
+    with modified_environ(**env_vars):
+        parsed = ast_parse_setup_py(
+            setup_py_dir.joinpath(
+                "package_with_dependence_on_env_vars/setup.py"
+            ).as_posix()
+        )
+        assert list(sorted(parsed["install_requires"])) == list(
+            sorted(expected_install_requires)
+        )
