@@ -63,24 +63,3 @@ def test_metadata(monkeypatch_wheel_download, package_json):
         ]
 
 
-def test_collect_files_from_zipfile(pathlib_tmpdir):
-    wheel_path = pathlib_tmpdir / "test_wheel.whl"
-    with zipfile.ZipFile(
-        wheel_path.as_posix(), mode="w", compression=zipfile.ZIP_DEFLATED
-    ) as zf:
-        with zf.open("test_wheel.dist-info/METADATA", mode="w") as fh:
-            fh.write(b"This is a test")
-        with zf.open("other_file", mode="w") as fh:
-            fh.write(b"This is a test")
-    with zipfile.ZipFile(
-        wheel_path.as_posix(), "r", compression=zipfile.ZIP_DEFLATED
-    ) as zf:
-        files = [
-            fh.at
-            for fh in requirementslib.models.metadata.collect_files_from_zipfile(
-                zipfile.Path(zf)
-            )
-        ]
-        assert list(sorted(files)) == list(
-            sorted(["test_wheel.dist-info/METADATA", "other_file"])
-        )
