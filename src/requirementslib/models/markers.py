@@ -197,6 +197,7 @@ def _get_specs(specset):
     return sorted(result, key=operator.itemgetter(1))
 
 
+# TODO: Rename this to something meaningful
 def _group_by_op(specs):
     # type: (Union[Set[Specifier], SpecifierSet]) -> Iterator
     specs = [_get_specs(x) for x in list(specs)]
@@ -208,6 +209,7 @@ def _group_by_op(specs):
     return grouping
 
 
+# TODO: rename this to something meaningful
 def normalize_specifier_set(specs):
     # type: (Union[str, SpecifierSet]) -> Optional[Set[Specifier]]
     """Given a specifier set, a string, or an iterable, normalize the specifiers
@@ -238,6 +240,8 @@ def normalize_specifier_set(specs):
     return normalize_specifier_set(SpecifierSet(",".join(spec_list)))
 
 
+# TODO: Check if this is used by anything public otherwise make it private
+# And rename it to something meaningful
 def get_sorted_version_string(version_set):
     # type: (Set[AnyStr]) -> AnyStr
     version_list = sorted(
@@ -247,6 +251,9 @@ def get_sorted_version_string(version_set):
     return version
 
 
+# TODO: Rename this to something meaningful
+# TODO: Add a deprecation decorator and deprecate this -- i'm sure it's used
+# in other libraries
 @lru_cache(maxsize=1024)
 def cleanup_pyspecs(specs, joiner="or"):
     specs = normalize_specifier_set(specs)
@@ -292,6 +299,7 @@ def cleanup_pyspecs(specs, joiner="or"):
     return sorted([(k[0], v) for k, v in results.items()], key=operator.itemgetter(1))
 
 
+# TODO: Rename this to something meaningful
 @lru_cache(maxsize=1024)
 def fix_version_tuple(version_tuple):
     # type: (Tuple[AnyStr, AnyStr]) -> Tuple[AnyStr, AnyStr]
@@ -306,6 +314,7 @@ def fix_version_tuple(version_tuple):
     return (op, version)
 
 
+# TODO: Rename this to something meaningful, deprecate it (See prior function)
 @lru_cache(maxsize=128)
 def get_versions(specset, group_by_operator=True):
     # type: (Union[Set[Specifier], SpecifierSet], bool) -> List[Tuple[STRING_TYPE, STRING_TYPE]]
@@ -594,6 +603,7 @@ def get_specset(marker_list):
     return specifiers
 
 
+# TODO: Refactor this (reduce complexity)
 def parse_marker_dict(marker_dict):
     op = marker_dict["op"]
     lhs = marker_dict["lhs"]
@@ -710,3 +720,16 @@ def marker_from_specifier(spec):
         marker_segments.append(format_pyversion(marker_segment))
     marker_str = " and ".join(marker_segments).replace('"', "'")
     return Marker(marker_str)
+
+
+def merge_markers(m1, m2):
+    # type: (Marker, Marker) -> Optional[Marker]
+    if not all((m1, m2)):
+        return next(iter(v for v in (m1, m2) if v), None)
+    m1 = _ensure_marker(m1)
+    m2 = _ensure_marker(m2)
+    _markers = []  # type: List[Marker]
+    for marker in (m1, m2):
+        _markers.append(str(marker))
+    marker_str = " and ".join([normalize_marker_str(m) for m in _markers if m])
+    return _ensure_marker(normalize_marker_str(marker_str))
