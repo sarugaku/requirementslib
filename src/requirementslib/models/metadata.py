@@ -133,26 +133,17 @@ def validate_digest(inst, attrib, value):
     return None
 
 
-def collect_files_from_zipfile(pth):
-    if pth.is_dir():
-        for child in pth.iterdir():
-            for grandchild in collect_files_from_zipfile(child):
-                yield grandchild
-    else:
-        yield pth
-
-
 def get_local_wheel_metadata(wheel_file):
     # type: (str) -> Optional[distlib.metadata.Metadata]
     parsed_metadata = None
     with io.open(wheel_file, "rb") as fh:
         with zipfile.ZipFile(fh, mode="r", compression=zipfile.ZIP_DEFLATED) as zf:
             metadata = None
-            for fn in collect_files_from_zipfile(zipfile.Path(zf)):
-                if fn.name == "METADATA":
+            for fn in zf.namelist():
+                if os.path.basename(fn) == "METADATA":
                     metadata = fn
                     break
-            with metadata.open("r") as metadata_fh:
+            with zf.open(fn, "r") as metadata_fh:
                 parsed_metadata = distlib.metadata.Metadata(fileobj=metadata_fh)
     return parsed_metadata
 
@@ -177,11 +168,11 @@ def get_remote_wheel_metadata(whl_file):
             data.write(chunk)
     with zipfile.ZipFile(data, mode="r", compression=zipfile.ZIP_DEFLATED) as zf:
         metadata = None
-        for fn in collect_files_from_zipfile(zipfile.Path(zf)):
-            if fn.name == "METADATA":
+        for fn in zf.namelist():
+            if os.path.basename(fn) == "METADATA":
                 metadata = fn
                 break
-        with metadata.open("r") as metadata_fh:
+        with zf.open(metadata, "r") as metadata_fh:
             parsed_metadata = distlib.metadata.Metadata(fileobj=metadata_fh)
     return parsed_metadata
 
