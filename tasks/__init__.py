@@ -192,7 +192,7 @@ def tag_release(ctx, version=None, type_="patch", yes=False, dry_run=False):
     generate_news(ctx, yes=yes, dry_run=dry_run)
     git_commit_cmd = f'git commit -am "Release {version}"'
     tag_content = tag_content.replace('"', '\\"')
-    git_tag_cmd = f'git tag -a {version} -m "Version {version}\n\n{tag_content}"'
+    git_tag_cmd = f'git tag -s -a {version} -m "Version {version}\n\n{tag_content}"'
     if dry_run:
         print("Would run commands:")
         print(f"    {git_commit_cmd}")
