@@ -1,3 +1,20 @@
+1.5.6 (2020-04-22)
+==================
+
+Features
+--------
+
+- Added ``requirementslib.models.metadata`` module with ``get_package``, ``get_package_version``, and ``get_package_from_requirement`` interfaces.  `#219 <https://github.com/sarugaku/requirementslib/issues/219>`_
+  
+
+Bug Fixes
+---------
+
+- Fixed an issue in parsing setup files that incorrectly parsed the ``in`` operator and failed to properly expand referenced dictionaries.  `#222 <https://github.com/sarugaku/requirementslib/issues/222>`_
+  
+- Fixed an issue that did not take into account micro versions when generating markers from ``python_requires``.  `#223 <https://github.com/sarugaku/requirementslib/issues/223>`_
+
+
 1.5.5 (2020-03-31)
 ==================
 

@@ -1,1 +1,0 @@
-Fixed an issue in parsing setup files that incorrectly parsed the ``in`` operator and failed to properly expand referenced dictionaries.

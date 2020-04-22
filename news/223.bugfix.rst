@@ -1,1 +1,0 @@
-Fixed an issue that did not take into account micro versions when generating markers from ``python_requires``.
