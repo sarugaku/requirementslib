@@ -1,3 +1,12 @@
+1.5.7 (2020-04-23)
+==================
+
+Bug Fixes
+---------
+
+- Fixed a bug in ``AST`` parsing on python 2.7 which caused the parser to fail if any attributes could not be resolved.  `#226 <https://github.com/sarugaku/requirementslib/issues/226>`_
+
+
 1.5.6 (2020-04-22)
 ==================
 

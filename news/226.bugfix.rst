@@ -1,1 +1,0 @@
-Fixed a bug in ``AST`` parsing on python 2.7 which caused the parser to fail if any attributes could not be resolved.
