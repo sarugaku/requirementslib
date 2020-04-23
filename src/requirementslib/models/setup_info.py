@@ -748,19 +748,15 @@ class Analyzer(ast.NodeVisitor):
                     if isinstance(fn, six.string_types):
                         _, _, fn_name = fn.rpartition(".")
             if fn_name:
-                self.function_names[k] = fn_name
                 self.resolved_function_names[fn_name] = ast_unparse(v, analyzer=self)
-        return self.function_names, retries
+        return retries
 
     def parse_functions(self):
-        function_names, retries = self.parse_function_names(
-            function_map=self.function_map
-        )
+        retries = self.parse_function_names(function_map=self.function_map)
         if retries:
-            function_retries, failures = self.parse_function_names(
+            failures = self.parse_function_names(
                 should_retry=False, function_map=dict(retries)
             )
-            function_names.update(function_retries)
         return self.resolved_function_names
 
 
@@ -981,7 +977,7 @@ def ast_parse_setup_py(path):
     ast_analyzer.unmap_binops()
     function_names = ast_analyzer.parse_functions()
     if "setup" in function_names:
-        setup = ast_unparse(setup, analyzer=ast_analyzer)
+        setup = ast_unparse(function_names["setup"], analyzer=ast_analyzer)
     return setup
 
 
@@ -1629,20 +1625,21 @@ build-backend = "{1}"
         if build_location_func is None:
             build_location_func = getattr(ireq, "ensure_build_location", None)
         build_location_func(kwargs["build_dir"])
+        ireq.ensure_has_source_dir(kwargs["src_dir"])
         src_dir = ireq.source_dir
         with pip_shims.shims.global_tempdir_manager():
-            ireq.link = finder.find_requirement(ireq, False)
             pip_shims.shims.shim_unpack(
                 link=ireq.link,
-                location=ireq.source_dir,
+                location=kwargs["src_dir"],
                 download_dir=download_dir,
                 only_download=only_download,
                 session=session,
                 hashes=ireq.hashes(False),
                 progress_bar="off",
             )
-            ireq.ensure_has_source_dir(kwargs["src_dir"])
-        created = cls.create(src_dir, subdirectory=subdir, ireq=ireq, kwargs=kwargs)
+        created = cls.create(
+            kwargs["src_dir"], subdirectory=subdir, ireq=ireq, kwargs=kwargs
+        )
         return created
 
     @classmethod
