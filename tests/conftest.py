@@ -120,13 +120,7 @@ def monkeypatch_if_needed(monkeypatch):
 
 @pytest.fixture(scope="session")
 def artifact_dir():
-    import requirementslib.utils
-
-    return (
-        vistir.compat.Path(requirementslib.utils.__file__)
-        .absolute()
-        .parent.parent.parent.joinpath("tests/artifacts")
-    )
+    return CURRENT_FILE.parent.joinpath("artifacts")
 
 
 @pytest.fixture(scope="session")
