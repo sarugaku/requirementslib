@@ -4,3 +4,6 @@
 [submodule "tests/artifacts/git/shellingham"]
 	path = tests/artifacts/git/shellingham
 	url = https://github.com/sarugaku/shellingham.git
+[submodule "tests/artifacts/git/pyinstaller"]
+	path = tests/artifacts/git/pyinstaller
+	url = https://github.com/pyinstaller/pyinstaller.git

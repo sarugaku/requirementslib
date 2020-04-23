@@ -264,3 +264,10 @@ def test_ast_parser_handles_dependency_on_env_vars(
         assert list(sorted(parsed["install_requires"])) == list(
             sorted(expected_install_requires)
         )
+
+
+def test_ast_parser_handles_exceptions(artifact_dir):
+    path = artifact_dir.joinpath("git/pyinstaller/setup.py")
+    result = ast_parse_setup_py(path.as_posix())
+    assert result is not None
+    assert "altgraph" in result["install_requires"]
