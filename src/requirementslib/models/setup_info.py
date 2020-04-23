@@ -979,7 +979,7 @@ def ast_parse_setup_py(path):
     ast_analyzer = ast_parse_file(path)
     setup = {}  # type: Dict[Any, Any]
     ast_analyzer.unmap_binops()
-    function_names = ast_analyzer.parse_function_names()
+    function_names = ast_analyzer.parse_functions()
     if "setup" in function_names:
         setup = ast_unparse(setup, analyzer=ast_analyzer)
     return setup
