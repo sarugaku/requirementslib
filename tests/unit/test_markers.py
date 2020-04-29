@@ -138,6 +138,12 @@ def test_get_extras(marker, extras):
             ),
             SpecifierSet("!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"),
         ),
+        (
+            Marker(
+                "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'"
+            ),
+            SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3,!=3.4,>=2.7"),
+        ),
     ],
 )
 def test_get_pyversions(marker, pyversions):
