@@ -557,7 +557,7 @@ def _split_specifierset_str(specset_str, prefix="=="):
     else:
         values = [v.strip() for v in specset_str.split(",")]
     if prefix == "!=" and any(v in values for v in DEPRECATED_VERSIONS):
-        values = DEPRECATED_VERSIONS[:]
+        values += DEPRECATED_VERSIONS[:]
     for value in sorted(values):
         specifiers.add(Specifier("{0}{1}".format(prefix, value)))
     return specifiers
