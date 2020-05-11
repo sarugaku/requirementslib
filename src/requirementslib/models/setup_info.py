@@ -1624,7 +1624,10 @@ build-backend = "{1}"
         build_location_func = getattr(ireq, "build_location", None)
         if build_location_func is None:
             build_location_func = getattr(ireq, "ensure_build_location", None)
-        build_location_func(kwargs["build_dir"])
+        build_kwargs = {"build_dir": kwargs["build_dir"], "autodelete": False}
+        pip_shims.utils.call_function_with_correct_args(
+            build_location_func, **build_kwargs
+        )
         ireq.ensure_has_source_dir(kwargs["src_dir"])
         src_dir = ireq.source_dir
         with pip_shims.shims.global_tempdir_manager():
