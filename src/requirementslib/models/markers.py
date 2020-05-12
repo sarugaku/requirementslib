@@ -25,7 +25,7 @@ if MYPY_RUNNING:
     STRING_TYPE = Union[str, bytes, Text]
 
 
-MAX_VERSIONS = {2: 7, 3: 11, 4: 0}
+MAX_VERSIONS = {1: 7, 2: 7, 3: 11, 4: 0}
 DEPRECATED_VERSIONS = ["3.0", "3.1", "3.2", "3.3"]
 
 
