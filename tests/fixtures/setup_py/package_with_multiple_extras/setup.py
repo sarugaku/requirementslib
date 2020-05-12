@@ -12,7 +12,10 @@ setup(
     version=version,
     description="The Backend HTTP Server",
     long_description="This is a package",
-    install_requires=["six"],
+    install_requires=[
+        "six",
+        "vistir@ git+https://github.com/sarugaku/vistir.git#egg=vistir",
+    ],
     tests_require=testing_extras,
     extras_require={"testing": testing_extras, "dev": ["parver", "invoke", "wheel"]},
     package_dir={"": "src"},
