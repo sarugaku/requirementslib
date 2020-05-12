@@ -886,8 +886,8 @@ class Line(object):
         ireq = self.ireq
         wheel_kwargs = self.wheel_kwargs.copy()
         wheel_kwargs["src_dir"] = repo.checkout_directory
-        ireq.ensure_has_source_dir(wheel_kwargs["src_dir"])
         with pip_shims.shims.global_tempdir_manager(), temp_path():
+            ireq.ensure_has_source_dir(wheel_kwargs["src_dir"])
             sys.path = [repo.checkout_directory, "", ".", get_python_lib(plat_specific=0)]
             setupinfo = SetupInfo.create(
                 repo.checkout_directory,
@@ -1052,10 +1052,10 @@ class Line(object):
         # else:
         #     req.link = self.link
         if self.ref and self._requirement is not None:
+            self._requirement.revision = self.ref
             if self._vcsrepo is not None:
-                self._requirement.revision = self._vcsrepo.get_commit_hash()
-            else:
-                self._requirement.revision = self.ref
+                with pip_shims.shims.global_tempdir_manager():
+                    self._requirement.revision = self._vcsrepo.get_commit_hash()
         return self._requirement
 
     def parse_requirement(self):
@@ -2114,21 +2114,18 @@ class VCSRequirement(FileRequirement):
 
     def get_commit_hash(self):
         # type: () -> STRING_TYPE
-        hash_ = None
-        hash_ = self.repo.get_commit_hash()
+        with pip_shims.shims.global_tempdir_manager():
+            hash_ = self.repo.get_commit_hash()
         return hash_
 
     def update_repo(self, src_dir=None, ref=None):
         # type: (Optional[STRING_TYPE], Optional[STRING_TYPE]) -> STRING_TYPE
         if ref:
             self.ref = ref
-        else:
-            if self.ref:
-                ref = self.ref
         repo_hash = None
-        if not self.is_local and ref is not None:
-            self.repo.checkout_ref(ref)
-        repo_hash = self.repo.get_commit_hash()
+        if not self.is_local and self.ref is not None:
+            self.repo.checkout_ref(self.ref)
+        repo_hash = self.get_commit_hash()
         if self.req:
             self.req.revision = repo_hash
         return repo_hash
@@ -2144,7 +2141,8 @@ class VCSRequirement(FileRequirement):
                 self.req = self.parsed_line.requirement
             else:
                 self.req = self.get_requirement()
-        revision = self.req.revision = vcsrepo.get_commit_hash()
+        with pip_shims.shims.global_tempdir_manager():
+            revision = self.req.revision = vcsrepo.get_commit_hash()
 
         # Remove potential ref in the end of uri after ref is parsed
         if self.link and "@" in self.link.show_url and self.uri and "@" in self.uri:

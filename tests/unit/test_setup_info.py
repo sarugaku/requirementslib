@@ -135,7 +135,7 @@ setup(
         (
             "package_with_multiple_extras",
             ["testing", "dev"],
-            ["coverage", "flaky", "invoke", "parver", "six", "wheel"],
+            ["coverage", "flaky", "invoke", "parver", "six", "vistir", "wheel"],
         ),
         ("package_with_one_extra", ["testing"], ["coverage", "flaky", "six"]),
     ],
