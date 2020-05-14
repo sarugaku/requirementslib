@@ -1,1 +1,0 @@
-Fixed a bug which prevented the use of ``wheel_cache`` instances from ``pip`` due to deprecated invocation.

@@ -1,3 +1,18 @@
+1.5.8 (2020-05-14)
+==================
+
+Bug Fixes
+---------
+
+- Fix an issue where the list of not-supported python versions in a marker was being truncated.  `#228 <https://github.com/sarugaku/requirementslib/issues/228>`_
+  
+- Fixed a bug which prevented the use of ``wheel_cache`` instances from ``pip`` due to deprecated invocation.  `#230 <https://github.com/sarugaku/requirementslib/issues/230>`_
+  
+- ``Requirementslib`` will now ensure that ``PEP508`` style direct URL lines are preserved as being direct URL references when converting to and from ``Requirementslib.requirement`` instances.  `#232 <https://github.com/sarugaku/requirementslib/issues/232>`_
+  
+- Fix a bug that ``1.x`` specifiers can't be parsed correctly.  `#234 <https://github.com/sarugaku/requirementslib/issues/234>`_
+
+
 1.5.7 (2020-04-23)
 ==================
 

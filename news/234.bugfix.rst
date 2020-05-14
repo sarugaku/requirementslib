@@ -1,1 +1,0 @@
-Fix a bug that ``1.x`` specifiers can't be parsed correctly.

@@ -1,1 +1,0 @@
-``Requirementslib`` will now ensure that ``PEP508`` style direct URL lines are preserved as being direct URL references when converting to and from ``Requirementslib.requirement`` instances.
