@@ -70,7 +70,7 @@ jobs:
         PIPENV_NOSPIN: '1'
         CI: '1'
       run: |
-        pipenv run coverage run -p -m pytest -ra no:xdist -ra tests/
+        pipenv run coverage run -p -m pytest -ra tests/
 
     - name: Coveralls
       env:
