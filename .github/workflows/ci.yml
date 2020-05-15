@@ -29,7 +29,7 @@ on:
     - '.editorconfig'
 
 jobs:
-  build:
+  test:
     name: ${{matrix.os}} / ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}-latest
     strategy:
@@ -67,14 +67,33 @@ jobs:
       env:
         PIPENV_DEFAULT_PYTHON_VERSION: ${{ matrix.python-version }}
         PYTHONWARNINGS: ignore:DEPRECATION
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_GIT_COMMIT: ${{ github.sha }}
+        COVERALLS_GIT_BRANCH: ${{ github.ref }}
+        COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}
+        COVERALLS_SERVICE_NAME: github
+        COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
+        COVERALLS_PARALLEL: true
         PIPENV_NOSPIN: '1'
         CI: '1'
       run: |
-        pipenv run coverage run -p -m pytest -ra tests/
-
-    - name: Coveralls
-      env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-      run: |
         pip install coveralls
+        pipenv run coverage run -p -m pytest -ra tests/
         coveralls
+
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_GIT_COMMIT: ${{ github.sha }}
+        COVERALLS_GIT_BRANCH: ${{ github.ref }}
+        COVERALLS_SERVICE_NAME: github
+        COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
+
