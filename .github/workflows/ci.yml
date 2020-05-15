@@ -74,7 +74,7 @@ jobs:
 
     - name: Coveralls
       env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COVERALLS_PARALLEL: true
       run: |
         pip install coveralls
@@ -88,7 +88,7 @@ jobs:
     - name: Coveralls Finished
       uses: coverallsapp/github-action@master
       env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
