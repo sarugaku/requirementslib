@@ -39,6 +39,8 @@ def test_repository_url(url):
     parsed_url = URI.parse(url)
     url_without_fragment, _, _ = url.rpartition("#")
     url_without_fragment_or_ref, _, _ = url.rpartition("@")
+    if "&subdirectory" in url:
+        assert parsed_url.subdirectory
     if parsed_url.ref:
         if parsed_url.fragment:
             assert parsed_url.url_without_ref == "{0}#{1}".format(
