@@ -51,21 +51,9 @@ jobs:
       run: |
         echo ::set-output name=path::$(python -c "import sys; print(sys.executable)")
 
-    - name: Get PR number
-      id: pull-request
-      run: |
-        echo ::set-output name=pr::$(python -c "import os; pr = os.environ.get('GITHUB_REF', '//').split('/')[2]; print(pr)")
-
-    - name: Get service name
-      id: service-name
-      env:
-        PR_NUMBER: ${{ steps.pull-request.outputs.pr }}
-      run: |
-        echo ::set-output name=name::$(python -c "import os; service_number = os.environ['GITHUB_SHA'] if not os.environ.get('PR_NUMBER', None) else '{}-PR-{}'.format(os.environ['GITHUB_SHA'], os.environ['PR_NUMBER']); print(service_number)")
-
     - name: Install latest pip, setuptools, wheel
       run: |
-        python -m pip install --upgrade pip setuptools wheel --upgrade-strategy=eager
+        python -m pip install --upgrade coveralls pip setuptools wheel --upgrade-strategy=eager
         python -m pip install --upgrade --pre pipenv
 
     - name: Run tests
@@ -85,12 +73,11 @@ jobs:
         git submodule sync
         git submodule update --init --recursive
         python -m pipenv install --dev --python=${{ steps.python-path.outputs.path }}
-        pip install coveralls
         pipenv run coverage run -p -m pytest -ra tests/
         pipenv run coverage combine
         coveralls
 
-  finish:
+  coveralls-complete:
     needs: test
     runs-on: ubuntu-latest
     env:
@@ -98,12 +85,27 @@ jobs:
         COVERALLS_GIT_COMMIT: ${{ github.sha }}
         COVERALLS_GIT_BRANCH: ${{ github.ref }}
         COVERALLS_SERVICE_NAME: github
-        COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
-        GITHUB_RUN_ID: ${{ steps.service-name.outputs.name }}
     steps:
+    - name: install requests
+      run: |
+        pip install --upgrade --upgrade-strategy=eager requests
     - name: Coveralls Finished
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        parallel-finished: true
-
+      run: |
+        import os
+        import requests
+        url = "https://coveralls.io/webhook"
+        pr_number = None
+        service_number = os.environ['COVERALLS_GIT_COMMIT']
+        git_branch = os.environ.get('COVERALLS_GIT_BRANCH', '')
+        if git_branch.startswith('refs/pull/'):
+            pr_number = git_branch.split('/')[2]
+            service_number = '{}-PR-{}'.format(service_number, pr_number)
+        payload = {
+            "repo_token": os.environ['COVERALLS_REPO_TOKEN'],
+            "repo_name": os.environ['GITHUB_REPOSITORY'],
+            "payload": {"build_num": service_number, "status": "done"}
+        }
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        assert response.json() == {"done": True}, response.json()
+      shell: python
