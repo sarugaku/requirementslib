@@ -51,18 +51,23 @@ jobs:
       run: |
         echo ::set-output name=path::$(python -c "import sys; print(sys.executable)")
 
+    - name: Get PR number
+      id: pull-request
+      run: |
+        echo ::set-output name=pr::$(python -c "import os; pr = os.environ.get('GITHUB_REF', '//').split('/')[2]; print(pr)")
+
+    - name: Get service name
+      id: service-name
+      env:
+        PR_NUMBER: ${{ steps.pull-request.outputs.pr }}
+      run: |
+        echo ::set-output name=name::$(python -c "import os; service_number = os.environ['GITHUB_SHA'] if not os.environ.get('PR_NUMBER', None) else '{}-PR-{}'.format(os.environ['GITHUB_SHA'], os.environ['PR_NUMBER']); print(service_number)")
+
     - name: Install latest pip, setuptools, wheel
       run: |
         python -m pip install --upgrade pip setuptools wheel --upgrade-strategy=eager
         python -m pip install --upgrade --pre pipenv
-    - name: Install dependencies
-      env:
-        PIPENV_DEFAULT_PYTHON_VERSION: ${{ matrix.python-version }}
-        PYTHONWARNINGS: ignore:DEPRECATION
-      run: |
-        git submodule sync
-        git submodule update --init --recursive
-        python -m pipenv install --dev --python=${{ steps.python-path.outputs.path }}
+
     - name: Run tests
       env:
         PIPENV_DEFAULT_PYTHON_VERSION: ${{ matrix.python-version }}
@@ -77,8 +82,12 @@ jobs:
         PIPENV_NOSPIN: '1'
         CI: '1'
       run: |
+        git submodule sync
+        git submodule update --init --recursive
+        python -m pipenv install --dev --python=${{ steps.python-path.outputs.path }}
         pip install coveralls
         pipenv run coverage run -p -m pytest -ra tests/
+        pipenv run coverage combine
         coveralls
 
   finish:
@@ -90,6 +99,7 @@ jobs:
         COVERALLS_GIT_BRANCH: ${{ github.ref }}
         COVERALLS_SERVICE_NAME: github
         COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
+        GITHUB_RUN_ID: ${{ steps.service-name.outputs.name }}
     steps:
     - name: Coveralls Finished
       uses: coverallsapp/github-action@master
