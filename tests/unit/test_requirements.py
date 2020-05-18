@@ -7,7 +7,7 @@ from hypothesis import given, settings, strategies as st
 from vistir.compat import Path
 
 from requirementslib.exceptions import RequirementError
-from requirementslib.models.requirements import Line, Requirement
+from requirementslib.models.requirements import Line, NamedRequirement, Requirement
 from requirementslib.models.setup_info import SetupInfo
 
 from .strategies import random_marker_strings, repository_line, requirements
@@ -246,7 +246,7 @@ def test_convert_from_pipfile(monkeypatch, requirement, expected):
 
 @pytest.mark.requirements
 def test_convert_from_pipfile_vcs(monkeypatch):
-    """ssh VCS links should be converted correctly"""
+    """ssh VCS links should be converted correctly."""
     with monkeypatch.context() as m:
         m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
         pkg_name = "shellingham"
@@ -260,8 +260,7 @@ def test_convert_from_pipfile_vcs(monkeypatch):
 
 @pytest.mark.utils
 def test_convert_from_pip_fail_if_no_egg():
-    """Parsing should fail without `#egg=`.
-    """
+    """Parsing should fail without `#egg=`."""
     dep = "git+https://github.com/kennethreitz/requests.git"
     with pytest.raises(ValueError) as e:
         dep = Requirement.from_line(dep).as_pipfile()
@@ -270,8 +269,8 @@ def test_convert_from_pip_fail_if_no_egg():
 
 @pytest.mark.requirements
 def test_convert_non_installable_dir_fail(pathlib_tmpdir):
-    """Convert a non-installable directory link should fail
-    without deleting the directory."""
+    """Convert a non-installable directory link should fail without deleting
+    the directory."""
     dep = "-e file://{}".format(pathlib_tmpdir.as_posix())
     with pytest.raises(RequirementError):
         req = Requirement.from_line(dep)
@@ -288,8 +287,8 @@ def test_one_way_editable_extras():
 
 @pytest.mark.utils
 def test_convert_from_pip_git_uri_normalize(monkeypatch):
-    """Pip does not parse this correctly, but we can (by converting to ssh://).
-    """
+    """Pip does not parse this correctly, but we can (by converting to
+    ssh://)."""
     with monkeypatch.context() as m:
         m.setattr(Requirement, "run_requires", mock_run_requires)
         m.setattr(SetupInfo, "get_info", mock_run_requires)
@@ -448,3 +447,17 @@ def test_pep_508():
     assert r.as_pipfile() == {
         "tablib": {"file": "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"}
     }
+
+
+@pytest.mark.requirements
+@pytest.mark.needs_internet
+def test_named_requirement_selected_over_non_installable_path(
+    monkeypatch, pathlib_tmpdir
+):
+    with monkeypatch.context() as m:
+        m.chdir(pathlib_tmpdir.as_posix())
+        pathlib_tmpdir.joinpath("alembic").write_text("")
+        r = Requirement.from_line("alembic")
+        assert isinstance(r.req, NamedRequirement)
+        assert r.as_line() == "alembic"
+        assert r.line_instance.is_named is True
