@@ -456,7 +456,7 @@ def test_named_requirement_selected_over_non_installable_path(
 ):
     with monkeypatch.context() as m:
         m.chdir(pathlib_tmpdir.as_posix())
-        pathlib_tmpdir.joinpath("alembic").write_text("")
+        pathlib_tmpdir.joinpath("alembic").write_text(u"")
         r = Requirement.from_line("alembic")
         assert isinstance(r.req, NamedRequirement)
         assert r.as_line() == "alembic"
