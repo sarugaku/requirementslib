@@ -1,0 +1,1 @@
+Fixed a bug in ``setup.py`` parsing in which ``setup.py`` files which passed a dictionary to the ``setup`` function returned metadata that could not be meaningfully processed.
