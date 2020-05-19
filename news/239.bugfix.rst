@@ -1,0 +1,1 @@
+Fixed a regression which caused collisions to occur between valid named requirements and invalid local filesystem paths.
