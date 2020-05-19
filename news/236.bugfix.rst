@@ -1,1 +1,0 @@
-Subdirectory fragments on VCS URLs which also contain ``#egg=`` fragments will now be included correctly in requirements.

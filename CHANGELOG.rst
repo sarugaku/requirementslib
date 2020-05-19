@@ -1,3 +1,16 @@
+1.5.9 (2020-05-19)
+==================
+
+Bug Fixes
+---------
+
+- Subdirectory fragments on VCS URLs which also contain ``#egg=`` fragments will now be included correctly in requirements.  `#236 <https://github.com/sarugaku/requirementslib/issues/236>`_
+  
+- Fixed a regression which caused collisions to occur between valid named requirements and invalid local filesystem paths.  `#239 <https://github.com/sarugaku/requirementslib/issues/239>`_
+  
+- Fixed a bug in ``setup.py`` parsing in which ``setup.py`` files which passed a dictionary to the ``setup`` function returned metadata that could not be meaningfully processed.  `#241 <https://github.com/sarugaku/requirementslib/issues/241>`_
+
+
 1.5.8 (2020-05-14)
 ==================
 
