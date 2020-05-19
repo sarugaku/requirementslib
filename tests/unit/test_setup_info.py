@@ -1,4 +1,5 @@
 # -*- coding=utf-8 -*-
+import ast
 import contextlib
 import os
 import shutil
@@ -10,7 +11,11 @@ import six
 import vistir
 
 from requirementslib.models.requirements import Requirement
-from requirementslib.models.setup_info import ast_parse_setup_py, parse_setup_cfg
+from requirementslib.models.setup_info import (
+    ast_parse_file,
+    ast_parse_setup_py,
+    parse_setup_cfg,
+)
 
 
 @pytest.mark.parametrize(
@@ -162,9 +167,9 @@ def test_extras(pathlib_tmpdir, setup_py_dir, setup_py_name, extras, dependencie
 
 
 def test_ast_parser_finds_variables(setup_py_dir):
-    parsed = ast_parse_setup_py(
-        setup_py_dir.joinpath("package_with_extras_as_variable/setup.py").as_posix()
-    )
+    target = setup_py_dir.joinpath("package_with_extras_as_variable/setup.py").as_posix()
+    parsed = ast_parse_setup_py(target)
+    analyzer = ast_parse_file(target)
     expected = {
         "name": "test_package",
         "version": "1.0.0",
@@ -184,14 +189,15 @@ def test_ast_parser_finds_variables(setup_py_dir):
             assert str(parsed[k]) == str(v), parsed[k]
         else:
             assert parsed[k] == v, parsed[k]
+    assert analyzer.parse_setup_function() == parsed
 
 
 def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
-    parsed = ast_parse_setup_py(
-        setup_py_dir.joinpath(
-            "package_using_fully_qualified_setuptools/setup.py"
-        ).as_posix()
-    )
+    target = setup_py_dir.joinpath(
+        "package_using_fully_qualified_setuptools/setup.py"
+    ).as_posix()
+    parsed = ast_parse_setup_py(target)
+    analyzer = ast_parse_file(target)
     expected = {
         "name": "test_package",
         "version": "1.0.0",
@@ -211,14 +217,15 @@ def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
             assert str(parsed[k]) == str(v), parsed[k]
         else:
             assert parsed[k] == v, parsed[k]
+    assert analyzer.parse_setup_function() == parsed
 
 
 def test_ast_parser_handles_binops(setup_py_dir):
-    parsed = ast_parse_setup_py(
-        setup_py_dir.joinpath(
-            "package_with_conditional_install_requires/setup.py"
-        ).as_posix()
-    )
+    target = setup_py_dir.joinpath(
+        "package_with_conditional_install_requires/setup.py"
+    ).as_posix()
+    parsed = ast_parse_setup_py(target)
+    analyzer = ast_parse_file(target)
     expected = [
         "azure-common>=1.1.5",
         "cryptography",
@@ -228,12 +235,13 @@ def test_ast_parser_handles_binops(setup_py_dir):
     if six.PY2:
         expected.append("futures")
     assert list(sorted(parsed["install_requires"])) == list(sorted(expected))
+    assert analyzer.parse_setup_function() == parsed
 
 
 def test_ast_parser_handles_binops(setup_py_dir):
-    parsed = ast_parse_setup_py(
-        setup_py_dir.joinpath("package_with_setup_from_dict/setup.py").as_posix()
-    )
+    target = setup_py_dir.joinpath("package_with_setup_from_dict/setup.py").as_posix()
+    parsed = ast_parse_setup_py(target)
+    analyzer = ast_parse_file(target)
     assert parsed["name"] == "test package"
     assert parsed["version"] == "1.0.0"
     expected = [
@@ -241,6 +249,7 @@ def test_ast_parser_handles_binops(setup_py_dir):
         "flake8",
     ]
     assert list(sorted(parsed["extras_require"]["tests"])) == list(sorted(expected))
+    assert analyzer.parse_setup_function() == parsed
 
 
 def test_setup_cfg_parser(setup_cfg_dir):
@@ -284,5 +293,11 @@ def test_ast_parser_handles_dependency_on_env_vars(
 def test_ast_parser_handles_exceptions(artifact_dir):
     path = artifact_dir.joinpath("git/pyinstaller/setup.py")
     result = ast_parse_setup_py(path.as_posix())
+    analyzer = ast_parse_file(path.as_posix())
     assert result is not None
     assert "altgraph" in result["install_requires"]
+    for k, v in analyzer.parse_setup_function().items():
+        assert k in result
+        assert result[k] == v or (
+            isinstance(v, dict) and isinstance(list(v.keys())[0], ast.Attribute)
+        )
