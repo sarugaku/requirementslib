@@ -52,7 +52,8 @@ def test_remote_req(url_line, name, requires):
 
 
 def test_no_duplicate_egg_info():
-    """When the package has 'src' directory, do not write egg-info in base dir."""
+    """When the package has 'src' directory, do not write egg-info in base
+    dir."""
     base_dir = vistir.compat.Path(os.path.abspath(os.getcwd())).as_posix()
     r = Requirement.from_line("-e {}".format(base_dir))
     egg_info_name = "{}.egg-info".format(r.name.replace("-", "_"))
@@ -94,7 +95,8 @@ def test_no_duplicate_egg_info():
 
 @pytest.mark.needs_internet
 def test_without_extras(pathlib_tmpdir):
-    """Tests a setup.py or setup.cfg parse when extras returns None for some files"""
+    """Tests a setup.py or setup.cfg parse when extras returns None for some
+    files."""
     setup_dir = pathlib_tmpdir.joinpath("sanitized-package")
     setup_dir.mkdir()
     assert setup_dir.is_dir()
@@ -141,7 +143,7 @@ setup(
     ],
 )
 def test_extras(pathlib_tmpdir, setup_py_dir, setup_py_name, extras, dependencies):
-    """Test named extras as a dependency"""
+    """Test named extras as a dependency."""
     setup_dir = pathlib_tmpdir.joinpath("test_package")
     shutil.copytree(setup_py_dir.joinpath(setup_py_name).as_posix(), setup_dir.as_posix())
     assert setup_dir.is_dir()
@@ -226,6 +228,19 @@ def test_ast_parser_handles_binops(setup_py_dir):
     if six.PY2:
         expected.append("futures")
     assert list(sorted(parsed["install_requires"])) == list(sorted(expected))
+
+
+def test_ast_parser_handles_binops(setup_py_dir):
+    parsed = ast_parse_setup_py(
+        setup_py_dir.joinpath("package_with_setup_from_dict/setup.py").as_posix()
+    )
+    assert parsed["name"] == "test package"
+    assert parsed["version"] == "1.0.0"
+    expected = [
+        "pytest",
+        "flake8",
+    ]
+    assert list(sorted(parsed["extras_require"]["tests"])) == list(sorted(expected))
 
 
 def test_setup_cfg_parser(setup_cfg_dir):

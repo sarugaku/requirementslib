@@ -979,6 +979,9 @@ def ast_parse_setup_py(path):
     function_names = ast_analyzer.parse_functions()
     if "setup" in function_names:
         setup = ast_unparse(function_names["setup"], analyzer=ast_analyzer)
+    keys = list(setup.keys())
+    if len(keys) == 1 and keys[0] is None:
+        _, setup = setup.popitem()
     return setup
 
 
@@ -1405,8 +1408,8 @@ build-backend = "{1}"
         # type: () -> Dict[S, Any]
         """Wipe existing distribution info metadata for rebuilding.
 
-            Erases metadata from **self.egg_base** and unsets **self.requirements**
-            and **self.extras**.
+        Erases metadata from **self.egg_base** and unsets
+        **self.requirements** and **self.extras**.
         """
         for metadata_dir in os.listdir(self.egg_base):
             shutil.rmtree(metadata_dir, ignore_errors=True)
@@ -1428,7 +1431,8 @@ build-backend = "{1}"
 
     def get_egg_metadata(self, metadata_dir=None, metadata_type=None):
         # type: (Optional[AnyStr], Optional[AnyStr]) -> Dict[Any, Any]
-        """Given a metadata directory, return the corresponding metadata dictionary.
+        """Given a metadata directory, return the corresponding metadata
+        dictionary.
 
         :param Optional[str] metadata_dir: Root metadata path, default: `os.getcwd()`
         :param Optional[str] metadata_type: Type of metadata to search for, default None
