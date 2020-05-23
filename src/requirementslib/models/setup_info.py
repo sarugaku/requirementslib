@@ -1274,9 +1274,9 @@ def run_setup(script_path, egg_base=None):
 
 @attr.s(slots=True, frozen=True)
 class BaseRequirement(object):
-    name = attr.ib(default="", cmp=True)  # type: STRING_TYPE
+    name = attr.ib(default="", eq=True, order=True)  # type: STRING_TYPE
     requirement = attr.ib(
-        default=None, cmp=True
+        default=None, eq=True, order=True
     )  # type: Optional[PkgResourcesRequirement]
 
     def __str__(self):
@@ -1316,8 +1316,8 @@ class BaseRequirement(object):
 
 @attr.s(slots=True, frozen=True)
 class Extra(object):
-    name = attr.ib(default=None, cmp=True)  # type: STRING_TYPE
-    requirements = attr.ib(factory=frozenset, cmp=True, type=frozenset)
+    name = attr.ib(default=None, eq=True, order=True)  # type: STRING_TYPE
+    requirements = attr.ib(factory=frozenset, eq=True, order=True, type=frozenset)
 
     def __str__(self):
         # type: () -> S
