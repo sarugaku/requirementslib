@@ -1850,7 +1850,7 @@ build-backend = "{1}"
         is_vcs = True if vcs else is_artifact_or_vcs
         if is_file and not is_vcs and path is not None and os.path.isdir(path):
             target = os.path.join(kwargs["src_dir"], os.path.basename(path))
-            shutil.copytree(path, target)
+            shutil.copytree(path, target, symlinks=True, ignore_dangling_symlinks=True)
             ireq.source_dir = target
         if not (ireq.editable and is_file and is_vcs):
             if ireq.is_wheel:
