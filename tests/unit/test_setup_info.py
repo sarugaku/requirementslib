@@ -252,6 +252,14 @@ def test_ast_parser_handles_binops(setup_py_dir):
     assert analyzer.parse_setup_function() == parsed
 
 
+def test_parse_function_call_as_name(setup_py_dir, pathlib_tmpdir):
+    package_dir = pathlib_tmpdir.joinpath("test-package").as_posix()
+    setup_dir = setup_py_dir.joinpath("package_with_funtion_call_as_name").as_posix()
+    shutil.copytree(setup_dir, package_dir)
+    req = Requirement.from_line("-e {}".format(package_dir))
+    assert req.name == "foo"
+
+
 def test_ast_parser_handles_repeated_assignments(setup_py_dir):
     target = setup_py_dir.joinpath(
         "package_with_repeated_assignments/setup.py"
