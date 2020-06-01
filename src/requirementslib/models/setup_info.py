@@ -729,14 +729,16 @@ class Analyzer(ast.NodeVisitor):
             self.binOps_map[binop] = ast_unparse(binop, analyzer=self)
 
     def match_assignment_str(self, match):
-        return next(
-            iter(k for k in self.assignments if getattr(k, "id", "") == match), None
-        )
+        matches = [k for k in self.assignments if getattr(k, "id", "") == match]
+        if matches:
+            return matches[-1]
+        return None
 
     def match_assignment_name(self, match):
-        return next(
-            iter(k for k in self.assignments if getattr(k, "id", "") == match.id), None
-        )
+        matches = [k for k in self.assignments if getattr(k, "id", "") == match.id]
+        if matches:
+            return matches[-1]
+        return None
 
     def generic_unparse(self, item):
         if any(isinstance(item, k) for k in AST_BINOP_MAP.keys()):
@@ -771,7 +773,7 @@ class Analyzer(ast.NodeVisitor):
         if isinstance(item.slice, ast.Index):
             try:
                 unparsed = unparsed[self.unparse(item.slice.value)]
-            except KeyError:
+            except (KeyError, TypeError):
                 # not everything can be looked up before runtime
                 unparsed = item
         return unparsed
@@ -838,7 +840,7 @@ class Analyzer(ast.NodeVisitor):
         if isinstance(item.left, ast.Attribute) or isinstance(item.left, ast.Str):
             import importlib
 
-            left = unparse(item.left)
+            left = self.unparse(item.left)
             if "." in left:
                 name, _, val = left.rpartition(".")
                 left = getattr(importlib.import_module(name), val, left)
@@ -1002,7 +1004,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
             if isinstance(item.slice, ast.Index):
                 try:
                     unparsed = unparsed[unparse(item.slice.value)]
-                except KeyError:
+                except (KeyError, TypeError):
                     # not everything can be looked up before runtime
                     unparsed = item
     elif any(isinstance(item, k) for k in AST_BINOP_MAP.keys()):
@@ -1848,7 +1850,7 @@ build-backend = "{1}"
         is_vcs = True if vcs else is_artifact_or_vcs
         if is_file and not is_vcs and path is not None and os.path.isdir(path):
             target = os.path.join(kwargs["src_dir"], os.path.basename(path))
-            shutil.copytree(path, target)
+            shutil.copytree(path, target, symlinks=True)
             ireq.source_dir = target
         if not (ireq.editable and is_file and is_vcs):
             if ireq.is_wheel:

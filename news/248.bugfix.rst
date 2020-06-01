@@ -1,0 +1,1 @@
+Copy symlinks as well for local path requirements.

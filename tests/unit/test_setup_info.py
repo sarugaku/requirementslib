@@ -252,6 +252,24 @@ def test_ast_parser_handles_binops(setup_py_dir):
     assert analyzer.parse_setup_function() == parsed
 
 
+def test_ast_parser_handles_repeated_assignments(setup_py_dir):
+    target = setup_py_dir.joinpath(
+        "package_with_repeated_assignments/setup.py"
+    ).as_posix()
+    parsed = ast_parse_setup_py(target)
+    analyzer = ast_parse_file(target)
+    assert parsed["name"] == "test_package_with_repeated_assignments"
+    assert isinstance(parsed["version"], str) is False
+    assert parsed["install_requires"] == ["six"]
+    analyzer_parsed = analyzer.parse_setup_function()
+    # the versions in this instance are AST objects as they come from
+    # os.environ and will need to be parsed downstream from here, so
+    # equality comparisons will fail
+    analyzer_parsed.pop("version")
+    parsed.pop("version")
+    assert analyzer_parsed == parsed
+
+
 def test_setup_cfg_parser(setup_cfg_dir):
     setup_path = setup_cfg_dir / "package_with_multiple_extras/setup.cfg"
     if six.PY2:
