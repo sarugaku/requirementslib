@@ -1,3 +1,12 @@
+1.5.11 (2020-06-01)
+===================
+
+Bug Fixes
+---------
+
+- Packages which use a function call in ``setup.py`` to find their own name dynamically will now successfully resolve.  `#251 <https://github.com/sarugaku/requirementslib/issues/251>`_
+
+
 1.5.10 (2020-06-01)
 ===================
 

@@ -1,1 +1,0 @@
-Packages which use a function call in ``setup.py`` to find their own name dynamically will now successfully resolve.
