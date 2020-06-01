@@ -1,1 +1,0 @@
-Fixed an issue in the AST parser which caused failures when parsing ``setup.py`` files with assignments (e.g. ``variable = some_value``) to the same name more than once, followed by operations on those variables (e.g. ``new_value = variable + other_variable``).

@@ -1,1 +1,0 @@
-Switch to BFS algorithm to iterate possible metadata directories.

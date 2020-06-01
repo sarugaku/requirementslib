@@ -1,3 +1,20 @@
+1.5.10 (2020-06-01)
+===================
+
+Bug Fixes
+---------
+
+- Switch to BFS algorithm to iterate possible metadata directories.  `#186 <https://github.com/sarugaku/requirementslib/issues/186>`_
+  
+- Fix a bug that `+` character in URL auth are converted to a space.  `#244 <https://github.com/sarugaku/requirementslib/issues/244>`_
+  
+- Fixed an issue in the AST parser which caused failures when parsing ``setup.py`` files with assignments (e.g. ``variable = some_value``) to the same name more than once, followed by operations on those variables (e.g. ``new_value = variable + other_variable``).  `#246 <https://github.com/sarugaku/requirementslib/issues/246>`_
+  
+- Copy symlinks as well for local path requirements.  `#248 <https://github.com/sarugaku/requirementslib/issues/248>`_
+  
+- Fix a bug that non-string value for name argument will be taken as requirement name.  `#249 <https://github.com/sarugaku/requirementslib/issues/249>`_
+
+
 1.5.9 (2020-05-19)
 ==================
 

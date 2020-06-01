@@ -1,1 +1,0 @@
-Fix a bug that non-string value for name argument will be taken as requirement name.
