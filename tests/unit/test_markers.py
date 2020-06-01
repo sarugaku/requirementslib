@@ -30,6 +30,7 @@ def test_format_version(version_tuple, version_str):
         (Specifier("<=3.6"), Specifier("<3.7")),
         (">2.6", Specifier(">=2.7")),
         (Specifier(">2.6"), Specifier(">=2.7")),
+        (">1.1", Specifier(">=1.2"))
     ],
 )
 def test_format_pyspec(specifier, rounded_specifier):
@@ -136,7 +137,13 @@ def test_get_extras(marker, extras):
             Marker(
                 "os_name == 'posix' and python_version >= '2.7' and python_version not in '3.0.*,3.1.*,3.2.*,3.3.*'"
             ),
-            SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3,>=2.7"),
+            SpecifierSet("!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"),
+        ),
+        (
+            Marker(
+                "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'"
+            ),
+            SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3,!=3.4,>=2.7"),
         ),
     ],
 )
@@ -202,6 +209,16 @@ def test_contains_extras_or_pyversions(marker, contains_extras, contains_pyversi
             'python_version >= "2.7" and python_version not in "3.0, 3.1, 3.2, 3.3" and python_version ~= "3.7"',
         ),
         ("<=3.5,>=2.7", 'python_version >= "2.7" and python_version < "3.6"'),
+        (">=3.6.1", 'python_full_version >= "3.6.1"'),
+        ("!=3.2.1,>=3.1", 'python_version >= "3.1" and python_full_version != "3.2.1"'),
+        (
+            "!=3.0.*,!=3.1.1,!=3.1.2",
+            'python_version != "3.0" and python_full_version not in "3.1.1, 3.1.2"',
+        ),
+        (
+            "!=3.0.*,!=3.1.1,>=3.1.4",
+            'python_version != "3.0" and python_full_version != "3.1.1" and python_full_version >= "3.1.4"',
+        ),
     ],
 )
 def test_marker_from_specifier(marker, expected):

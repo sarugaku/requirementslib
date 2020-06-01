@@ -1,12 +1,14 @@
 # -*- coding=utf-8 -*-
 # Copyied from pip's vendoring process
 # see https://github.com/pypa/pip/blob/95bcf8c5f6394298035a7332c441868f3b0169f4/tasks/__init__.py
+import datetime
 import enum
 import pathlib
 import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import invoke
@@ -33,6 +35,10 @@ class LogLevel(enum.Enum):
 
 def _get_git_root(ctx):
     return Path(ctx.run("git rev-parse --show-toplevel", hide=True).stdout.strip())
+
+
+def _get_branch(ctx):
+    return ctx.run("git rev-parse --abbrev-ref HEAD", hide=True).stdout.strip()
 
 
 def find_version():
@@ -186,7 +192,7 @@ def tag_release(ctx, version=None, type_="patch", yes=False, dry_run=False):
     generate_news(ctx, yes=yes, dry_run=dry_run)
     git_commit_cmd = f'git commit -am "Release {version}"'
     tag_content = tag_content.replace('"', '\\"')
-    git_tag_cmd = f'git tag -a {version} -m "Version {version}\n\n{tag_content}"'
+    git_tag_cmd = f'git tag -s -a {version} -m "Version {version}\n\n{tag_content}"'
     if dry_run:
         print("Would run commands:")
         print(f"    {git_commit_cmd}")
@@ -196,15 +202,42 @@ def tag_release(ctx, version=None, type_="patch", yes=False, dry_run=False):
         ctx.run(git_tag_cmd)
 
 
+@invoke.task(optional=["version", "type_"])
+def release(ctx, version=None, type_="patch", yes=False, dry_run=False):
+    if version is None:
+        version = bump_version(ctx, type_, log=not dry_run, dry_run=dry_run)
+    else:
+        _write_version(version)
+    tag_content = get_changelog(ctx)
+    current_branch = _get_branch(ctx)
+    generate_news(ctx, yes=yes, dry_run=dry_run)
+    git_commit_cmd = f'git commit -am "Release {version}"'
+    git_tag_cmd = f'git tag -a {version} -m "Version {version}\n\n{tag_content}"'
+    git_push_cmd = f"git push origin {current_branch}"
+    git_push_tags_cmd = "git push --tags"
+    if dry_run:
+        print("Would run commands:")
+        print(f"    {git_commit_cmd}")
+        print(f"    {git_tag_cmd}")
+        print(f"    {git_push_cmd}")
+        print(f"    {git_push_tags_cmd}")
+    else:
+        ctx.run(git_commit_cmd)
+        ctx.run(git_tag_cmd)
+        ctx.run(git_push_cmd)
+        print("Waiting 5 seconds before pushing tags...")
+        time.sleep(5)
+        ctx.run(git_push_tags_cmd)
+
+
 @invoke.task(pre=[clean])
-def release(ctx, type_, repo, prebump=PREBUMP, yes=False):
+def full_release(ctx, type_, repo, prebump=PREBUMP, yes=False):
     """Make a new release.
     """
     if prebump not in REL_TYPES:
         raise ValueError(f"{type_} not in {REL_TYPES}")
     prebump = REL_TYPES.index(prebump)
-
-    version = bump_version(ctx, type_, log=True)
+    version = bump_version(ctx, type_, log=not dry_run)
     # Needs to happen before Towncrier deletes fragment files.
     tag_release(version, yes=yes)
 

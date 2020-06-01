@@ -1,26 +1,34 @@
 # -*- coding=utf-8 -*-
+import json
 import os
-from vistir.contextmanagers import temp_environ
 import textwrap
+
+import pytest
+from vistir.contextmanagers import cd, temp_environ
+
+from requirementslib.exceptions import MissingParameter, PipfileNotFound
+from requirementslib.models.lockfile import Lockfile
+from requirementslib.models.pipfile import Pipfile
+from requirementslib.models.requirements import Requirement
 
 
 def test_lockfile(tmpdir):
     with temp_environ():
-        os.environ['PIPENV_CACHE_DIR'] = tmpdir.strpath
-        from requirementslib import Lockfile
-        lockfile = Lockfile.create('.')
-
-        requires = lockfile.as_requirements(dev=False)
-        assert requires == []
+        os.environ["PIPENV_CACHE_DIR"] = tmpdir.strpath
+        lockfile = Lockfile.create(".")
 
         requires = lockfile.as_requirements(dev=True)
         assert any(req.startswith("attrs") for req in requires)
 
+        requires = lockfile.as_requirements(dev=False)
+        assert requires == []
 
-def test_lockfile_requirements(tmpdir):
-    from requirementslib import Lockfile, Requirement
-    lockfile = tmpdir.join("Pipfile.lock")
-    lockfile.write(textwrap.dedent("""
+
+def test_lockfile_requirements(pathlib_tmpdir):
+    lockfile = pathlib_tmpdir.joinpath("Pipfile.lock")
+    lockfile.write_text(
+        textwrap.dedent(
+            u"""
     {
         "_meta": {
             "hash": {
@@ -81,10 +89,42 @@ def test_lockfile_requirements(tmpdir):
                     "sha256:fc323ffcaeaed0e0a02bf4d117757b98aed530d9ed4531e3e15460124c106691"
                 ],
                 "version": "==3.0.4"
+            },
+            "requests": {
+                "path": ".",
+                "editable": true
             }
         }
     }
-    """.strip()))
-    loaded = Lockfile.load(lockfile.strpath)
+    """.strip()
+        )
+    )
+    loaded = Lockfile.load(lockfile.as_posix())
+    dump_to = pathlib_tmpdir.joinpath("new_lockfile")
+    dump_to.mkdir()
+    from_data = Lockfile.from_data(
+        dump_to.as_posix(), json.loads(lockfile.read_text()), meta_from_project=False
+    )
     assert isinstance(loaded.dev_requirements[0], Requirement)
     assert isinstance(loaded.dev_requirements_list[0], dict)
+    with cd(pathlib_tmpdir.as_posix()):
+        auto_detected_path = Lockfile()
+        assert (
+            auto_detected_path.path.absolute().as_posix()
+            == lockfile.absolute().as_posix()
+        )
+        assert auto_detected_path["develop-editable"]["requests"] is not None
+
+
+def test_failure(pipfile_dir):
+    pipfile_location = pipfile_dir / "Pipfile.both-sections"
+    with pytest.raises(PipfileNotFound):
+        Lockfile.lockfile_from_pipfile("some_fake_pipfile_path")
+    with pytest.raises(MissingParameter):
+        Lockfile.from_data(None, None)
+    with pytest.raises(MissingParameter):
+        Lockfile.from_data(pipfile_location.as_posix(), None)
+    with pytest.raises(MissingParameter):
+        Lockfile.from_data(None, {})
+    with pytest.raises(TypeError):
+        Lockfile.from_data(pipfile_location.as_posix(), True)
