@@ -1,1 +1,0 @@
-Fix a bug that `+` character in URL auth are converted to a space.

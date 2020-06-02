@@ -116,3 +116,4 @@ pip-wheel-metadata/
 XDG_CACHE_HOME
 junit
 .bento
+.vim
