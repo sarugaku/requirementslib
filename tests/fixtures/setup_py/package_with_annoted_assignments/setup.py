@@ -1,8 +1,9 @@
 import os
+from typing import Dict, List
 
 from setuptools import find_packages, setup
 
-extras_require = {
+extras_require: Dict[str, List[str]] = {
     "docs": ["sphinx", "sphinx-argparse"],
 }
 setup(
@@ -11,5 +12,5 @@ setup(
     description="a",
     packages=find_packages(),
     extras_require=extras_require,
-    install_requires=extras_require["docs"] if "READTHEDOCS" in os.environ else [],
+    install_requires=[],
 )

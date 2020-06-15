@@ -327,3 +327,16 @@ def test_ast_parser_handles_exceptions(artifact_dir):
         assert result[k] == v or (
             isinstance(v, dict) and isinstance(list(v.keys())[0], ast.Attribute)
         )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 6),
+    reason="Type annotations are not available for Python<3.6"
+)
+def test_ast_parser_handles_annoted_assignments(setup_py_dir):
+    parsed = ast_parse_setup_py(
+        setup_py_dir.joinpath(
+            "package_with_annoted_assignments/setup.py"
+        ).as_posix()
+    )
+    assert parsed["extras_require"] == {"docs": ["sphinx", "sphinx-argparse"]}
