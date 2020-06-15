@@ -1,0 +1,1 @@
+Fix a bug that ``package_dir`` points to a wrong location when parsing ``setup.cfg``.

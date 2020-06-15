@@ -289,6 +289,17 @@ def test_setup_cfg_parser(setup_cfg_dir):
     assert result["name"] == "test_package"
 
 
+def test_parse_setup_cfg_with_special_directives(setup_cfg_dir):
+    setup_path = setup_cfg_dir / "package_with_special_directives/setup.cfg"
+    if six.PY2:
+        contents = setup_path.read_bytes()
+    else:
+        contents = setup_path.read_text()
+    result = parse_setup_cfg(contents, setup_path.parent.as_posix())
+    assert result["version"] == "0.1.0"
+    assert result["name"] == "bug-test"
+
+
 @pytest.mark.parametrize(
     "env_vars, expected_install_requires",
     [({"NOTHING": "1"}, []), ({"READTHEDOCS": "1"}, ["sphinx", "sphinx-argparse"]),],
