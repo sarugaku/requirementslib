@@ -1,0 +1,1 @@
+Fix a bug that assignments with type annotations are missing from the AST.
