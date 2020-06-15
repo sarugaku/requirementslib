@@ -250,7 +250,7 @@ def get_package_dir_from_setupcfg(parser, base_dir=None):
         if "find:" in pkg_dir:
             _, pkg_dir = pkg_dir.split("find:")
             pkg_dir = pkg_dir.strip()
-        package_dir = os.path.join(package_dir, pkg_dir)
+            package_dir = os.path.join(package_dir, pkg_dir)
     elif os.path.exists(os.path.join(package_dir, "setup.py")):
         setup_py = ast_parse_setup_py(os.path.join(package_dir, "setup.py"))
         if "package_dir" in setup_py:
