@@ -1,3 +1,14 @@
+1.5.12 (2020-07-10)
+===================
+
+Bug Fixes
+---------
+
+- Fix a bug that assignments with type annotations are missing from the AST.  `#253 <https://github.com/sarugaku/requirementslib/issues/253>`_
+  
+- Fix a bug that ``package_dir`` points to a wrong location when parsing ``setup.cfg``.  `#255 <https://github.com/sarugaku/requirementslib/issues/255>`_
+
+
 1.5.11 (2020-06-01)
 ===================
 
