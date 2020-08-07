@@ -1892,7 +1892,10 @@ build-backend = "{1}"
         if build_location_func is None:
             build_location_func = getattr(ireq, "ensure_build_location", None)
         if not ireq.source_dir:
-            build_kwargs = {"build_dir": kwargs["build_dir"], "autodelete": False}
+            build_kwargs = {
+                "build_dir": kwargs["build_dir"],
+                "autodelete": False, "parallel_builds": True
+            }
             call_function_with_correct_args(build_location_func, **build_kwargs)
             ireq.ensure_has_source_dir(kwargs["src_dir"])
             pip_shims.shims.shim_unpack(
