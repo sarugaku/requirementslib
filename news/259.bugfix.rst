@@ -1,1 +1,0 @@
-Don't copy whole tree for local directory dependencies.

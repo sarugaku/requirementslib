@@ -1,3 +1,12 @@
+1.5.13 (2020-08-12)
+===================
+
+Bug Fixes
+---------
+
+- Don't copy whole tree for local directory dependencies.  `#259 <https://github.com/sarugaku/requirementslib/issues/259>`_
+
+
 1.5.12 (2020-07-10)
 ===================
 
