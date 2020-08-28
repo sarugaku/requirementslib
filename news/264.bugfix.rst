@@ -1,0 +1,1 @@
+Fix a bug that non-wheel file requirements always fail on ``InstallRequirement.check_if_exists()``.

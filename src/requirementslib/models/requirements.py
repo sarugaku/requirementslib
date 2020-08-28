@@ -939,8 +939,10 @@ class Line(object):
         # type: () -> None
         if self._ireq is None:
             self._ireq = self.get_ireq()
-        if self._ireq is not None:
-            if self.requirement is not None and self._ireq.req is None:
+        if self._ireq is not None and self._ireq.req is None:
+            if self.is_file or self.is_remote_url:
+                self._ireq.req = PackagingRequirement(self.name)
+            elif self.requirement is not None:
                 self._ireq.req = self.requirement
 
     def _parse_wheel(self):
