@@ -289,6 +289,17 @@ def test_setup_cfg_parser(setup_cfg_dir):
     assert result["name"] == "test_package"
 
 
+def test_parse_setup_cfg_with_special_directives(setup_cfg_dir):
+    setup_path = setup_cfg_dir / "package_with_special_directives/setup.cfg"
+    if six.PY2:
+        contents = setup_path.read_bytes()
+    else:
+        contents = setup_path.read_text()
+    result = parse_setup_cfg(contents, setup_path.parent.as_posix())
+    assert result["version"] == "0.1.0"
+    assert result["name"] == "bug-test"
+
+
 @pytest.mark.parametrize(
     "env_vars, expected_install_requires",
     [({"NOTHING": "1"}, []), ({"READTHEDOCS": "1"}, ["sphinx", "sphinx-argparse"]),],
@@ -327,3 +338,16 @@ def test_ast_parser_handles_exceptions(artifact_dir):
         assert result[k] == v or (
             isinstance(v, dict) and isinstance(list(v.keys())[0], ast.Attribute)
         )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 6),
+    reason="Type annotations are not available for Python<3.6"
+)
+def test_ast_parser_handles_annoted_assignments(setup_py_dir):
+    parsed = ast_parse_setup_py(
+        setup_py_dir.joinpath(
+            "package_with_annoted_assignments/setup.py"
+        ).as_posix()
+    )
+    assert parsed["extras_require"] == {"docs": ["sphinx", "sphinx-argparse"]}

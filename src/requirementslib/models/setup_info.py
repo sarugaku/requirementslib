@@ -250,7 +250,7 @@ def get_package_dir_from_setupcfg(parser, base_dir=None):
         if "find:" in pkg_dir:
             _, pkg_dir = pkg_dir.split("find:")
             pkg_dir = pkg_dir.strip()
-        package_dir = os.path.join(package_dir, pkg_dir)
+            package_dir = os.path.join(package_dir, pkg_dir)
     elif os.path.exists(os.path.join(package_dir, "setup.py")):
         setup_py = ast_parse_setup_py(os.path.join(package_dir, "setup.py"))
         if "package_dir" in setup_py:
@@ -681,6 +681,11 @@ AST_COMPARATORS = dict(
     )
 )
 
+if getattr(ast, "AnnAssign", None):
+    ASSIGN_NODES = (ast.Assign, ast.AnnAssign)
+else:
+    ASSIGN_NODES = (ast.Assign,)
+
 
 class Analyzer(ast.NodeVisitor):
     def __init__(self):
@@ -704,7 +709,7 @@ class Analyzer(ast.NodeVisitor):
             self.name_types.append(node)
         if isinstance(node, ast.Str):
             self.strings.append(node)
-        if isinstance(node, ast.Assign):
+        if isinstance(node, ASSIGN_NODES):
             self.assignments.update(ast_unparse(node, initial_mapping=True))
         super(Analyzer, self).generic_visit(node)
 
@@ -987,6 +992,15 @@ class Analyzer(ast.NodeVisitor):
         return setup
 
 
+def _ensure_hashable(item):
+    try:
+        hash(item)
+    except TypeError:
+        return str(item)
+    else:
+        return item
+
+
 def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # noqa:C901
     # type: (Any, bool, Optional[Analyzer], bool) -> Union[List[Any], Dict[Any, Any], Tuple[Any, ...], STRING_TYPE]
     unparse = partial(
@@ -998,7 +1012,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
         constant = ast.Ellipsis
     unparsed = item
     if isinstance(item, ast.Dict):
-        unparsed = dict(zip(unparse(item.keys), unparse(item.values)))
+        unparsed = dict(zip(map(_ensure_hashable, unparse(item.keys)), unparse(item.values)))
     elif isinstance(item, ast.List):
         unparsed = [unparse(el) for el in item.elts]
     elif isinstance(item, ast.Tuple):
@@ -1139,20 +1153,24 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
                         unparsed[func_name].update(unparse(keyword))
     elif isinstance(item, ast.keyword):
         unparsed = {unparse(item.arg): unparse(item.value)}
-    elif isinstance(item, ast.Assign):
+    elif isinstance(item, ASSIGN_NODES):
         # XXX: DO NOT UNPARSE THIS
         # XXX: If we unparse this it becomes impossible to map it back
         # XXX: To the original node in the AST so we can find the
         # XXX: Original reference
+        try:
+            targets = item.targets  # for ast.Assign
+        except AttributeError:      # for ast.AnnAssign
+            targets = (item.target,)
         if not initial_mapping:
-            target = unparse(next(iter(item.targets)), recurse=False)
+            target = unparse(next(iter(targets)), recurse=False)
             val = unparse(item.value, recurse=False)
             if isinstance(target, (tuple, set, list)):
                 unparsed = dict(zip(target, val))
             else:
                 unparsed = {target: val}
         else:
-            unparsed = {next(iter(item.targets)): item}
+            unparsed = {next(iter(targets)): item}
     elif isinstance(item, Mapping):
         unparsed = {}
         for k, v in item.items():
@@ -1571,29 +1589,7 @@ class SetupInfo(object):
 
     def build_wheel(self):
         # type: () -> S
-        if not self.pyproject.exists():
-            build_requires = ", ".join(['"{0}"'.format(r) for r in self.build_requires])
-            self.pyproject.write_text(
-                six.text_type(
-                    """
-[build-system]
-requires = [{0}]
-build-backend = "{1}"
-                """.format(
-                        build_requires, self.build_backend
-                    ).strip()
-                )
-            )
-        return build_pep517(
-            self.base_dir,
-            self.extra_kwargs["build_dir"],
-            config_settings=self.pep517_config,
-            dist_type="wheel",
-        )
-
-    # noinspection PyPackageRequirements
-    def build_sdist(self):
-        # type: () -> S
+        need_delete = False
         if not self.pyproject.exists():
             if not self.build_requires:
                 build_requires = '"setuptools", "wheel"'
@@ -1612,12 +1608,49 @@ build-backend = "{1}"
                     ).strip()
                 )
             )
-        return build_pep517(
+            need_delete = True
+        result = build_pep517(
+            self.base_dir,
+            self.extra_kwargs["build_dir"],
+            config_settings=self.pep517_config,
+            dist_type="wheel",
+        )
+        if need_delete:
+            self.pyproject.unlink()
+        return result
+
+    # noinspection PyPackageRequirements
+    def build_sdist(self):
+        # type: () -> S
+        need_delete = False
+        if not self.pyproject.exists():
+            if not self.build_requires:
+                build_requires = '"setuptools", "wheel"'
+            else:
+                build_requires = ", ".join(
+                    ['"{0}"'.format(r) for r in self.build_requires]
+                )
+            self.pyproject.write_text(
+                six.text_type(
+                    """
+[build-system]
+requires = [{0}]
+build-backend = "{1}"
+                """.format(
+                        build_requires, self.build_backend
+                    ).strip()
+                )
+            )
+            need_delete = True
+        result = build_pep517(
             self.base_dir,
             self.extra_kwargs["build_dir"],
             config_settings=self.pep517_config,
             dist_type="sdist",
         )
+        if need_delete:
+            self.pyproject.unlink()
+        return result
 
     def build(self):
         # type: () -> "SetupInfo"
@@ -1865,10 +1898,7 @@ build-backend = "{1}"
             ireq.link, "is_vcs", getattr(ireq.link, "is_artifact", False)
         )
         is_vcs = True if vcs else is_artifact_or_vcs
-        if is_file and not is_vcs and path is not None and os.path.isdir(path):
-            target = os.path.join(kwargs["src_dir"], os.path.basename(path))
-            shutil.copytree(path, target, symlinks=True)
-            ireq.source_dir = target
+
         if not (ireq.editable and is_file and is_vcs):
             if ireq.is_wheel:
                 only_download = True
@@ -1886,10 +1916,12 @@ build-backend = "{1}"
         if build_location_func is None:
             build_location_func = getattr(ireq, "ensure_build_location", None)
         if not ireq.source_dir:
-            build_kwargs = {"build_dir": kwargs["build_dir"], "autodelete": False}
+            build_kwargs = {
+                "build_dir": kwargs["build_dir"],
+                "autodelete": False, "parallel_builds": True
+            }
             call_function_with_correct_args(build_location_func, **build_kwargs)
             ireq.ensure_has_source_dir(kwargs["src_dir"])
-            src_dir = ireq.source_dir
             pip_shims.shims.shim_unpack(
                 download_dir=download_dir,
                 ireq=ireq,
