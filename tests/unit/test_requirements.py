@@ -314,9 +314,9 @@ def test_get_requirements(monkeypatch_if_needed):
     assert url_with_egg.name == "django-user-clipboard"
     # Test URLs without eggs pointing at installable zipfiles
     url = Requirement.from_line(
-        "https://github.com/jazzband/tablib/zip/v0.12.1"
+        "https://github.com/jazzband/tablib/archive/v0.12.1.zip"
     ).requirement
-    assert url.url == "https://github.com/jazzband/tablib/zip/v0.12.1"
+    assert url.url == "https://github.com/jazzband/tablib/archive/v0.12.1.zip"
     wheel_line = "https://github.com/pypa/pipenv/raw/master/tests/test_artifacts/six-1.11.0+mkl-py2.py3-none-any.whl"
     wheel = Requirement.from_line(wheel_line)
     assert wheel.as_pipfile() == {
