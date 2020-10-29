@@ -72,7 +72,6 @@ jobs:
       run: |
         git submodule sync
         git submodule update --init --recursive
-        pipenv run python pip_supported.py
         python -m pipenv install --dev --python=${{ steps.python-path.outputs.path }}
         pipenv run coverage run -p -m pytest -ra tests/
         pipenv run coverage combine

@@ -1,6 +1,5 @@
 steps:
   - script: |
       python -m pip install --upgrade pip setuptools wheel pipenv
-      pipenv run python pip_supported.py
-      pipenv install --dev
+      pipenv --python python install --dev
     displayName: Install Dependencies
