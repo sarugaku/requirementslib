@@ -9,11 +9,6 @@ steps:
 
 - template: install-dependencies.yml
 
-- script: |
-    pipenv run python pip_supported.py
-    pipenv install --dev
-  displayName: Install Package
-
 - script: pipenv run coverage run --parallel -m pytest -ra --junitxml=junit/test-results.xml tests/
   displayName: 'Run Pytest'
 

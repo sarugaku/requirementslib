@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.commands.install import InstallCommand
 
