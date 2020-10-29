@@ -544,7 +544,7 @@
                 "sha256:3479b861cc2b6407de5188695fa1a8d57e5072d7059322469b62628869b8e36e",
                 "sha256:d6c6b49683446d2407d2fe3acb7a368a77ff063f9182fe427da15d622adc24cf"
             ],
-            "version": "==0.17.2"
+            "version": "==0.4.3"
         },
         "jinja2": {
             "hashes": [
