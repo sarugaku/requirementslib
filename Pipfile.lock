@@ -1066,8 +1066,8 @@
         "requirementslib": {
             "editable": true,
             "extras": [
-                "tests",
                 "dev",
+                "tests",
                 "typing"
             ],
             "path": "."
