@@ -1,3 +1,16 @@
+1.5.14 (2020-10-29)
+===================
+
+Bug Fixes
+---------
+
+- Fix the PEP 517 requires in default ``pyproject.toml`` and clean the temp files.  `#262 <https://github.com/sarugaku/requirementslib/issues/262>`_
+  
+- Fix an unparse error that the dictionary keys are unhashable.  `#266 <https://github.com/sarugaku/requirementslib/issues/266>`_
+  
+- Fix a bug that dist-info inside ``venv`` directory will be mistaken as the editable package's metadata.  `#273 <https://github.com/sarugaku/requirementslib/issues/273>`_
+
+
 1.5.13 (2020-08-12)
 ===================
 
