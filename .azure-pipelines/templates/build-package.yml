@@ -4,9 +4,7 @@ steps:
       versionSpec: "3.7"
     displayName: Use Python 3.7
 
-  - template: install-dependencies.yml
-
-  - script: python -m pip install pipenv --upgrade
+  - script: python -m pip install pip wheel pipenv --upgrade
     displayName: Install Pipenv
 
   - script: pipenv install --dev

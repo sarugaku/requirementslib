@@ -461,3 +461,21 @@ def test_named_requirement_selected_over_non_installable_path(
         assert isinstance(r.req, NamedRequirement)
         assert r.as_line() == "alembic"
         assert r.line_instance.is_named is True
+
+
+@pytest.mark.requirements
+def test_file_url_with_percent_encoding():
+    r = Requirement.from_pipfile(
+        "torch",
+        {
+            "file": "https://download.pytorch.org/whl/cpu/torch-1.7.0%2Bcpu-cp38-cp38-linux_x86_64.whl#egg=torch"
+        },
+    )
+    assert (
+        r.req.uri
+        == "https://download.pytorch.org/whl/cpu/torch-1.7.0%2Bcpu-cp38-cp38-linux_x86_64.whl"
+    )
+    assert (
+        r.as_line()
+        == "https://download.pytorch.org/whl/cpu/torch-1.7.0%2Bcpu-cp38-cp38-linux_x86_64.whl#egg=torch"
+    )
