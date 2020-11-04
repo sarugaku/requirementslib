@@ -86,5 +86,7 @@ jobs:
     - TestMacOS
   pool:
     vmImage: ubuntu-latest
+  parameters:
+    python.version: '3.7'
   steps:
   - template: .azure-pipelines/templates/build-package.yml
