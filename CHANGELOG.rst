@@ -1,3 +1,12 @@
+1.5.15 (2020-11-04)
+===================
+
+Bug Fixes
+---------
+
+- Fix a bug that file URLs will be incorrectly unquoted during parsing.  `#274 <https://github.com/sarugaku/requirementslib/issues/274>`_
+
+
 1.5.14 (2020-10-29)
 ===================
 
