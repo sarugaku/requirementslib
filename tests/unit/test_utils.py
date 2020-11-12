@@ -1,12 +1,15 @@
 # -*- coding=utf-8 -*-
+import os
 import pip_shims.shims
 import pytest
 from vistir.compat import Path
+from vistir.contextmanagers import temp_environ
 
 from requirementslib import utils as base_utils
 from requirementslib.models import utils
 from requirementslib.models.requirements import Requirement
 from requirementslib.models.setup_info import SetupInfo
+from requirementslib.models.utils import expand_env_variables
 
 
 def mock_run_requires(cls):
@@ -200,3 +203,12 @@ def test_convert_to_path_failures():
 )
 def test_editable_check(input, expected):
     assert base_utils.is_editable(input) is expected
+
+
+def test_expand_env_variables():
+    with temp_environ():
+        os.environ["FOO"] = "foo"
+
+        assert expand_env_variables("echo ${FOO} ${BAR}") == "echo foo ${BAR}"
+        assert expand_env_variables("echo %FOO%") == "echo %FOO%"
+        assert expand_env_variables("echo $FOO") == "echo $FOO"

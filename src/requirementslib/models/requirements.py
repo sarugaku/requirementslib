@@ -8,12 +8,10 @@ import os
 import sys
 from contextlib import contextmanager
 from distutils.sysconfig import get_python_lib
-from functools import partial
 
 import attr
 import pip_shims
 import six
-import vistir
 from cached_property import cached_property
 from packaging.markers import Marker
 from packaging.requirements import Requirement as PackagingRequirement
@@ -50,10 +48,6 @@ from ..utils import (
     strip_ssh_from_git_uri,
 )
 from .markers import (
-    cleanup_pyspecs,
-    contains_pyversion,
-    format_pyversion,
-    get_contained_pyversions,
     normalize_marker_str,
 )
 from .setup_info import (
@@ -67,10 +61,10 @@ from .url import URI
 from .utils import (
     DIRECT_URL_RE,
     HASH_STRING,
-    URL_RE,
     build_vcs_uri,
     convert_direct_url_to_url,
     create_link,
+    expand_env_variables,
     extras_to_string,
     filter_none,
     format_requirement,
@@ -82,7 +76,6 @@ from .utils import (
     make_install_requirement,
     normalize_name,
     parse_extras,
-    read_source,
     specs_to_string,
     split_markers_from_line,
     split_ref_from_uri,
@@ -926,7 +919,7 @@ class Line(object):
         if self.is_named:
             ireq = pip_shims.shims.install_req_from_line(self.line)
         if self.is_file or self.is_remote_url:
-            ireq.link = self.link
+            ireq.link = pip_shims.shims.Link(expand_env_variables(self.link.url))
         if self.extras and not ireq.extras:
             ireq.extras = set(self.extras)
         if self.parsed_marker is not None and not ireq.markers:
@@ -2148,7 +2141,7 @@ class VCSRequirement(FileRequirement):
         if checkout_dir is None:
             checkout_dir = self.get_checkout_dir(src_dir=src_dir)
         vcsrepo = VCSRepository(
-            url=self.url,
+            url=expand_env_variables(self.url),
             name=self.name,
             ref=self.ref if self.ref else None,
             checkout_directory=checkout_dir,
