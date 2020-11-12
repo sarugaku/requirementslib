@@ -5,6 +5,7 @@ import pip_shims.shims
 import pytest
 from hypothesis import given, settings, strategies as st
 from vistir.compat import Path
+from vistir.contextmanagers import temp_environ
 
 from requirementslib.exceptions import RequirementError
 from requirementslib.models.requirements import Line, NamedRequirement, Requirement
@@ -479,3 +480,40 @@ def test_file_url_with_percent_encoding():
         r.as_line()
         == "https://download.pytorch.org/whl/cpu/torch-1.7.0%2Bcpu-cp38-cp38-linux_x86_64.whl#egg=torch"
     )
+
+
+@pytest.mark.needs_internet
+def test_vcs_requirement_with_env_vars():
+    with temp_environ():
+        os.environ["GIT_URL"] = "github.com"
+        r = Requirement.from_pipfile(
+            "click", {"git": "https://${GIT_URL}/pallets/click.git", "ref": "6.7"}
+        )
+        assert (
+            r.as_ireq().link.url_without_fragment
+            == "git+https://github.com/pallets/click.git@6.7"
+        )
+        assert r.as_line() == "git+https://${GIT_URL}/pallets/click.git@6.7#egg=click"
+        assert r.as_pipfile()["click"]["git"] == "https://${GIT_URL}/pallets/click.git"
+        assert r.commit_hash == "df0e37dd890d36fc997986ae6d2b6c255f3ed1dc"
+
+
+def test_remote_requirement_with_env_vars():
+    with temp_environ():
+        os.environ["USERNAME"] = "foo"
+        os.environ["PASSWORD"] = "bar"
+        r = Requirement.from_line(
+            "https://${USERNAME}:${PASSWORD}@codeload.github.com/jazzband/tablib/zip/v0.12.1#egg=tablib"
+        )
+        assert (
+            r.as_ireq().link.url_without_fragment
+            == "https://foo:bar@codeload.github.com/jazzband/tablib/zip/v0.12.1"
+        )
+        assert (
+            r.as_line()
+            == "https://${USERNAME}:${PASSWORD}@codeload.github.com/jazzband/tablib/zip/v0.12.1#egg=tablib"
+        )
+        assert (
+            r.as_pipfile()["tablib"]["file"]
+            == "https://${USERNAME}:${PASSWORD}@codeload.github.com/jazzband/tablib/zip/v0.12.1"
+        )
