@@ -1,1 +1,0 @@
-Replace the deprecated arguments of ``attrs`` with recommended ones.

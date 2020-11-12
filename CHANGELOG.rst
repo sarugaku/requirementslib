@@ -1,3 +1,18 @@
+1.5.16 (2020-11-12)
+===================
+
+Features
+--------
+
+- Expand env vars in the URL of requirements.  `#276 <https://github.com/sarugaku/requirementslib/issues/276>`_
+  
+
+Removals and Deprecations
+-------------------------
+
+- Replace the deprecated arguments of ``attrs`` with recommended ones.  `#271 <https://github.com/sarugaku/requirementslib/issues/271>`_
+
+
 1.5.15 (2020-11-04)
 ===================
 

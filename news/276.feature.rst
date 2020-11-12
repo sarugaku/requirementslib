@@ -1,1 +1,0 @@
-Expand env vars in the URL of requirements.
