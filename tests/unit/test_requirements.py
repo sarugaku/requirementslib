@@ -5,6 +5,7 @@ import pip_shims.shims
 import pytest
 from hypothesis import given, settings, strategies as st
 from vistir.compat import Path
+from vistir.contextmanagers import temp_environ
 
 from requirementslib.exceptions import RequirementError
 from requirementslib.models.requirements import Line, NamedRequirement, Requirement
@@ -261,7 +262,7 @@ def test_convert_from_pipfile_vcs(monkeypatch):
 @pytest.mark.utils
 def test_convert_from_pip_fail_if_no_egg():
     """Parsing should fail without `#egg=`."""
-    dep = "git+https://github.com/kennethreitz/requests.git"
+    dep = "git+https://github.com/psf/requests.git"
     with pytest.raises(ValueError) as e:
         dep = Requirement.from_line(dep).as_pipfile()
         assert "pipenv requires an #egg fragment for vcs" in str(e)
@@ -314,9 +315,9 @@ def test_get_requirements(monkeypatch_if_needed):
     assert url_with_egg.name == "django-user-clipboard"
     # Test URLs without eggs pointing at installable zipfiles
     url = Requirement.from_line(
-        "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
+        "https://github.com/jazzband/tablib/archive/v0.12.1.zip"
     ).requirement
-    assert url.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
+    assert url.url == "https://github.com/jazzband/tablib/archive/v0.12.1.zip"
     wheel_line = "https://github.com/pypa/pipenv/raw/master/tests/test_artifacts/six-1.11.0+mkl-py2.py3-none-any.whl"
     wheel = Requirement.from_line(wheel_line)
     assert wheel.as_pipfile() == {
@@ -334,12 +335,12 @@ def test_get_requirements(monkeypatch_if_needed):
     )
     # Test VCS urls with refs and eggnames
     vcs_url = Requirement.from_line(
-        "git+https://github.com/kennethreitz/tablib.git@master#egg=tablib"
+        "git+https://github.com/jazzband/tablib.git@master#egg=tablib"
     ).requirement
     assert (
         vcs_url.vcs == "git" and vcs_url.name == "tablib" and vcs_url.revision == "master"
     )
-    assert vcs_url.url == "git+https://github.com/kennethreitz/tablib.git"
+    assert vcs_url.url == "git+https://github.com/jazzband/tablib.git"
     # Test normal package requirement
     normal = Requirement.from_line("tablib").requirement
     assert normal.name == "tablib"
@@ -433,19 +434,19 @@ def test_local_editable_ref(monkeypatch):
 @pytest.mark.needs_internet
 def test_pep_508():
     r = Requirement.from_line(
-        "tablib@ https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
+        "tablib@ https://codeload.github.com/jazzband/tablib/zip/v0.12.1"
     )
     assert r.specifiers == "==0.12.1"
     assert (
         r.req.link.url
-        == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1#egg=tablib"
+        == "https://codeload.github.com/jazzband/tablib/zip/v0.12.1#egg=tablib"
     )
     assert r.req.req.name == "tablib"
-    assert r.req.req.url == "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"
+    assert r.req.req.url == "https://codeload.github.com/jazzband/tablib/zip/v0.12.1"
     requires, setup_requires, build_requires = r.req.dependencies
     assert all(dep in requires for dep in ["openpyxl", "odfpy", "xlrd"])
     assert r.as_pipfile() == {
-        "tablib": {"file": "https://codeload.github.com/kennethreitz/tablib/zip/v0.12.1"}
+        "tablib": {"file": "https://codeload.github.com/jazzband/tablib/zip/v0.12.1"}
     }
 
 
@@ -461,3 +462,58 @@ def test_named_requirement_selected_over_non_installable_path(
         assert isinstance(r.req, NamedRequirement)
         assert r.as_line() == "alembic"
         assert r.line_instance.is_named is True
+
+
+@pytest.mark.requirements
+def test_file_url_with_percent_encoding():
+    r = Requirement.from_pipfile(
+        "torch",
+        {
+            "file": "https://download.pytorch.org/whl/cpu/torch-1.7.0%2Bcpu-cp38-cp38-linux_x86_64.whl#egg=torch"
+        },
+    )
+    assert (
+        r.req.uri
+        == "https://download.pytorch.org/whl/cpu/torch-1.7.0%2Bcpu-cp38-cp38-linux_x86_64.whl"
+    )
+    assert (
+        r.as_line()
+        == "https://download.pytorch.org/whl/cpu/torch-1.7.0%2Bcpu-cp38-cp38-linux_x86_64.whl#egg=torch"
+    )
+
+
+@pytest.mark.needs_internet
+def test_vcs_requirement_with_env_vars():
+    with temp_environ():
+        os.environ["GIT_URL"] = "github.com"
+        r = Requirement.from_pipfile(
+            "click", {"git": "https://${GIT_URL}/pallets/click.git", "ref": "6.7"}
+        )
+        assert (
+            r.as_ireq().link.url_without_fragment
+            == "git+https://github.com/pallets/click.git@6.7"
+        )
+        assert r.as_line() == "git+https://${GIT_URL}/pallets/click.git@6.7#egg=click"
+        assert r.as_pipfile()["click"]["git"] == "https://${GIT_URL}/pallets/click.git"
+        assert r.commit_hash == "df0e37dd890d36fc997986ae6d2b6c255f3ed1dc"
+
+
+def test_remote_requirement_with_env_vars():
+    with temp_environ():
+        os.environ["USERNAME"] = "foo"
+        os.environ["PASSWORD"] = "bar"
+        r = Requirement.from_line(
+            "https://${USERNAME}:${PASSWORD}@codeload.github.com/jazzband/tablib/zip/v0.12.1#egg=tablib"
+        )
+        assert (
+            r.as_ireq().link.url_without_fragment
+            == "https://foo:bar@codeload.github.com/jazzband/tablib/zip/v0.12.1"
+        )
+        assert (
+            r.as_line()
+            == "https://${USERNAME}:${PASSWORD}@codeload.github.com/jazzband/tablib/zip/v0.12.1#egg=tablib"
+        )
+        assert (
+            r.as_pipfile()["tablib"]["file"]
+            == "https://${USERNAME}:${PASSWORD}@codeload.github.com/jazzband/tablib/zip/v0.12.1"
+        )

@@ -227,7 +227,7 @@ requirement itself via the property ``requirement.req.dependencies``:
 8. Create a corresponding ``.rst`` file in the ``news`` directory with a one sentence description of your change, e.g. ``Resolved an issue which sometimes prevented requirements from being converted from Pipfile entries to pip lines correctly``
 
 9. Commit your changes. The first line of your commit should be a summary of your changes, no longer than 72 characters, followed by a blank line, followed by a bulleted description of your changes.
-   Don't forget to add seperate lines with the phrase ``- Fixes #<issuenumber>`` for each issue you are addressing in your pull request
+   Don't forget to add separate lines with the phrase ``- Fixes #<issuenumber>`` for each issue you are addressing in your pull request
 
 10. Before submitting your pull request, make sure to ``git remote add upstream git@github.com:sarugaku/requirementslib.git`` and then ``git fetch upstream && git pull upstream master`` to ensure your code is in sync with the latest version of the master branch,
 

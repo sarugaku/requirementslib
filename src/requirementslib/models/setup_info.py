@@ -25,7 +25,7 @@ from distlib.wheel import Wheel
 from packaging.markers import Marker
 from pip_shims.utils import call_function_with_correct_args
 from six.moves import configparser
-from six.moves.urllib.parse import unquote, urlparse, urlunparse
+from six.moves.urllib.parse import urlparse, urlunparse
 from vistir.compat import FileNotFoundError, Iterable, Mapping, Path, finalize, lru_cache
 from vistir.contextmanagers import cd, temp_path
 from vistir.misc import run
@@ -465,6 +465,18 @@ class ScandirCloser(object):
             pass
 
 
+def _is_venv_dir(path):
+    # type: (AnyStr) -> bool
+    if os.name == "nt":
+        return os.path.isfile(os.path.join(path, "Scripts/python.exe")) or os.path.isfile(
+            os.path.join(path, "Scripts/activate")
+        )
+    else:
+        return os.path.isfile(os.path.join(path, "bin/python")) or os.path.isfile(
+            os.path.join(path, "bin/activate")
+        )
+
+
 def iter_metadata(path, pkg_name=None, metadata_type="egg-info"):
     # type: (AnyStr, Optional[AnyStr], AnyStr) -> Generator
     if pkg_name is not None:
@@ -472,6 +484,9 @@ def iter_metadata(path, pkg_name=None, metadata_type="egg-info"):
     dirs_to_search = [path]
     while dirs_to_search:
         p = dirs_to_search.pop(0)
+        # Skip when the directory is like a venv
+        if _is_venv_dir(p):
+            continue
         with contextlib.closing(ScandirCloser(p)) as path_iterator:
             for entry in path_iterator:
                 if entry.is_dir():
@@ -992,6 +1007,15 @@ class Analyzer(ast.NodeVisitor):
         return setup
 
 
+def _ensure_hashable(item):
+    try:
+        hash(item)
+    except TypeError:
+        return str(item)
+    else:
+        return item
+
+
 def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # noqa:C901
     # type: (Any, bool, Optional[Analyzer], bool) -> Union[List[Any], Dict[Any, Any], Tuple[Any, ...], STRING_TYPE]
     unparse = partial(
@@ -1003,7 +1027,9 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
         constant = ast.Ellipsis
     unparsed = item
     if isinstance(item, ast.Dict):
-        unparsed = dict(zip(unparse(item.keys), unparse(item.values)))
+        unparsed = dict(
+            zip(map(_ensure_hashable, unparse(item.keys)), unparse(item.values))
+        )
     elif isinstance(item, ast.List):
         unparsed = [unparse(el) for el in item.elts]
     elif isinstance(item, ast.Tuple):
@@ -1151,7 +1177,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
         # XXX: Original reference
         try:
             targets = item.targets  # for ast.Assign
-        except AttributeError:      # for ast.AnnAssign
+        except AttributeError:  # for ast.AnnAssign
             targets = (item.target,)
         if not initial_mapping:
             target = unparse(next(iter(targets)), recurse=False)
@@ -1302,9 +1328,9 @@ def run_setup(script_path, egg_base=None):
 
 @attr.s(slots=True, frozen=True)
 class BaseRequirement(object):
-    name = attr.ib(default="", cmp=True)  # type: STRING_TYPE
+    name = attr.ib(default="", eq=True, order=True)  # type: STRING_TYPE
     requirement = attr.ib(
-        default=None, cmp=True
+        default=None, eq=True, order=True
     )  # type: Optional[PkgResourcesRequirement]
 
     def __str__(self):
@@ -1344,8 +1370,8 @@ class BaseRequirement(object):
 
 @attr.s(slots=True, frozen=True)
 class Extra(object):
-    name = attr.ib(default=None, cmp=True)  # type: STRING_TYPE
-    requirements = attr.ib(factory=frozenset, cmp=True, type=frozenset)
+    name = attr.ib(default=None, eq=True, order=True)  # type: STRING_TYPE
+    requirements = attr.ib(factory=frozenset, eq=True, order=True, type=frozenset)
 
     def __str__(self):
         # type: () -> S
@@ -1580,29 +1606,7 @@ class SetupInfo(object):
 
     def build_wheel(self):
         # type: () -> S
-        if not self.pyproject.exists():
-            build_requires = ", ".join(['"{0}"'.format(r) for r in self.build_requires])
-            self.pyproject.write_text(
-                six.text_type(
-                    """
-[build-system]
-requires = [{0}]
-build-backend = "{1}"
-                """.format(
-                        build_requires, self.build_backend
-                    ).strip()
-                )
-            )
-        return build_pep517(
-            self.base_dir,
-            self.extra_kwargs["build_dir"],
-            config_settings=self.pep517_config,
-            dist_type="wheel",
-        )
-
-    # noinspection PyPackageRequirements
-    def build_sdist(self):
-        # type: () -> S
+        need_delete = False
         if not self.pyproject.exists():
             if not self.build_requires:
                 build_requires = '"setuptools", "wheel"'
@@ -1621,12 +1625,49 @@ build-backend = "{1}"
                     ).strip()
                 )
             )
-        return build_pep517(
+            need_delete = True
+        result = build_pep517(
+            self.base_dir,
+            self.extra_kwargs["build_dir"],
+            config_settings=self.pep517_config,
+            dist_type="wheel",
+        )
+        if need_delete:
+            self.pyproject.unlink()
+        return result
+
+    # noinspection PyPackageRequirements
+    def build_sdist(self):
+        # type: () -> S
+        need_delete = False
+        if not self.pyproject.exists():
+            if not self.build_requires:
+                build_requires = '"setuptools", "wheel"'
+            else:
+                build_requires = ", ".join(
+                    ['"{0}"'.format(r) for r in self.build_requires]
+                )
+            self.pyproject.write_text(
+                six.text_type(
+                    """
+[build-system]
+requires = [{0}]
+build-backend = "{1}"
+                """.format(
+                        build_requires, self.build_backend
+                    ).strip()
+                )
+            )
+            need_delete = True
+        result = build_pep517(
             self.base_dir,
             self.extra_kwargs["build_dir"],
             config_settings=self.pep517_config,
             dist_type="sdist",
         )
+        if need_delete:
+            self.pyproject.unlink()
+        return result
 
     def build(self):
         # type: () -> "SetupInfo"
@@ -1854,7 +1895,7 @@ build-backend = "{1}"
             session = cmd._build_session(options)
             finder = cmd._build_package_finder(options, session)
         tempdir_manager = stack.enter_context(pip_shims.shims.global_tempdir_manager())
-        vcs, uri = split_vcs_method_from_uri(unquote(ireq.link.url_without_fragment))
+        vcs, uri = split_vcs_method_from_uri(ireq.link.url_without_fragment)
         parsed = urlparse(uri)
         if "file" in parsed.scheme:
             url_path = parsed.path
@@ -1874,10 +1915,7 @@ build-backend = "{1}"
             ireq.link, "is_vcs", getattr(ireq.link, "is_artifact", False)
         )
         is_vcs = True if vcs else is_artifact_or_vcs
-        if is_file and not is_vcs and path is not None and os.path.isdir(path):
-            target = os.path.join(kwargs["src_dir"], os.path.basename(path))
-            shutil.copytree(path, target, symlinks=True)
-            ireq.source_dir = target
+
         if not (ireq.editable and is_file and is_vcs):
             if ireq.is_wheel:
                 only_download = True
@@ -1895,10 +1933,13 @@ build-backend = "{1}"
         if build_location_func is None:
             build_location_func = getattr(ireq, "ensure_build_location", None)
         if not ireq.source_dir:
-            build_kwargs = {"build_dir": kwargs["build_dir"], "autodelete": False}
+            build_kwargs = {
+                "build_dir": kwargs["build_dir"],
+                "autodelete": False,
+                "parallel_builds": True,
+            }
             call_function_with_correct_args(build_location_func, **build_kwargs)
             ireq.ensure_has_source_dir(kwargs["src_dir"])
-            src_dir = ireq.source_dir
             pip_shims.shims.shim_unpack(
                 download_dir=download_dir,
                 ireq=ireq,

@@ -1,3 +1,45 @@
+1.5.15 (2020-11-04)
+===================
+
+Bug Fixes
+---------
+
+- Fix a bug that file URLs will be incorrectly unquoted during parsing.  `#274 <https://github.com/sarugaku/requirementslib/issues/274>`_
+
+
+1.5.14 (2020-10-29)
+===================
+
+Bug Fixes
+---------
+
+- Fix the PEP 517 requires in default ``pyproject.toml`` and clean the temp files.  `#262 <https://github.com/sarugaku/requirementslib/issues/262>`_
+  
+- Fix an unparse error that the dictionary keys are unhashable.  `#266 <https://github.com/sarugaku/requirementslib/issues/266>`_
+  
+- Fix a bug that dist-info inside ``venv`` directory will be mistaken as the editable package's metadata.  `#273 <https://github.com/sarugaku/requirementslib/issues/273>`_
+
+
+1.5.13 (2020-08-12)
+===================
+
+Bug Fixes
+---------
+
+- Don't copy whole tree for local directory dependencies.  `#259 <https://github.com/sarugaku/requirementslib/issues/259>`_
+
+
+1.5.12 (2020-07-10)
+===================
+
+Bug Fixes
+---------
+
+- Fix a bug that assignments with type annotations are missing from the AST.  `#253 <https://github.com/sarugaku/requirementslib/issues/253>`_
+  
+- Fix a bug that ``package_dir`` points to a wrong location when parsing ``setup.cfg``.  `#255 <https://github.com/sarugaku/requirementslib/issues/255>`_
+
+
 1.5.11 (2020-06-01)
 ===================
 
