@@ -673,7 +673,7 @@ def parse_marker_dict(marker_dict):
 
 
 def _contains_micro_version(version_string):
-    return re.search("\d+\.\d+\.\d+", version_string) is not None
+    return re.search(r"\d+\.\d+\.\d+", version_string) is not None
 
 
 def format_pyversion(parts):
