@@ -5,7 +5,6 @@ import os
 import shutil
 import sys
 
-import pip_shims.shims
 import pytest
 import six
 import vistir
@@ -302,7 +301,10 @@ def test_parse_setup_cfg_with_special_directives(setup_cfg_dir):
 
 @pytest.mark.parametrize(
     "env_vars, expected_install_requires",
-    [({"NOTHING": "1"}, []), ({"READTHEDOCS": "1"}, ["sphinx", "sphinx-argparse"]),],
+    [
+        ({"NOTHING": "1"}, []),
+        ({"READTHEDOCS": "1"}, ["sphinx", "sphinx-argparse"]),
+    ],
 )
 def test_ast_parser_handles_dependency_on_env_vars(
     env_vars, expected_install_requires, setup_py_dir
@@ -341,13 +343,10 @@ def test_ast_parser_handles_exceptions(artifact_dir):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 6),
-    reason="Type annotations are not available for Python<3.6"
+    sys.version_info < (3, 6), reason="Type annotations are not available for Python<3.6"
 )
 def test_ast_parser_handles_annoted_assignments(setup_py_dir):
     parsed = ast_parse_setup_py(
-        setup_py_dir.joinpath(
-            "package_with_annoted_assignments/setup.py"
-        ).as_posix()
+        setup_py_dir.joinpath("package_with_annoted_assignments/setup.py").as_posix()
     )
     assert parsed["extras_require"] == {"docs": ["sphinx", "sphinx-argparse"]}
