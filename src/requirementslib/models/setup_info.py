@@ -20,7 +20,7 @@ import packaging.version
 import pep517.envbuild
 import pep517.wrappers
 import six
-from appdirs import user_cache_dir
+from platformdirs import user_cache_dir
 from distlib.wheel import Wheel
 from packaging.markers import Marker
 from pip_shims.utils import call_function_with_correct_args
