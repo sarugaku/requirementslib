@@ -10,7 +10,7 @@ import sys
 
 import vistir
 
-from appdirs import user_cache_dir
+from platformdirs import user_cache_dir
 from pip_shims.shims import FAVORITE_HASH, SafeFileCache
 from packaging.requirements import Requirement
 

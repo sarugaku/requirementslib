@@ -2,7 +2,7 @@
 from __future__ import print_function, absolute_import
 
 import os
-from appdirs import user_cache_dir
+from platformdirs import user_cache_dir
 
 
 def is_type_checking():
