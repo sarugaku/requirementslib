@@ -9,6 +9,7 @@ import sys
 from collections import defaultdict
 from functools import lru_cache
 from itertools import chain, groupby
+from pathlib import Path
 
 import tomlkit
 from attr import validators
@@ -27,7 +28,6 @@ from ..environment import MYPY_RUNNING
 from ..utils import SCHEME_LIST, VCS_LIST, is_star
 
 if MYPY_RUNNING:
-    from pathlib import Path
     from typing import Iterable  # noqa
     from typing import (
         Any,
