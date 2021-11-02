@@ -2,6 +2,7 @@ import os
 
 from setuptools import find_packages, setup
 
+
 thisdir = os.path.abspath(os.path.dirname(__file__))
 version = os.environ["PACKAGE_VERSION"]
 
@@ -18,7 +19,9 @@ setup(
     version=version,
     description="Test package with repeated assignments and version from environment",
     long_description="This is a package",
-    install_requires=["six",],
+    install_requires=[
+        "six",
+    ],
     package_dir={"": "src"},
     packages=find_packages("src"),
     include_package_data=True,

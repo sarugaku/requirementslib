@@ -4,7 +4,6 @@ requires = ["setuptools>=40.8.0", "wheel>=0.33.0"]
 
 [tool.black]
 line-length = 90
-target-version = ['py27', 'py38']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -60,3 +59,41 @@ issue_format = '`#{issue} <https://github.com/sarugaku/requirementslib/issues/{i
   directory = "removal"
   name = "Removals and Deprecations"
   showcontent = true
+
+[tool.isort]
+src_paths = ["src", "tests"]
+skip_glob = ["tests/artifacts/*", "tests/fixtures/*"]
+profile = "black"
+atomic = true
+line_length = 90
+filter_files = true
+known_third_party = [
+  "attr",
+  "cached_property",
+  "chardet",
+  "dateutil",
+  "distlib",
+  "environ",
+  "hypothesis",
+  "invoke",
+  "orderedmultidict",
+  "packaging",
+  "parver",
+  "pep517",
+  "pip_shims",
+  "platformdirs",
+  "plette",
+  "pyparsing",
+  "pytest",
+  "requests",
+  "setuptools",
+  "six",
+  "tomlkit",
+  "towncrier",
+  "urllib3",
+  "vistir"
+]
+known_first_party = [
+  "requirementslib",
+  "tests"
+]

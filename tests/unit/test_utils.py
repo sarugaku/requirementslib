@@ -1,5 +1,6 @@
 # -*- coding=utf-8 -*-
 import os
+
 import pip_shims.shims
 import pytest
 from vistir.compat import Path

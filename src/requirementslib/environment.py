@@ -1,7 +1,8 @@
 # -*- coding=utf-8 -*-
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import, print_function
 
 import os
+
 from platformdirs import user_cache_dir
 
 
@@ -13,5 +14,7 @@ def is_type_checking():
     return TYPE_CHECKING
 
 
-REQUIREMENTSLIB_CACHE_DIR = os.getenv("REQUIREMENTSLIB_CACHE_DIR", user_cache_dir("pipenv"))
+REQUIREMENTSLIB_CACHE_DIR = os.getenv(
+    "REQUIREMENTSLIB_CACHE_DIR", user_cache_dir("pipenv")
+)
 MYPY_RUNNING = os.environ.get("MYPY_RUNNING", is_type_checking())

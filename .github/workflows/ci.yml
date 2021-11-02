@@ -35,14 +35,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
-        os: [MacOS, Ubuntu, Windows]
+        python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
+        os: [macos, ubuntu, windows]
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -51,10 +53,8 @@ jobs:
         run: |
           echo ::set-output name=path::$(python -c "import sys; print(sys.executable)")
 
-      - name: Install latest pip, setuptools, wheel
-        run: |
-          python -m pip install --upgrade coveralls pip setuptools wheel --upgrade-strategy=eager
-          python -m pip install --upgrade --pre pipenv
+      - name: Install nox
+        run: python -m pip install --upgrade nox
 
       - name: Run tests
         env:
@@ -67,12 +67,6 @@ jobs:
           COVERALLS_SERVICE_NAME: github
           COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
           COVERALLS_PARALLEL: true
-          PIPENV_NOSPIN: "1"
           CI: "1"
         run: |
-          git submodule sync
-          git submodule update --init --recursive
-          python -m pipenv install --dev --python=${{ steps.python-path.outputs.path }}
-          pipenv run coverage run -p -m pytest -ra tests/
-          pipenv run coverage combine
-          coveralls
+          nox -p ${{ matrix.python-version }} -s coverage

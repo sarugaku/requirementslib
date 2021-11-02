@@ -60,9 +60,8 @@ def typecheck(ctx):
 
 @invoke.task()
 def clean(ctx):
-    """Clean previously built package artifacts.
-    """
-    ctx.run(f"python setup.py clean")
+    """Clean previously built package artifacts."""
+    ctx.run("python setup.py clean")
     dist = ROOT.joinpath("dist")
     build = ROOT.joinpath("build")
     print(f"[clean] Removing {dist} and {build}")
@@ -75,7 +74,6 @@ def clean(ctx):
 def _read_version():
     out = subprocess.check_output(["git", "tag"], encoding="ascii")
     versions = [line.strip() for line in out.splitlines() if line]
-    _unparsed = [v for v in versions if v.startswith("v")]
     try:
         version = max(parver.Version.parse(v.lstrip("v")).normalize() for v in versions)
     except ValueError:
@@ -95,8 +93,7 @@ def _write_version(v):
 
 
 def _render_log():
-    """Totally tap into Towncrier internals to get an in-memory result.
-    """
+    """Totally tap into Towncrier internals to get an in-memory result."""
     config = load_config(ROOT)
     definitions = config["types"]
     fragments, fragment_filenames = find_fragments(
@@ -232,16 +229,15 @@ def release(ctx, version=None, type_="patch", yes=False, dry_run=False):
 
 @invoke.task(pre=[clean])
 def full_release(ctx, type_, repo, prebump=PREBUMP, yes=False):
-    """Make a new release.
-    """
+    """Make a new release."""
     if prebump not in REL_TYPES:
         raise ValueError(f"{type_} not in {REL_TYPES}")
     prebump = REL_TYPES.index(prebump)
-    version = bump_version(ctx, type_, log=not dry_run)
+    version = bump_version(ctx, type_, log=True)
     # Needs to happen before Towncrier deletes fragment files.
     tag_release(version, yes=yes)
 
-    ctx.run(f"python setup.py sdist bdist_wheel")
+    ctx.run("python setup.py sdist bdist_wheel")
 
     dist_pattern = f'{PACKAGE_NAME.replace("-", "[-_]")}-*'
     artifacts = list(ROOT.joinpath("dist").glob(dist_pattern))
@@ -304,7 +300,7 @@ def log(task, message, level=LogLevel.INFO):
 
 @invoke.task
 def profile(ctx, filepath, calltree=False):
-    """ Run and profile a given Python script.
+    """Run and profile a given Python script.
 
     :param str filepath: The filepath of the script to profile
     """

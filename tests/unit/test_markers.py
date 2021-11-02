@@ -30,7 +30,7 @@ def test_format_version(version_tuple, version_str):
         (Specifier("<=3.6"), Specifier("<3.7")),
         (">2.6", Specifier(">=2.7")),
         (Specifier(">2.6"), Specifier(">=2.7")),
-        (">1.1", Specifier(">=1.2"))
+        (">1.1", Specifier(">=1.2")),
     ],
 )
 def test_format_pyspec(specifier, rounded_specifier):

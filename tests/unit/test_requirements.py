@@ -3,7 +3,8 @@ import os
 
 import pip_shims.shims
 import pytest
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from vistir.compat import Path
 from vistir.contextmanagers import temp_environ
 

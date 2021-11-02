@@ -2,6 +2,7 @@ import os
 
 import setuptools
 
+
 thisdir = os.path.abspath(os.path.dirname(__file__))
 version = "1.0.0"
 

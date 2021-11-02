@@ -1,24 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import invoke
-from parver import Version
 import re
 import sys
-from .vendoring import mkdir_p, drop_dir, remove_all, _get_git_root
-TASK_NAME = 'RELEASE'
+
+import invoke
+from parver import Version
+
+from .vendoring import _get_git_root, drop_dir, mkdir_p, remove_all
+
+TASK_NAME = "RELEASE"
 
 
 def find_version(version_path):
     version_file = version_path.read_text()
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
 
 def get_version_file(ctx):
-    version_path = _get_git_root(ctx) / 'src' / 'requirementslib' / '__init__.py'
+    version_path = _get_git_root(ctx) / "src" / "requirementslib" / "__init__.py"
     return version_path
 
 
@@ -28,21 +30,21 @@ def get_version(ctx):
 
 
 def log(msg):
-    print('[release] %s' % msg)
+    print("[release] %s" % msg)
 
 
 def get_dist_dir(ctx):
-    return _get_git_root(ctx) / 'dist'
+    return _get_git_root(ctx) / "dist"
 
 
 def get_build_dir(ctx):
-    return _get_git_root(ctx) / 'build'
+    return _get_git_root(ctx) / "build"
 
 
 def drop_dist_dirs(ctx):
-    log('Dropping Dist dir...')
+    log("Dropping Dist dir...")
     drop_dir(get_dist_dir(ctx))
-    log('Dropping build dir...')
+    log("Dropping build dir...")
     drop_dir(get_build_dir(ctx))
 
 
@@ -50,42 +52,54 @@ def drop_dist_dirs(ctx):
 def build_dists(ctx, drop_existing=True):
     if drop_existing:
         drop_dist_dirs(ctx)
-    log('Building sdist using %s ....' % sys.executable)
-    ctx.run('%s setup.py sdist' % sys.executable)
-    log('Building wheel using %s ....' % sys.executable)
-    ctx.run('%s setup.py bdist_wheel' % sys.executable)
+    log("Building sdist using %s ...." % sys.executable)
+    ctx.run("%s setup.py sdist" % sys.executable)
+    log("Building wheel using %s ...." % sys.executable)
+    ctx.run("%s setup.py bdist_wheel" % sys.executable)
 
 
 @invoke.task(build_dists)
 def upload_dists(ctx, build=False):
     if build:
         build_dists(ctx)
-    log('Uploading distributions to pypi...')
-    ctx.run('twine upload dist/*')
+    log("Uploading distributions to pypi...")
+    ctx.run("twine upload dist/*")
 
 
 @invoke.task
 def generate_changelog(ctx, commit=False):
-    log('Generating changelog...')
-    ctx.run('towncrier')
+    log("Generating changelog...")
+    ctx.run("towncrier")
     if commit:
-        log('Committing...')
-        ctx.run('git add .')
+        log("Committing...")
+        ctx.run("git add .")
         ctx.run('git commit -m "Update changelog."')
 
 
 @invoke.task
 def tag_version(ctx, push=False):
     version = get_version(ctx)
-    log('Tagging revision: v%s' % version)
-    ctx.run('git tag v%s' % version)
+    log("Tagging revision: v%s" % version)
+    ctx.run("git tag v%s" % version)
     if push:
-        log('Pushing tags...')
-        ctx.run('git push --tags')
+        log("Pushing tags...")
+        ctx.run("git push --tags")
 
 
 @invoke.task
-def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=False, pre=False, post=False, tag=None, clear=False, commit=False,):
+def bump_version(
+    ctx,
+    dry_run=False,
+    major=False,
+    minor=False,
+    micro=True,
+    dev=False,
+    pre=False,
+    post=False,
+    tag=None,
+    clear=False,
+    commit=False,
+):
     _current_version = get_version(ctx)
     current_version = Version.parse(_current_version)
     new_version = current_version
@@ -111,18 +125,20 @@ def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=F
         new_version = new_version.bump_post("post").bump_post("post")
     if clear:
         new_version = new_version.clear(dev=True, pre=True, post=True)
-    log('Updating version to %s' % new_version.normalize())
+    log("Updating version to %s" % new_version.normalize())
     version_file = get_version_file(ctx)
     file_contents = version_file.read_text()
-    log('Found current version: %s' % _current_version)
+    log("Found current version: %s" % _current_version)
     if dry_run:
-        log('Would update to: %s' % new_version.normalize())
+        log("Would update to: %s" % new_version.normalize())
     else:
-        log('Updating to: %s' % new_version.normalize())
-        version_file.write_text(file_contents.replace(_current_version, str(new_version.normalize())))
+        log("Updating to: %s" % new_version.normalize())
+        version_file.write_text(
+            file_contents.replace(_current_version, str(new_version.normalize()))
+        )
         if commit:
-            ctx.run('git add {0}'.format(get_version_file(ctx)))
-            log('Committing...')
+            ctx.run("git add {0}".format(get_version_file(ctx)))
+            log("Committing...")
             ctx.run('git commit -s -m "Bumped version."')
 
 
@@ -130,9 +146,9 @@ def bump_version(ctx, dry_run=False, major=False, minor=False, micro=True, dev=F
 def build_docs(ctx):
     _current_version = get_version(ctx)
     minor = [str(i) for i in Version.parse(_current_version).release[:2]]
-    docs_folder = (_get_git_root(ctx) / 'docs').as_posix()
-    if not docs_folder.endswith('/'):
-        docs_folder = '{0}/'.format(docs_folder)
+    docs_folder = (_get_git_root(ctx) / "docs").as_posix()
+    if not docs_folder.endswith("/"):
+        docs_folder = "{0}/".format(docs_folder)
     args = ["--ext-autodoc", "--ext-viewcode", "-o", docs_folder]
     args.extend(["-A", "'Dan Ryan <dan@danryan.co>'"])
     args.extend(["-R", _current_version])

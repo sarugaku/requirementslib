@@ -1,6 +1,4 @@
-"""
-Exceptions raised by environ_config.
-"""
+"""Exceptions raised by environ_config."""
 
 from __future__ import absolute_import, division, print_function
 

@@ -9,8 +9,10 @@ from collections import namedtuple
 
 import six
 import vistir
-from hypothesis import assume, strategies as st
-from hypothesis.provisional import URL_SAFE_CHARACTERS, domains, urls as url_strategy
+from hypothesis import assume
+from hypothesis import strategies as st
+from hypothesis.provisional import URL_SAFE_CHARACTERS, domains
+from hypothesis.provisional import urls as url_strategy
 from packaging.markers import MARKER_OP, VARIABLE
 from packaging.specifiers import Specifier
 from packaging.version import parse as parse_version
@@ -87,9 +89,7 @@ def valid_names():
 
 
 def urls():
-    """
-    Strategy for generating urls.
-    """
+    """Strategy for generating urls."""
 
     def url_encode(s):
         return "".join(c if c in URL_SAFE_CHARACTERS else "%%%02X" % ord(c) for c in s)
@@ -448,8 +448,10 @@ def repository_url(draw, elements=random_repositories()):
     repo_dict.update(
         {"ref": ref_str, "extras": extras_str, "subdir": subdir_str, "pkg_name": pkg_name}
     )
-    line = "{scheme}{base_url}{pathsep}{user}/{repo}.git{ref}#egg={pkg_name}{subdir}".format(
-        **repo_dict
+    line = (
+        "{scheme}{base_url}{pathsep}{user}/{repo}.git{ref}#egg={pkg_name}{subdir}".format(
+            **repo_dict
+        )
     )
     return line
 
