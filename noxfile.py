@@ -18,8 +18,7 @@ def tests(session: nox.Session):
 @nox.session
 def coverage(session: nox.Session):
     session.install(".[tests]", "coveralls")
-    session.run("coverage", "run", "-p", "-m", "pytest", "-ra", "tests")
-    session.run("coverage combine")
+    session.run("pytest", "--cov=requirementslib", "-ra", "tests")
     session.run("coveralls")
 
 
