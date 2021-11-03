@@ -54,13 +54,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Get python path
-        id: python-path
+      - name: Get pip cache dir
+        id: pip-cache
         run: |
-          echo ::set-output name=path::$(python -c "import sys; print(sys.executable)")
+          echo "::set-output name=dir::$(pip cache dir)"
 
-      - name: Install nox
-        run: python -m pip install --upgrade nox
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('setup.cfg') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Dev Dependencies
+        run: python -m pip install --upgrade .[dev]
 
       - name: Run tests
         env:
@@ -75,4 +83,4 @@ jobs:
           COVERALLS_PARALLEL: true
           CI: "1"
         run: |
-          nox -p ${{ matrix.python-version }} -s coverage
+          nox -s coverage

@@ -411,6 +411,10 @@ _orig_default_visit = default_visit
 def dict_path_enter(path, key, value):
     if isinstance(value, str):
         return value, False
+    elif isinstance(value, (tomlkit.items.Table, tomlkit.items.InlineTable)):
+        return value.__class__(
+            tomlkit.container.Container(), value.trivia, False
+        ), ItemsView(value)
     elif isinstance(value, (Mapping, dict)):
         return value.__class__(), ItemsView(value)
     elif isinstance(value, tomlkit.items.Array):

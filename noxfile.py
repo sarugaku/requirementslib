@@ -1,18 +1,12 @@
-import re
+import subprocess
 from pathlib import Path
 
 import nox
+import parver
 
 BASE_PATH = Path(__file__).resolve().parent
 PACKAGE_ROOT = BASE_PATH / "src/requirementslib"
-
-
-def find_version():
-    version_file = PACKAGE_ROOT.joinpath("__init__.py").read_text()
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
+INIT_PY = PACKAGE_ROOT / "__init__.py"
 
 
 @nox.session
@@ -30,17 +24,43 @@ def coverage(session: nox.Session):
 
 
 @nox.session
-def build_docs(session: nox.Session):
+def docs(session: nox.Session):
     session.install(".[docs]")
-    _current_version = find_version()
-    minor = _current_version.split(".")[:2]
-    docs_folder = (BASE_PATH / "docs").as_posix()
-    if not docs_folder.endswith("/"):
-        docs_folder += "/"
-    args = ["--ext-autodoc", "--ext-viewcode", "-o", docs_folder]
-    args.extend(["-A", "'Dan Ryan <dan@danryan.co>'"])
-    args.extend(["-R", _current_version])
-    args.extend(["-V", ".".join(minor)])
-    args.extend(["-e", "-M", "-F", str(PACKAGE_ROOT)])
-    print("Building docs...")
-    session.run("sphinx-apidoc", *args)
+    session.run("sphinx-build", "-b", "html", "docs", "docs/build/html")
+
+
+@nox.session
+def package(session: nox.Session):
+    session.install("build", "twine")
+    session.run("pyproject-build")
+    session.run("twine", "check", "dist/*")
+
+
+def _current_version() -> parver.Version:
+    cmd = ["git", "describe", "--tags", "--abbrev=0"]
+    ver = subprocess.check_output(cmd).decode("utf-8").strip()
+    return parver.Version.parse(ver)
+
+
+def _prebump(version: parver.Version) -> parver.Version:
+    next_version = version.bump_release(index=2).bump_dev()
+    print(f"[bump] {version} -> {next_version}")
+    return next_version
+
+
+def _write_version(v):
+    lines = []
+    with INIT_PY.open() as f:
+        for line in f:
+            if line.startswith("__version__ = "):
+                line = f"__version__ = {repr(str(v))}\n".replace("'", '"')
+            lines.append(line)
+    with INIT_PY.open("w", newline="\n") as f:
+        f.write("".join(lines))
+
+
+@nox.session
+def bump_version(session: nox.Session):
+    new_version = _prebump(_current_version())
+    _write_version(new_version)
+    return new_version

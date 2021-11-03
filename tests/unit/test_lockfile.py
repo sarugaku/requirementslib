@@ -12,10 +12,10 @@ from requirementslib.models.pipfile import Pipfile
 from requirementslib.models.requirements import Requirement
 
 
-def test_lockfile(tmpdir):
+def test_lockfile(tmpdir, fixture_dir):
     with temp_environ():
         os.environ["PIPENV_CACHE_DIR"] = tmpdir.strpath
-        lockfile = Lockfile.create(".")
+        lockfile = Lockfile.create(fixture_dir / "lockfile")
 
         requires = lockfile.as_requirements(dev=True)
         assert any(req.startswith("attrs") for req in requires)

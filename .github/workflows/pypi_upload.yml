@@ -33,14 +33,12 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Install latest tools for build
+      - name: Install nox
         run: |
-          python -m pip install --upgrade pip setuptools wheel pipenv invoke
-          python -m pipenv install --dev --pre
-          python -m pipenv run pip install invoke
+          python -m pip install --upgrade .[dev]
       - name: Build wheels
         run: |
-          python -m pipenv run inv build
+          nox -s package
       # to upload to test pypi, pass repository_url: https://test.pypi.org/legacy/ and use secrets.TEST_PYPI_TOKEN
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@master
@@ -54,6 +52,11 @@ jobs:
         run: |
           git config --local user.name 'Github Action'
           git config --local user.email action@github.com
-          python -m pipenv run inv bump-version -t dev
+          nox -s bump_version
           git commit -am 'pre-bump'
-          git push git@github.com:${{ github.repository }}.git HEAD:master
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main

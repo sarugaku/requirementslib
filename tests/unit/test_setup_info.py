@@ -6,7 +6,6 @@ import shutil
 import sys
 
 import pytest
-import six
 import vistir
 
 from requirementslib.models.requirements import Requirement
@@ -106,8 +105,7 @@ def test_without_extras(pathlib_tmpdir):
     assert setup_dir.is_dir()
     setup_py = setup_dir.joinpath("setup.py")
     setup_py.write_text(
-        six.ensure_text(
-            """
+        """
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
@@ -120,7 +118,6 @@ setup(
     }
 )
     """.strip()
-        )
     )
     setup_dict = None
     with vistir.contextmanagers.cd(setup_dir.as_posix()):
@@ -231,8 +228,6 @@ def test_ast_parser_handles_binops(setup_py_dir):
         "python-dateutil",
         "requests",
     ]
-    if six.PY2:
-        expected.append("futures")
     assert list(sorted(parsed["install_requires"])) == list(sorted(expected))
     assert analyzer.parse_setup_function() == parsed
 
@@ -279,10 +274,7 @@ def test_ast_parser_handles_repeated_assignments(setup_py_dir):
 
 def test_setup_cfg_parser(setup_cfg_dir):
     setup_path = setup_cfg_dir / "package_with_multiple_extras/setup.cfg"
-    if six.PY2:
-        contents = setup_path.read_bytes()
-    else:
-        contents = setup_path.read_text()
+    contents = setup_path.read_text()
     result = parse_setup_cfg(contents, setup_path.parent.as_posix())
     assert result["version"] == "0.5.0"
     assert result["name"] == "test_package"
@@ -290,10 +282,7 @@ def test_setup_cfg_parser(setup_cfg_dir):
 
 def test_parse_setup_cfg_with_special_directives(setup_cfg_dir):
     setup_path = setup_cfg_dir / "package_with_special_directives/setup.cfg"
-    if six.PY2:
-        contents = setup_path.read_bytes()
-    else:
-        contents = setup_path.read_text()
+    contents = setup_path.read_text()
     result = parse_setup_cfg(contents, setup_path.parent.as_posix())
     assert result["version"] == "0.1.0"
     assert result["name"] == "bug-test"
