@@ -46,8 +46,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: "recursive"
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
@@ -82,4 +80,7 @@ jobs:
           COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
           COVERALLS_PARALLEL: true
           CI: "1"
-        run: nox -s coverage
+        run: |
+          git submodule sync
+          git submodule update --init --recursive
+          nox -s coverage
