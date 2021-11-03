@@ -59,7 +59,6 @@ def test_no_duplicate_egg_info():
     """When the package has 'src' directory, do not write egg-info in base
     dir."""
     base_dir = vistir.compat.Path(os.path.abspath(os.getcwd())).as_posix()
-    shutil.rmtree(os.path.join(base_dir, "reqlib-metadata"), ignore_errors=True)
     r = Requirement.from_line("-e {}".format(base_dir))
     egg_info_name = "{}.egg-info".format(r.name.replace("-", "_"))
     distinfo_name = "{0}.dist-info".format(r.name.replace("-", "_"))
@@ -86,7 +85,6 @@ def test_no_duplicate_egg_info():
         return pth
 
     assert not find_metadata(base_dir)
-    assert not find_metadata(os.path.join(base_dir, "reqlib-metadata"))
     assert not find_metadata(os.path.join(base_dir, "src", "reqlib-metadata"))
     assert r.req.setup_info and os.path.isdir(r.req.setup_info.egg_base)
     setup_info = r.req.setup_info
