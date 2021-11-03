@@ -11,9 +11,9 @@ from .exceptions import MissingSecretError
 
 
 try:
-    from configparser import RawConfigParser, NoOptionError
+    from configparser import NoOptionError, RawConfigParser
 except ImportError:
-    from ConfigParser import RawConfigParser, NoOptionError
+    from ConfigParser import NoOptionError, RawConfigParser
 
 
 log = logging.getLogger(__name__)
@@ -32,9 +32,9 @@ class INISecrets(object):
 
     @classmethod
     def from_path_in_env(cls, env_name, default=None, section="secrets"):
-        """
-        Get and load path only when actually loading config.  Useful in tests
-        for setting up an environment.
+        """Get and load path only when actually loading config.
+
+        Useful in tests for setting up an environment.
         """
         return cls(section, None, env_name, default)
 
@@ -55,9 +55,7 @@ class INISecrets(object):
         # Delayed loading.
         if self._cfg is None and self._env_name is not None:
             log.debug("looking for env var '%s'." % (self._env_name,))
-            self._cfg = _load_ini(
-                environ.get(self._env_name, self._env_default)
-            )
+            self._cfg = _load_ini(environ.get(self._env_name, self._env_default))
 
         ce = metadata[CNF_KEY]
         ic = metadata[CNF_INI_SECRET_KEY]
@@ -68,7 +66,13 @@ class INISecrets(object):
         else:
             var = "_".join((prefix + (name,)))
         try:
-            log.debug("looking for '%s' in section '%s'." % (var, section,))
+            log.debug(
+                "looking for '%s' in section '%s'."
+                % (
+                    var,
+                    section,
+                )
+            )
             return _SecretStr(self._cfg.get(section, var))
         except NoOptionError:
             if ce.default is not RAISE:
@@ -78,9 +82,9 @@ class INISecrets(object):
 
 @attr.s
 class VaultEnvSecrets(object):
-    """
-    Almost identical to regular env vars except that it has its own prefix.
-    """
+    """Almost identical to regular env vars except that it has its own
+    prefix."""
+
     vault_prefix = attr.ib()
 
     def secret(self, default=RAISE, converter=None, name=None):
@@ -100,9 +104,7 @@ class VaultEnvSecrets(object):
                 vp = self.vault_prefix(environ)
             else:
                 vp = self.vault_prefix
-            var = "_".join(
-                ((vp,) + prefix + (name,))
-            ).upper()
+            var = "_".join(((vp,) + prefix + (name,))).upper()
 
         log.debug("looking for env var '%s'." % (var,))
         val = environ.get(var, ce.default)
@@ -112,9 +114,8 @@ class VaultEnvSecrets(object):
 
 
 class _SecretStr(str):
-    """
-    String that censors its __repr__ if called from an attrs repr.
-    """
+    """String that censors its __repr__ if called from an attrs repr."""
+
     def __repr__(self):
         f = sys._getframe(2)
 
@@ -133,9 +134,7 @@ class _INIConfig(object):
 
 
 def _load_ini(path):
-    """
-    Load an INI file from *path*.
-    """
+    """Load an INI file from *path*."""
     cfg = RawConfigParser()
     with codecs.open(path, mode="r", encoding="utf-8") as f:
         try:

@@ -2,6 +2,7 @@ import sys
 
 from setuptools import setup
 
+
 try:
     from non_existant_pkg import cmdclass
 except ImportError:

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import itertools
+from pathlib import Path
 
 import pytest
-from vistir.compat import FileNotFoundError, Path
 
 from requirementslib.exceptions import RequirementError
 from requirementslib.models.lockfile import Lockfile

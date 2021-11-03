@@ -1,8 +1,9 @@
 # -*- coding=utf-8 -*-
 import os
+from pathlib import Path
+
 import pip_shims.shims
 import pytest
-from vistir.compat import Path
 from vistir.contextmanagers import temp_environ
 
 from requirementslib import utils as base_utils

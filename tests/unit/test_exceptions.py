@@ -3,7 +3,6 @@ import pytest
 
 from requirementslib.exceptions import (
     FileCorruptException,
-    FileExistsError,
     LockfileCorruptException,
     MissingParameter,
     PipfileCorruptException,

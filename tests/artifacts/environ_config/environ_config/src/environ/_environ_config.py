@@ -51,9 +51,7 @@ def var(default=RAISE, converter=None, name=None, validator=None):
 
 
 def _env_to_bool(val):
-    """
-    Convert *val* to a bool if it's not a bool in the first place.
-    """
+    """Convert *val* to a bool if it's not a bool in the first place."""
     if isinstance(val, bool):
         return val
     val = val.strip().lower()
@@ -72,10 +70,7 @@ def bool_var(default=RAISE, name=None):
 
 
 def group(cls):
-    return attr.ib(
-        default=None,
-        metadata={CNF_KEY: _ConfigEntry(None, None, cls, True)}
-    )
+    return attr.ib(default=None, metadata={CNF_KEY: _ConfigEntry(None, None, cls, True)})
 
 
 def to_config(config_cls, environ=os.environ):
@@ -112,8 +107,10 @@ def _to_config(config_cls, default_get, environ, prefix):
             val = get(environ, a.metadata, prefix, a.name)
         else:
             val = _to_config(
-                ce.sub_cls, default_get, environ,
-                prefix + ((a.name if prefix else a.name),)
+                ce.sub_cls,
+                default_get,
+                environ,
+                prefix + ((a.name if prefix else a.name),),
             )
 
         vals[a.name] = val

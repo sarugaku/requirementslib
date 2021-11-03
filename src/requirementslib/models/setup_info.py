@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 
 import ast
 import atexit
+import configparser
 import contextlib
 import importlib
 import io
@@ -10,23 +11,22 @@ import operator
 import os
 import shutil
 import sys
-from functools import partial
+from collections.abc import Iterable, Mapping
+from functools import lru_cache, partial
+from pathlib import Path
+from urllib.parse import urlparse, urlunparse
+from weakref import finalize
 
 import attr
-import chardet
 import packaging.specifiers
 import packaging.utils
 import packaging.version
 import pep517.envbuild
 import pep517.wrappers
-import six
-from platformdirs import user_cache_dir
 from distlib.wheel import Wheel
 from packaging.markers import Marker
 from pip_shims.utils import call_function_with_correct_args
-from six.moves import configparser
-from six.moves.urllib.parse import urlparse, urlunparse
-from vistir.compat import FileNotFoundError, Iterable, Mapping, Path, finalize, lru_cache
+from platformdirs import user_cache_dir
 from vistir.contextmanagers import cd, temp_path
 from vistir.misc import run
 from vistir.path import create_tracked_tempdir, ensure_mkdir_p, mkdir_p, rmtree
@@ -49,7 +49,7 @@ except ImportError:
     pkg_resources_requirements = None
 
 try:
-    from setuptools.dist import distutils, Distribution
+    from setuptools.dist import Distribution, distutils
 except ImportError:
     import distutils
     from distutils.core import Distribution
@@ -68,28 +68,25 @@ except ImportError:
 if MYPY_RUNNING:
     from typing import (
         Any,
+        AnyStr,
         Callable,
         Dict,
-        List,
         Generator,
+        List,
         Optional,
-        Union,
+        Sequence,
+        Set,
+        Text,
         Tuple,
         TypeVar,
-        Text,
-        Set,
-        AnyStr,
-        Sequence,
+        Union,
     )
+
     import requests
-    from pip_shims.shims import InstallRequirement, PackageFinder
-    from pkg_resources import (
-        PathMetadata,
-        DistInfoDistribution,
-        EggInfoDistribution,
-        Requirement as PkgResourcesRequirement,
-    )
     from packaging.requirements import Requirement as PackagingRequirement
+    from pip_shims.shims import InstallRequirement, PackageFinder
+    from pkg_resources import DistInfoDistribution, EggInfoDistribution, PathMetadata
+    from pkg_resources import Requirement as PkgResourcesRequirement
 
     TRequirement = TypeVar("TRequirement")
     RequirementType = TypeVar(
@@ -152,7 +149,8 @@ class BuildEnv(pep517.envbuild.BuildEnvironment):
 class HookCaller(pep517.wrappers.Pep517HookCaller):
     def __init__(self, source_dir, build_backend, backend_path=None):
         super(pep517.wrappers.Pep517HookCaller, self).__init__(
-            source_dir, build_backend, backend_path=backend_path)
+            source_dir, build_backend, backend_path=backend_path
+        )
         self.source_dir = os.path.abspath(source_dir)
         self.build_backend = build_backend
         self._subprocess_runner = pep517_subprocess_runner
@@ -195,7 +193,7 @@ def parse_special_directives(setup_entry, package_dir=None):
                 return str(rv)
             module = importlib.import_module(resource)
             rv = getattr(module, attribute)
-            if not isinstance(rv, six.string_types):
+            if not isinstance(rv, str):
                 rv = str(rv)
     return rv
 
@@ -212,7 +210,7 @@ def make_base_requirements(reqs):
             req, pkg_resources_requirements.Requirement
         ):
             requirements.add(BaseRequirement.from_req(req))
-        elif req and isinstance(req, six.string_types) and not req.startswith("#"):
+        elif req and isinstance(req, str) and not req.startswith("#"):
             requirements.add(BaseRequirement.from_string(req))
     return requirements
 
@@ -314,11 +312,7 @@ def parse_setup_cfg(
         },
     }
     parser = configparser.ConfigParser(default_opts)
-    if six.PY2:
-        buff = io.BytesIO(setup_cfg_contents)
-        parser.readfp(buff)
-    else:
-        parser.read_string(setup_cfg_contents)
+    parser.read_string(setup_cfg_contents)
     results = {}
     package_dir = get_package_dir_from_setupcfg(parser, base_dir=base_dir)
     name, version = get_name_and_version_from_setupcfg(parser, package_dir)
@@ -407,7 +401,7 @@ def ensure_reqs(reqs):
     for req in reqs:
         if not req:
             continue
-        if isinstance(req, six.string_types):
+        if isinstance(req, str):
             req = pkg_resources.Requirement.parse("{0}".format(str(req)))
         # req = strip_extras_markers_from_requirement(req)
         new_reqs.append(req)
@@ -589,7 +583,7 @@ def get_extra_name_from_marker(marker):
 
 def get_metadata_from_wheel(wheel_path):
     # type: (S) -> Dict[Any, Any]
-    if not isinstance(wheel_path, six.string_types):
+    if not isinstance(wheel_path, str):
         raise TypeError("Expected string instance, received {0!r}".format(wheel_path))
     try:
         dist = Wheel(wheel_path)
@@ -845,7 +839,7 @@ class Analyzer(ast.NodeVisitor):
         if attr_name and not self.recurse:
             name = attr_name
         elif name and attr_attr:
-            if isinstance(name, six.string_types):
+            if isinstance(name, str):
                 unparsed = ".".join([item for item in (name, attr_attr) if item])
             else:
                 unparsed = item
@@ -973,7 +967,7 @@ class Analyzer(ast.NodeVisitor):
                         retries.append((k, v))
                     continue
                 else:
-                    if isinstance(fn, six.string_types):
+                    if isinstance(fn, str):
                         _, _, fn_name = fn.rpartition(".")
             if fn_name:
                 self.resolved_function_names[fn_name] = ast_unparse(v, analyzer=self)
@@ -982,9 +976,7 @@ class Analyzer(ast.NodeVisitor):
     def parse_functions(self):
         retries = self.parse_function_names(function_map=self.function_map)
         if retries:
-            failures = self.parse_function_names(
-                should_retry=False, function_map=dict(retries)
-            )
+            self.parse_function_names(should_retry=False, function_map=dict(retries))
         return self.resolved_function_names
 
     def parse_setup_function(self):
@@ -1041,7 +1033,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
     elif isinstance(item, ast.Subscript):
         unparsed = unparse(item.value)
         if not initial_mapping:
-            if isinstance(item.slice, ast.Index):
+            if isinstance(item.slice, (ast.Index, ast.Constant)):
                 try:
                     unparsed = unparsed[unparse(item.slice.value)]
                 except (KeyError, TypeError):
@@ -1083,7 +1075,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
                         unparsed = items.get(item.id, item.id)
         else:
             unparsed = item
-    elif six.PY3 and isinstance(item, ast.NameConstant):
+    elif isinstance(item, ast.NameConstant):
         unparsed = item.value
     elif any(isinstance(item, k) for k in AST_COMPARATORS.keys()):
         unparsed = AST_COMPARATORS[type(item)]
@@ -1138,7 +1130,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
         else:
             name = unparse(attr_name) if attr_name is not None else attr_attr
         if name and attr_attr:
-            if not initial_mapping and isinstance(name, six.string_types):
+            if not initial_mapping and isinstance(name, str):
                 unparsed = ".".join([item for item in (name, attr_attr) if item])
             else:
                 unparsed = item
@@ -1199,13 +1191,13 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
                 unparsed[k] = unparse(v)
     elif isinstance(item, (list, tuple)):
         unparsed = type(item)([unparse(el) for el in item])
-    elif isinstance(item, six.string_types):
+    elif isinstance(item, str):
         unparsed = item
     return unparsed
 
 
 def ast_parse_attribute_from_file(path, attribute):
-    # type: (S) -> Any
+    # type: (S, S) -> Any
     analyzer = ast_parse_file(path)
     target_value = None
     for k, v in analyzer.assignments.items():
@@ -1214,7 +1206,7 @@ def ast_parse_attribute_from_file(path, attribute):
             name = k.id
         elif isinstance(k, ast.Attribute):
             fn = ast_unparse(k)
-            if isinstance(fn, six.string_types):
+            if isinstance(fn, str):
                 _, _, name = fn.rpartition(".")
         if name == attribute:
             target_value = ast_unparse(v, analyzer=analyzer)
@@ -1229,11 +1221,13 @@ def ast_parse_file(path):
     try:
         tree = ast.parse(read_source(path))
     except SyntaxError:
+        import charset_normalizer  # noqa: F811
+
         # The source may be encoded strangely, e.g. azure-storage
         # which has a setup.py encoded with utf-8-sig
         with open(path, "rb") as fh:
             contents = fh.read()
-        encoding = chardet.detect(contents)["encoding"]
+        encoding = charset_normalizer.detect(contents)["encoding"]
         tree = ast.parse(contents.decode(encoding))
     ast_analyzer = Analyzer()
     ast_analyzer.visit(tree)
@@ -1289,26 +1283,16 @@ def run_setup(script_path, egg_base=None):
         script_name = os.path.basename(script_path)
         g = {"__file__": script_name, "__name__": "__main__"}
         sys.path.insert(0, target_cwd)
-        local_dict = {}
-        if sys.version_info < (3, 5):
-            save_argv = sys.argv
-        else:
-            save_argv = sys.argv.copy()
+
+        save_argv = sys.argv.copy()
         try:
             global _setup_distribution, _setup_stop_after
             _setup_stop_after = "run"
             sys.argv[0] = script_name
             sys.argv[1:] = args
             with open(script_name, "rb") as f:
-                contents = f.read()
-                if six.PY3:
-                    contents.replace(br"\r\n", br"\n")
-                else:
-                    contents.replace(r"\r\n", r"\n")
-                if sys.version_info < (3, 5):
-                    exec(contents, g, local_dict)
-                else:
-                    exec(contents, g)
+                contents = f.read().replace(br"\r\n", br"\n")
+                exec(contents, g)
         # We couldn't import everything needed to run setup
         except Exception:
             python = os.environ.get("PIP_PYTHON_PATH", sys.executable)
@@ -1481,7 +1465,7 @@ class SetupInfo(object):
 
     def update_from_dict(self, metadata):
         name = metadata.get("name", self.name)
-        if isinstance(name, six.string_types):
+        if isinstance(name, str):
             self.name = self.name if self.name else name
         version = metadata.get("version", None)
         if version:
@@ -1546,8 +1530,6 @@ class SetupInfo(object):
             try:
                 parsed = setuptools_parse_setup_cfg(self.setup_cfg.as_posix())
             except Exception:
-                if six.PY2:
-                    contents = self.setup_cfg.read_bytes()
                 parsed = parse_setup_cfg(contents, base_dir)
             if not parsed:
                 return {}
@@ -1617,7 +1599,7 @@ class SetupInfo(object):
                     ['"{0}"'.format(r) for r in self.build_requires]
                 )
             self.pyproject.write_text(
-                six.text_type(
+                str(
                     """
 [build-system]
 requires = [{0}]
@@ -1650,7 +1632,7 @@ build-backend = "{1}"
                     ['"{0}"'.format(r) for r in self.build_requires]
                 )
             self.pyproject.write_text(
-                six.text_type(
+                str(
                     """
 [build-system]
 requires = [{0}]
@@ -1895,8 +1877,7 @@ build-backend = "{1}"
             cmd = pip_shims.shims.InstallCommand()
             options, _ = cmd.parser.parse_args([])
             session = cmd._build_session(options)
-            finder = cmd._build_package_finder(options, session)
-        tempdir_manager = stack.enter_context(pip_shims.shims.global_tempdir_manager())
+        stack.enter_context(pip_shims.shims.global_tempdir_manager())
         vcs, uri = split_vcs_method_from_uri(ireq.link.url_without_fragment)
         parsed = urlparse(uri)
         if "file" in parsed.scheme:

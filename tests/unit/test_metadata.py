@@ -9,7 +9,12 @@ import requirementslib.models.metadata
 
 
 @pytest.mark.parametrize(
-    "package_json", [{"name": "celery"}, {"name": "llvmlite"},], indirect=True,
+    "package_json",
+    [
+        {"name": "celery"},
+        {"name": "llvmlite"},
+    ],
+    indirect=True,
 )
 def test_metadata(monkeypatch_wheel_download, package_json):
     package = requirementslib.models.metadata.Package.from_json(package_json)
@@ -61,5 +66,3 @@ def test_metadata(monkeypatch_wheel_download, package_json):
             "vine==1.3.0",
             "zstandard",
         ]
-
-

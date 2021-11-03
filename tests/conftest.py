@@ -5,6 +5,7 @@ import contextlib
 import io
 import json
 import os
+import pathlib
 import random
 import shutil
 import warnings
@@ -15,7 +16,7 @@ import pytest
 import requests
 import vistir
 
-CURRENT_FILE = vistir.compat.Path(__file__).absolute()
+CURRENT_FILE = pathlib.Path(__file__).absolute()
 
 
 def check_for_mercurial():
@@ -88,7 +89,7 @@ def pytest_runtest_setup(item):
 
 @pytest.fixture
 def pathlib_tmpdir(tmpdir):
-    yield vistir.compat.Path(str(tmpdir))
+    yield pathlib.Path(str(tmpdir))
     try:
         tmpdir.remove(ignore_errors=True)
     except Exception:

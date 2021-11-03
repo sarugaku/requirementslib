@@ -1,5 +1,6 @@
 from setuptools import find_packages, setup
 
+
 SETUP = {
     "name": "test package",
     "version": "1.0.0",

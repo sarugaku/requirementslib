@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
+from pathlib import Path
 
 import pip_shims.shims
 import pytest
-from hypothesis import given, settings, strategies as st
-from vistir.compat import Path
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from vistir.contextmanagers import temp_environ
 
 from requirementslib.exceptions import RequirementError

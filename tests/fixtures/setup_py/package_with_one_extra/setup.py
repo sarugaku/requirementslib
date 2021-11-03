@@ -2,6 +2,7 @@ import os
 
 from setuptools import find_packages, setup
 
+
 thisdir = os.path.abspath(os.path.dirname(__file__))
 version = "1.0.0"
 
