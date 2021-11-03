@@ -2,7 +2,7 @@
 import itertools
 
 import pytest
-from vistir.compat import FileNotFoundError, Path
+from pathlib import Path
 
 from requirementslib.exceptions import RequirementError
 from requirementslib.models.lockfile import Lockfile

@@ -2,6 +2,7 @@
 import ast
 import contextlib
 import os
+import pathlib
 import shutil
 import sys
 
@@ -58,6 +59,7 @@ def test_no_duplicate_egg_info():
     """When the package has 'src' directory, do not write egg-info in base
     dir."""
     base_dir = vistir.compat.Path(os.path.abspath(os.getcwd())).as_posix()
+    shutil.rmtree(os.path.join(base_dir, "reqlib-metadata"), ignore_errors=True)
     r = Requirement.from_line("-e {}".format(base_dir))
     egg_info_name = "{}.egg-info".format(r.name.replace("-", "_"))
     distinfo_name = "{0}.dist-info".format(r.name.replace("-", "_"))
@@ -261,7 +263,7 @@ def test_ast_parser_handles_repeated_assignments(setup_py_dir):
     parsed = ast_parse_setup_py(target)
     analyzer = ast_parse_file(target)
     assert parsed["name"] == "test_package_with_repeated_assignments"
-    assert isinstance(parsed["version"], str) is False
+    assert not isinstance(parsed["version"], str)
     assert parsed["install_requires"] == ["six"]
     analyzer_parsed = analyzer.parse_setup_function()
     # the versions in this instance are AST objects as they come from
@@ -313,9 +315,7 @@ def test_ast_parser_handles_dependency_on_env_vars(
                 "package_with_dependence_on_env_vars/setup.py"
             ).as_posix()
         )
-        assert list(sorted(parsed["install_requires"])) == list(
-            sorted(expected_install_requires)
-        )
+        assert sorted(parsed["install_requires"]) == sorted(expected_install_requires)
 
 
 def test_ast_parser_handles_exceptions(artifact_dir):

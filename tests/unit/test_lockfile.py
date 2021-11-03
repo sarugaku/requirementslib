@@ -102,9 +102,6 @@ def test_lockfile_requirements(pathlib_tmpdir):
     loaded = Lockfile.load(lockfile.as_posix())
     dump_to = pathlib_tmpdir.joinpath("new_lockfile")
     dump_to.mkdir()
-    from_data = Lockfile.from_data(
-        dump_to.as_posix(), json.loads(lockfile.read_text()), meta_from_project=False
-    )
     assert isinstance(loaded.dev_requirements[0], Requirement)
     assert isinstance(loaded.dev_requirements_list[0], dict)
     with cd(pathlib_tmpdir.as_posix()):

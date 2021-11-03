@@ -1004,11 +1004,6 @@
             ],
             "version": "==0.9.1"
         },
-        "requirementslib": {
-            "editable": true,
-            "extras": ["dev", "tests", "typing"],
-            "path": "."
-        },
         "retype": {
             "hashes": [
                 "sha256:7d033b115f66e5327dea0a3fd7c9a3dbfa53841575daf27ce2ce409956d901d4",

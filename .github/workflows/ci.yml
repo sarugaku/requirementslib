@@ -82,5 +82,4 @@ jobs:
           COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
           COVERALLS_PARALLEL: true
           CI: "1"
-        run: |
-          nox -s coverage
+        run: nox -s coverage

@@ -1033,7 +1033,7 @@ def ast_unparse(item, initial_mapping=False, analyzer=None, recurse=True):  # no
     elif isinstance(item, ast.Subscript):
         unparsed = unparse(item.value)
         if not initial_mapping:
-            if isinstance(item.slice, ast.Index):
+            if isinstance(item.slice, (ast.Index, ast.Constant)):
                 try:
                     unparsed = unparsed[unparse(item.slice.value)]
                 except (KeyError, TypeError):

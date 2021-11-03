@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
+import pathlib
 from itertools import tee
 
 import pytest
-import vistir.compat
 
 import requirementslib.models.project
 
@@ -47,7 +47,7 @@ def test_project_file_works_if_file_exists_but_is_empty(pathlib_tmpdir):
 
 def test_dir_with_empty_pipfile_file_raises_exception(pathlib_tmpdir):
     project = None
-    with pytest.raises(vistir.compat.FileNotFoundError):
+    with pytest.raises(FileNotFoundError):
         project = requirementslib.models.project.Project(root=pathlib_tmpdir.as_posix())
     assert project is None
 
@@ -66,10 +66,10 @@ def test_dir_with_pipfile_creates_project(pathlib_tmpdir):
     pipfile.write_text(u"")
     project = requirementslib.models.project.Project(root=pathlib_tmpdir.as_posix())
     assert project.pipfile is not None
-    assert vistir.compat.Path(project.pipfile_location).as_posix() == pipfile.as_posix()
+    assert pathlib.Path(project.pipfile_location).as_posix() == pipfile.as_posix()
     assert project.lockfile is None
     assert (
-        vistir.compat.Path(project.lockfile_location).as_posix()
+        pathlib.Path(project.lockfile_location).as_posix()
         == pathlib_tmpdir.joinpath("Pipfile.lock").as_posix()
     )
     project.add_line_to_pipfile("requests[security]", False)

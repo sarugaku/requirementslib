@@ -5,7 +5,7 @@ import pip_shims.shims
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from vistir.compat import Path
+from pathlib import Path
 from vistir.contextmanagers import temp_environ
 
 from requirementslib.exceptions import RequirementError

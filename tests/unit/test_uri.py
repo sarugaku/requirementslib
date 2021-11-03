@@ -4,9 +4,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 import os
 
 from hypothesis import assume, given
-from hypothesis import strategies as st
-from six.moves.urllib_parse import quote_plus, urlsplit, urlunsplit
-from vistir.compat import Path
 
 from requirementslib.models.url import URI
 
