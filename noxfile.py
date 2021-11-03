@@ -58,8 +58,29 @@ def _write_version(v):
         f.write("".join(lines))
 
 
+def _get_changelog() -> str:
+    cmd = ["towncrier", "--draft"]
+    changelog = subprocess.check_output(cmd).decode("utf-8")
+    print(changelog)
+    return changelog
+
+
 @nox.session
 def bump_version(session: nox.Session):
     new_version = _prebump(_current_version())
     _write_version(new_version)
     return new_version
+
+
+@nox.session
+def release(session: nox.Session):
+    version = session.posargs[0]
+    _write_version(parver.Version.parse(version))
+    changelog = _get_changelog()
+    session.run("towncrier", "--yes", "--version", version)
+    git_commit_cmd = ["git", "commit", "-am", f"Release {version}"]
+    git_tag_cmd = ["git", "tag", "-sa", version, "-m", changelog]
+    session.run(*git_commit_cmd)
+    session.run(*git_tag_cmd)
+    session.run("git", "push")
+    session.run("git", "push", "--tags")
