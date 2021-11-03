@@ -1,3 +1,29 @@
+Requirementslib 1.6.0 (2021-11-03)
+==================================
+
+
+Features
+--------
+
+- Switch from `appdirs` to `platformdirs`.  `#295 <https://github.com/sarugaku/requirementslib/issues/295>`_
+  
+
+Bug Fixes
+---------
+
+- Fix an AST parse error on Python 3.9+.  `#288 <https://github.com/sarugaku/requirementslib/issues/288>`_
+  
+- Replace ``chardet`` with ``charset_normalizer``.  `#296 <https://github.com/sarugaku/requirementslib/issues/296>`_
+  
+- Fix the initialization of ``pep517.HookCaller``.  `#299 <https://github.com/sarugaku/requirementslib/issues/299>`_
+  
+
+Removals and Deprecations
+-------------------------
+
+- Officially drop support for Python 2.7 and 3.5.  `#301 <https://github.com/sarugaku/requirementslib/issues/301>`_
+
+
 1.5.16 (2020-11-12)
 ===================
 
