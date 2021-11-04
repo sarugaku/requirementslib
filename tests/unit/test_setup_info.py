@@ -1,20 +1,12 @@
 # -*- coding=utf-8 -*-
-import ast
-import contextlib
 import os
-import pathlib
 import shutil
-import sys
 
 import pytest
 import vistir
 
 from requirementslib.models.requirements import Requirement
-from requirementslib.models.setup_info import (
-    ast_parse_file,
-    ast_parse_setup_py,
-    parse_setup_cfg,
-)
+from requirementslib.models.setup_info import ast_parse_setup_py
 
 
 @pytest.mark.parametrize(
@@ -27,7 +19,7 @@ from requirementslib.models.setup_info import (
 )
 def test_local_req(test_artifact):
     r = Requirement.from_line(test_artifact.as_posix())
-    assert r.name == "environ_config"
+    assert r.name.replace("_", "-") == "environ-config"
     setup_dict = r.req.setup_info.as_dict()
     assert sorted(list(setup_dict.get("requires").keys())) == ["attrs"]
 
@@ -165,19 +157,11 @@ def test_extras(pathlib_tmpdir, setup_py_dir, setup_py_name, extras, dependencie
 def test_ast_parser_finds_variables(setup_py_dir):
     target = setup_py_dir.joinpath("package_with_extras_as_variable/setup.py").as_posix()
     parsed = ast_parse_setup_py(target)
-    analyzer = ast_parse_file(target)
     expected = {
         "name": "test_package",
         "version": "1.0.0",
-        "description": "The Backend HTTP Server",
-        "long_description": "This is a package",
         "install_requires": ["six"],
-        "tests_require": ["coverage", "flaky"],
         "extras_require": {"testing": ["coverage", "flaky"]},
-        "package_dir": {"": "src"},
-        "packages": ["test_package"],
-        "include_package_data": True,
-        "zip_safe": False,
     }
     for k, v in expected.items():
         assert k in parsed
@@ -185,7 +169,6 @@ def test_ast_parser_finds_variables(setup_py_dir):
             assert str(parsed[k]) == str(v), parsed[k]
         else:
             assert parsed[k] == v, parsed[k]
-    assert analyzer.parse_setup_function() == parsed
 
 
 def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
@@ -193,19 +176,11 @@ def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
         "package_using_fully_qualified_setuptools/setup.py"
     ).as_posix()
     parsed = ast_parse_setup_py(target)
-    analyzer = ast_parse_file(target)
     expected = {
         "name": "test_package",
         "version": "1.0.0",
-        "description": "The Backend HTTP Server",
-        "long_description": "This is a package",
         "install_requires": ["six"],
-        "tests_require": ["coverage", "flaky"],
         "extras_require": {"testing": ["coverage", "flaky"]},
-        "package_dir": {"": "src"},
-        "packages": ["test_package"],
-        "include_package_data": True,
-        "zip_safe": False,
     }
     for k, v in expected.items():
         assert k in parsed
@@ -213,7 +188,6 @@ def test_ast_parser_finds_fully_qualified_setup(setup_py_dir):
             assert str(parsed[k]) == str(v), parsed[k]
         else:
             assert parsed[k] == v, parsed[k]
-    assert analyzer.parse_setup_function() == parsed
 
 
 def test_ast_parser_handles_binops(setup_py_dir):
@@ -221,7 +195,6 @@ def test_ast_parser_handles_binops(setup_py_dir):
         "package_with_conditional_install_requires/setup.py"
     ).as_posix()
     parsed = ast_parse_setup_py(target)
-    analyzer = ast_parse_file(target)
     expected = [
         "azure-common>=1.1.5",
         "cryptography",
@@ -229,13 +202,11 @@ def test_ast_parser_handles_binops(setup_py_dir):
         "requests",
     ]
     assert list(sorted(parsed["install_requires"])) == list(sorted(expected))
-    assert analyzer.parse_setup_function() == parsed
 
 
 def test_ast_parser_handles_binops(setup_py_dir):
     target = setup_py_dir.joinpath("package_with_setup_from_dict/setup.py").as_posix()
     parsed = ast_parse_setup_py(target)
-    analyzer = ast_parse_file(target)
     assert parsed["name"] == "test package"
     assert parsed["version"] == "1.0.0"
     expected = [
@@ -243,7 +214,6 @@ def test_ast_parser_handles_binops(setup_py_dir):
         "flake8",
     ]
     assert list(sorted(parsed["extras_require"]["tests"])) == list(sorted(expected))
-    assert analyzer.parse_setup_function() == parsed
 
 
 def test_parse_function_call_as_name(setup_py_dir, pathlib_tmpdir):
@@ -255,85 +225,39 @@ def test_parse_function_call_as_name(setup_py_dir, pathlib_tmpdir):
 
 
 def test_ast_parser_handles_repeated_assignments(setup_py_dir):
-    target = setup_py_dir.joinpath(
-        "package_with_repeated_assignments/setup.py"
-    ).as_posix()
-    parsed = ast_parse_setup_py(target)
-    analyzer = ast_parse_file(target)
-    assert parsed["name"] == "test_package_with_repeated_assignments"
-    assert not isinstance(parsed["version"], str)
-    assert parsed["install_requires"] == ["six"]
-    analyzer_parsed = analyzer.parse_setup_function()
-    # the versions in this instance are AST objects as they come from
-    # os.environ and will need to be parsed downstream from here, so
-    # equality comparisons will fail
-    analyzer_parsed.pop("version")
-    parsed.pop("version")
-    assert analyzer_parsed == parsed
-
-
-def test_setup_cfg_parser(setup_cfg_dir):
-    setup_path = setup_cfg_dir / "package_with_multiple_extras/setup.cfg"
-    contents = setup_path.read_text()
-    result = parse_setup_cfg(contents, setup_path.parent.as_posix())
-    assert result["version"] == "0.5.0"
-    assert result["name"] == "test_package"
-
-
-def test_parse_setup_cfg_with_special_directives(setup_cfg_dir):
-    setup_path = setup_cfg_dir / "package_with_special_directives/setup.cfg"
-    contents = setup_path.read_text()
-    result = parse_setup_cfg(contents, setup_path.parent.as_posix())
-    assert result["version"] == "0.1.0"
-    assert result["name"] == "bug-test"
-
-
-@pytest.mark.parametrize(
-    "env_vars, expected_install_requires",
-    [
-        ({"NOTHING": "1"}, []),
-        ({"READTHEDOCS": "1"}, ["sphinx", "sphinx-argparse"]),
-    ],
-)
-def test_ast_parser_handles_dependency_on_env_vars(
-    env_vars, expected_install_requires, setup_py_dir
-):
-    @contextlib.contextmanager
-    def modified_environ(**update):
-        env = os.environ
-        try:
-            env.update(update)
-            yield
-        finally:
-            [env.pop(k) for k in update]
-
-    with modified_environ(**env_vars):
-        parsed = ast_parse_setup_py(
-            setup_py_dir.joinpath(
-                "package_with_dependence_on_env_vars/setup.py"
-            ).as_posix()
-        )
-        assert sorted(parsed["install_requires"]) == sorted(expected_install_requires)
+    target = (
+        setup_py_dir.joinpath("package_with_repeated_assignments").absolute().as_posix()
+    )
+    r = Requirement.from_line(target)
+    setup_dict = r.req.setup_info.as_dict()
+    assert setup_dict["name"] == "test-package-with-repeated-assignments"
+    assert sorted(setup_dict["requires"]) == ["six"]
 
 
 def test_ast_parser_handles_exceptions(artifact_dir):
-    path = artifact_dir.joinpath("git/pyinstaller/setup.py")
-    result = ast_parse_setup_py(path.as_posix())
-    analyzer = ast_parse_file(path.as_posix())
-    assert result is not None
-    assert "altgraph" in result["install_requires"]
-    for k, v in analyzer.parse_setup_function().items():
-        assert k in result
-        assert result[k] == v or (
-            isinstance(v, dict) and isinstance(list(v.keys())[0], ast.Attribute)
-        )
+    path = artifact_dir.joinpath("git/pyinstaller")
+    r = Requirement.from_line(path.as_posix())
+    setup_dict = r.req.setup_info.as_dict()
+    assert "altgraph" in setup_dict["requires"]
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 6), reason="Type annotations are not available for Python<3.6"
-)
 def test_ast_parser_handles_annoted_assignments(setup_py_dir):
     parsed = ast_parse_setup_py(
         setup_py_dir.joinpath("package_with_annoted_assignments/setup.py").as_posix()
     )
     assert parsed["extras_require"] == {"docs": ["sphinx", "sphinx-argparse"]}
+
+
+def test_read_requirements_with_list_comp(setup_py_dir):
+    req = Requirement.from_line(
+        f"-e {(setup_py_dir / 'package_with_setup_with_list_comp').as_posix()}"
+    )
+    setup_info = req.req.setup_info.as_dict()
+    assert sorted(setup_info["requires"]) == ["requests"]
+
+
+def test_ast_parse_from_dict_with_name(setup_py_dir):
+    parsed = ast_parse_setup_py(
+        (setup_py_dir / "package_with_setup_from_dict_with_name/setup.py").as_posix()
+    )
+    assert parsed["install_requires"] == ["requests"]

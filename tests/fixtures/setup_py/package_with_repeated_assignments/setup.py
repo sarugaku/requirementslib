@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
-version = os.environ["PACKAGE_VERSION"]
+version = os.environ.get("PACKAGE_VERSION", "0.0.0")
 
 
 def my_function(other_list):

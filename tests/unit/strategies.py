@@ -6,8 +6,8 @@ import re
 import string
 import sys
 from collections import namedtuple
+from urllib import parse as urllib_parse
 
-import six
 import vistir
 from hypothesis import assume
 from hypothesis import strategies as st
@@ -17,7 +17,6 @@ from packaging.markers import MARKER_OP, VARIABLE
 from packaging.specifiers import Specifier
 from packaging.version import parse as parse_version
 from pyparsing import Literal, MatchFirst, ParseExpression, ParserElement
-from six.moves.urllib import parse as urllib_parse
 
 from requirementslib.models.url import URI
 
@@ -75,7 +74,7 @@ vcs_schemes = (
 def flatten_pyparsing_exprs(expr):
     exprs = set()
     for child in expr.exprs:
-        if isinstance(child, (Literal, six.string_types)):
+        if isinstance(child, (Literal, str)):
             exprs.add(str(child).strip('"'))
         elif isinstance(child, (MatchFirst, ParseExpression, ParserElement)):
             exprs.update(flatten_pyparsing_exprs(child))
@@ -433,7 +432,7 @@ def repository_url(draw, elements=random_repositories()):
     subdir_str = ""
     if ref:
         ref_str = "@{0}".format(ref)
-    if extras and isinstance(extras, six.string_types):
+    if extras and isinstance(extras, str):
         extras = [extras]
     if extras:
         extras_str = "[{0}]".format(",".join(extras))
