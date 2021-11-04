@@ -9,6 +9,7 @@ from requirementslib.models.requirements import Requirement
 from requirementslib.models.setup_info import ast_parse_setup_py
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Building this is broken on windows")
 @pytest.mark.parametrize(
     "test_artifact",
     [
