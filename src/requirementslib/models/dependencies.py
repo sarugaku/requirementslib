@@ -491,7 +491,6 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     session, finder = get_finder(sources=sources, pip_options=pip_options)
     dep.is_direct = True
     requirements = None
-    setup_requires = {}
     with temp_environ(), ExitStack() as stack:
         if not wheel_cache:
             wheel_cache = stack.enter_context(_get_wheel_cache())
@@ -499,7 +498,6 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
         if dep.editable and not dep.prepared and not dep.req:
             setup_info = SetupInfo.from_ireq(dep)
             results = setup_info.get_info()
-            setup_requires.update(results["setup_requires"])
             requirements = set(results["requires"].values())
         else:
             results = pip_shims.shims.resolve(dep)
