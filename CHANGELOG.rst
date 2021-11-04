@@ -1,3 +1,13 @@
+Requirementslib 1.6.1 (2021-11-04)
+==================================
+
+
+Features
+--------
+
+- Simplify the ast parsing so that it will give up to building the metadata when it's unable to parse.  `#268 <https://github.com/sarugaku/requirementslib/issues/268>`_
+
+
 Requirementslib 1.6.0 (2021-11-03)
 ==================================
 
