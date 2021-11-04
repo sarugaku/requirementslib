@@ -1,0 +1,1 @@
+Simplify the ast parsing so that it will give up to building the metadata when it's unable to parse.

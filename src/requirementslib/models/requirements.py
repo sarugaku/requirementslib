@@ -887,7 +887,7 @@ class Line(object):
         # type: () -> Dict[Any, Any]
         if self.is_local and self.path and is_installable_dir(self.path):
             if self.setup_py:
-                return ast_parse_setup_py(self.setup_py)
+                return ast_parse_setup_py(self.setup_py, raising=False)
         return {}
 
     @vcsrepo.setter
