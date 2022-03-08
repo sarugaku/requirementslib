@@ -100,6 +100,29 @@ def test_split_vcs_method_from_uri():
     )
 
 
+def test_split_ref_from_uri():
+    url = "https://github.com/sarugaku/plette.git"
+    assert utils.split_ref_from_uri(url) == (
+        "https://github.com/sarugaku/plette.git",
+        None
+    )
+    url = "/Users/some.user@acme.com/dev/myproject"
+    assert utils.split_ref_from_uri(url) == (
+        "/Users/some.user@acme.com/dev/myproject",
+        None
+    )
+    url = "https://user:password@github.com/sarugaku/plette.git"
+    assert utils.split_ref_from_uri(url) == (
+        "https://user:password@github.com/sarugaku/plette.git",
+        None
+    )
+    url = "git+https://github.com/pypa/pipenv.git@master#egg=pipenv"
+    assert utils.split_ref_from_uri(url) == (
+        "git+https://github.com/pypa/pipenv.git#egg=pipenv",
+        "master"
+    )
+
+
 # tests from pip-tools
 
 

@@ -565,7 +565,7 @@ def split_ref_from_uri(uri):
         raise TypeError("Expected a string, received {0!r}".format(uri))
     parsed = _get_parsed_url(uri)
     path = parsed.path if parsed.path else ""
-    scheme = parsed.scheme if parsed.scheme else ""
+    scheme = parsed.scheme if parsed.scheme else "file"
     ref = None
     if scheme != "file" and "@" in path:
         path, _, ref = path.rpartition("@")
