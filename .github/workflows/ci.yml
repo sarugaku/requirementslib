@@ -68,6 +68,9 @@ jobs:
       - name: Install Dev Dependencies
         run: python -m pip install --upgrade .[dev]
 
+      - name: Install Test Dependencies
+        run: python -m pip install --upgrade .[tests]
+
       - name: Run tests
         env:
           PIPENV_DEFAULT_PYTHON_VERSION: ${{ matrix.python-version }}
