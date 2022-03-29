@@ -33,7 +33,7 @@ def test_pipfile_entry_comparisons(entry_1, entry_2):
 
 def test_project_file_works_if_file_exists_but_is_empty(pathlib_tmpdir):
     pipfile = pathlib_tmpdir.joinpath("Pipfile")
-    pipfile.write_text(u"")
+    pipfile.write_text("")
     project_file = requirementslib.models.project.ProjectFile.read(
         pipfile.as_posix(),
         requirementslib.models.pipfile.plette.pipfiles.Pipfile,
@@ -54,7 +54,7 @@ def test_dir_with_empty_pipfile_file_raises_exception(pathlib_tmpdir):
 
 def test_dir_with_pipfile_creates_project_file(pathlib_tmpdir):
     pipfile = pathlib_tmpdir.joinpath("Pipfile")
-    pipfile.write_text(u"")
+    pipfile.write_text("")
     project_file = requirementslib.models.project.ProjectFile.read(
         pipfile.as_posix(), requirementslib.models.pipfile.plette.pipfiles.Pipfile
     )
@@ -63,7 +63,7 @@ def test_dir_with_pipfile_creates_project_file(pathlib_tmpdir):
 
 def test_dir_with_pipfile_creates_project(pathlib_tmpdir):
     pipfile = pathlib_tmpdir.joinpath("Pipfile")
-    pipfile.write_text(u"")
+    pipfile.write_text("")
     project = requirementslib.models.project.Project(root=pathlib_tmpdir.as_posix())
     assert project.pipfile is not None
     assert pathlib.Path(project.pipfile_location).as_posix() == pipfile.as_posix()

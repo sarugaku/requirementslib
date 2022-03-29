@@ -913,7 +913,7 @@ def run_setup(script_path, egg_base=None):
             sys.argv[0] = script_name
             sys.argv[1:] = args
             with open(script_name, "rb") as f:
-                contents = f.read().replace(br"\r\n", br"\n")
+                contents = f.read().replace(rb"\r\n", rb"\n")
                 exec(contents, g)
         # We couldn't import everything needed to run setup
         except Exception:
