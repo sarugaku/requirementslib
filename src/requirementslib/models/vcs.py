@@ -76,7 +76,9 @@ class VCSRepository(object):
             if lt_pip_19_2:
                 self.repo_backend.obtain(self.checkout_directory)
             elif gte_pip_22_0:
-                self.repo_backend.obtain(self.checkout_directory, self.parsed_url, verbosity)
+                self.repo_backend.obtain(
+                    self.checkout_directory, self.parsed_url, verbosity
+                )
             else:  # at least Pip 19.2 but not quite pip 22.x
                 self.repo_backend.obtain(self.checkout_directory, self.parsed_url)
         else:
