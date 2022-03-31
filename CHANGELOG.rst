@@ -15,18 +15,18 @@ Requirementslib 1.6.0 (2021-11-03)
 Features
 --------
 
-- Switch from `appdirs` to `platformdirs`.  `#295 <https://github.com/sarugaku/requirementslib/issues/295>`_
-  
+- Switch from ``appdirs`` to ``platformdirs``.  `#295 <https://github.com/sarugaku/requirementslib/issues/295>`_
+
 
 Bug Fixes
 ---------
 
 - Fix an AST parse error on Python 3.9+.  `#288 <https://github.com/sarugaku/requirementslib/issues/288>`_
-  
+
 - Replace ``chardet`` with ``charset_normalizer``.  `#296 <https://github.com/sarugaku/requirementslib/issues/296>`_
-  
+
 - Fix the initialization of ``pep517.HookCaller``.  `#299 <https://github.com/sarugaku/requirementslib/issues/299>`_
-  
+
 
 Removals and Deprecations
 -------------------------
@@ -41,7 +41,7 @@ Features
 --------
 
 - Expand env vars in the URL of requirements.  `#276 <https://github.com/sarugaku/requirementslib/issues/276>`_
-  
+
 
 Removals and Deprecations
 -------------------------
@@ -65,9 +65,9 @@ Bug Fixes
 ---------
 
 - Fix the PEP 517 requires in default ``pyproject.toml`` and clean the temp files.  `#262 <https://github.com/sarugaku/requirementslib/issues/262>`_
-  
+
 - Fix an unparse error that the dictionary keys are unhashable.  `#266 <https://github.com/sarugaku/requirementslib/issues/266>`_
-  
+
 - Fix a bug that dist-info inside ``venv`` directory will be mistaken as the editable package's metadata.  `#273 <https://github.com/sarugaku/requirementslib/issues/273>`_
 
 
@@ -87,7 +87,7 @@ Bug Fixes
 ---------
 
 - Fix a bug that assignments with type annotations are missing from the AST.  `#253 <https://github.com/sarugaku/requirementslib/issues/253>`_
-  
+
 - Fix a bug that ``package_dir`` points to a wrong location when parsing ``setup.cfg``.  `#255 <https://github.com/sarugaku/requirementslib/issues/255>`_
 
 
@@ -107,13 +107,13 @@ Bug Fixes
 ---------
 
 - Switch to BFS algorithm to iterate possible metadata directories.  `#186 <https://github.com/sarugaku/requirementslib/issues/186>`_
-  
+
 - Fix a bug that `+` character in URL auth are converted to a space.  `#244 <https://github.com/sarugaku/requirementslib/issues/244>`_
-  
+
 - Fixed an issue in the AST parser which caused failures when parsing ``setup.py`` files with assignments (e.g. ``variable = some_value``) to the same name more than once, followed by operations on those variables (e.g. ``new_value = variable + other_variable``).  `#246 <https://github.com/sarugaku/requirementslib/issues/246>`_
-  
+
 - Copy symlinks as well for local path requirements.  `#248 <https://github.com/sarugaku/requirementslib/issues/248>`_
-  
+
 - Fix a bug that non-string value for name argument will be taken as requirement name.  `#249 <https://github.com/sarugaku/requirementslib/issues/249>`_
 
 
@@ -124,9 +124,9 @@ Bug Fixes
 ---------
 
 - Subdirectory fragments on VCS URLs which also contain ``#egg=`` fragments will now be included correctly in requirements.  `#236 <https://github.com/sarugaku/requirementslib/issues/236>`_
-  
+
 - Fixed a regression which caused collisions to occur between valid named requirements and invalid local filesystem paths.  `#239 <https://github.com/sarugaku/requirementslib/issues/239>`_
-  
+
 - Fixed a bug in ``setup.py`` parsing in which ``setup.py`` files which passed a dictionary to the ``setup`` function returned metadata that could not be meaningfully processed.  `#241 <https://github.com/sarugaku/requirementslib/issues/241>`_
 
 
@@ -137,11 +137,11 @@ Bug Fixes
 ---------
 
 - Fix an issue where the list of not-supported python versions in a marker was being truncated.  `#228 <https://github.com/sarugaku/requirementslib/issues/228>`_
-  
+
 - Fixed a bug which prevented the use of ``wheel_cache`` instances from ``pip`` due to deprecated invocation.  `#230 <https://github.com/sarugaku/requirementslib/issues/230>`_
-  
+
 - ``Requirementslib`` will now ensure that ``PEP508`` style direct URL lines are preserved as being direct URL references when converting to and from ``Requirementslib.requirement`` instances.  `#232 <https://github.com/sarugaku/requirementslib/issues/232>`_
-  
+
 - Fix a bug that ``1.x`` specifiers can't be parsed correctly.  `#234 <https://github.com/sarugaku/requirementslib/issues/234>`_
 
 
@@ -161,13 +161,13 @@ Features
 --------
 
 - Added ``requirementslib.models.metadata`` module with ``get_package``, ``get_package_version``, and ``get_package_from_requirement`` interfaces.  `#219 <https://github.com/sarugaku/requirementslib/issues/219>`_
-  
+
 
 Bug Fixes
 ---------
 
 - Fixed an issue in parsing setup files that incorrectly parsed the ``in`` operator and failed to properly expand referenced dictionaries.  `#222 <https://github.com/sarugaku/requirementslib/issues/222>`_
-  
+
 - Fixed an issue that did not take into account micro versions when generating markers from ``python_requires``.  `#223 <https://github.com/sarugaku/requirementslib/issues/223>`_
 
 
@@ -178,7 +178,7 @@ Bug Fixes
 ---------
 
 - Fixed an issue which prevented parsing of ``setup.cfg`` files using the ``setuptools`` native configuration reader.  `#216 <https://github.com/sarugaku/requirementslib/issues/216>`_
-  
+
 - URI instances will no longer print masked username fields when neither a username or password is supplied.  `#220 <https://github.com/sarugaku/requirementslib/issues/220>`_
 
 
@@ -189,47 +189,47 @@ Features
 --------
 
 - Added support for hiding tokens from URLs when printing them to the screen.  `#192 <https://github.com/sarugaku/requirementslib/issues/192>`_
-  
+
 
 Bug Fixes
 ---------
 
 - Fix AST parsing when ``setup.py`` contains binary operators other than ``+`` and ``-``.  `#179 <https://github.com/sarugaku/requirementslib/issues/179>`_
-  
+
 - Fix test failures due to updates to the ``pyparsing`` API.  `#181 <https://github.com/sarugaku/requirementslib/issues/181>`_
-  
+
 - Fixed an issue with loading ``Pipfile`` data due to ``plette`` model misalignment.  `#182 <https://github.com/sarugaku/requirementslib/issues/182>`_
-  
+
 - Fixed failed calls to ``.lower`` on ``tomlkit``'s ``Bool`` object during pipfile load as the API seems to have changed here.  `#183 <https://github.com/sarugaku/requirementslib/issues/183>`_
-  
+
 - Added import guards to prevent ``ImportErrors`` which could occur when attempting to import now-removed ``pkg_resources.extern.requirements``.  `#185 <https://github.com/sarugaku/requirementslib/issues/185>`_
-  
+
 - Fixed an issue which prevented loading ``Lockfile``-based references to local paths when calling ``as_requirements()`` on a ``requirementslib.models.lockfile.Lockfile`` instance.  `#188 <https://github.com/sarugaku/requirementslib/issues/188>`_
-  
+
 - Updated references to ``Link`` instances which no longer have the ``is_artifact`` property.  `#190 <https://github.com/sarugaku/requirementslib/issues/190>`_
-  
+
 - Updated all references to newly shimmed code to fix breakages due to ``pip 19.3`` release:
   - Fixed references to ``Command`` object from ``pip`` in favor of ``InstallCommand`` which is now properly shimmed via ``pip-shims``
   - Fixed invocation of ``VcsSupport`` and ``VersionControl`` objects for compatibility
   - Removed addition of options to ``Command`` as they are redundant when using ``InstallCommand``
   - Cut ``get_finder`` and ``start_resolver`` over to newly shimmed approaches in ``pip-shims``  `#191 <https://github.com/sarugaku/requirementslib/issues/191>`_
-  
+
 - Fixed a bug in parsing of ``Pipfiles`` with missing or misnamed ``source`` sections which could cause ``tomlkit`` errors when loading legacy ``Pipfiles``.  `#194 <https://github.com/sarugaku/requirementslib/issues/194>`_
-  
+
 - Corrected an unexpected behavior which resulted in a ``KeyError`` when attempting to call ``__getitem__`` on a ``Pipfile`` instance with a section that was not present.  `#195 <https://github.com/sarugaku/requirementslib/issues/195>`_
-  
+
 - Fixed an issue in ``Lockfile`` path and model auto-detection when called without the ``load`` classmethod which caused initialization to fail due to an ``AttributeError``.  `#196 <https://github.com/sarugaku/requirementslib/issues/196>`_
-  
+
 - Fixed an issue which caused build directories to be deleted before dependencies could be determined for editable source reqiurements.  `#200 <https://github.com/sarugaku/requirementslib/issues/200>`_
-  
+
 - Fixed a bug which could cause parsing to fail for ``setup.cfg`` files on python 2.  `#202 <https://github.com/sarugaku/requirementslib/issues/202>`_
-  
+
 - Fixed an issue in binary operator mapping in the ``ast_parse_setup_py`` functionality of the dependency parser which could cause dependency resolution to fail.  `#204 <https://github.com/sarugaku/requirementslib/issues/204>`_
-  
+
 - Fixed an issue which prevented successful parsing of ``setup.py`` files which were not ``utf-8`` encoded.  `#205 <https://github.com/sarugaku/requirementslib/issues/205>`_
-  
+
 - Fixed an issue which caused mappings of binary operators to fail to evaluate when parsing ``setup.py`` files.  `#206 <https://github.com/sarugaku/requirementslib/issues/206>`_
-  
+
 - Fixed mapping and evaluation of boolean operators and comparisons when evaluating ``setup.py`` files with AST parser to discover dependencies.  `#207 <https://github.com/sarugaku/requirementslib/issues/207>`_
 
 
@@ -240,13 +240,13 @@ Features
 --------
 
 - Added support for parsing lists of variables as extras in `setup.py` files via ``ast.BinOp`` traversal.  `#177 <https://github.com/sarugaku/requirementslib/issues/177>`_
-  
+
 
 Bug Fixes
 ---------
 
 - Fixed quoting of markers when formatting requirements as pip-compatible lines.  `#173 <https://github.com/sarugaku/requirementslib/issues/173>`_
-  
+
 - Quotes surrounding requirement lines will now be stripped only if matching pairs are found to ensure requirements can be parsed correctly.  `#176 <https://github.com/sarugaku/requirementslib/issues/176>`_
 
 
@@ -257,15 +257,15 @@ Bug Fixes
 ---------
 
 - Added support to the AST parser for discovering non-standard invocations of ``setup`` in ``setup.py``, e.g. using the fully qualified function name.  `#163 <https://github.com/sarugaku/requirementslib/issues/163>`_
-  
+
 - Fixed an issue which caused dynamic references in ``setup.cfg`` to fail when ``package_dir`` was specified in ``setup.py``.  `#165 <https://github.com/sarugaku/requirementslib/issues/165>`_
-  
+
 - Fixed handling of ``@``-signs in  ``file:`` URLs, unbreaking the use of local packages in e.g. `Jenkins <https://jenkins.io>`_ workspaces.  `#168 <https://github.com/sarugaku/requirementslib/issues/168>`_
-  
+
 - Fixed occassional recursion error when parsing function references using AST parser on ``setup.py`` files.  `#169 <https://github.com/sarugaku/requirementslib/issues/169>`_
-  
+
 - Fixed an intermittent issue caused by the use of ``lru_cache`` on a helper function in the translation of markers.  `#171 <https://github.com/sarugaku/requirementslib/issues/171>`_
-  
+
 - Added enhanced ``get_line()`` functionality to ``Line`` objects and expanded test coverage to incorporate hypothesis.  `#174 <https://github.com/sarugaku/requirementslib/issues/174>`_,
   `#77 <https://github.com/sarugaku/requirementslib/issues/77>`_
 
@@ -277,7 +277,7 @@ Bug Fixes
 ---------
 
 - Fixed a bug which caused local dependencies to incorrectly return ``wheel`` as their name.  `#158 <https://github.com/sarugaku/requirementslib/issues/158>`_
-  
+
 - Wheels which are succesfully built but which contain no valid metadata will now correctly be skipped over during requirements parsing in favor of sdists.  `#160 <https://github.com/sarugaku/requirementslib/issues/160>`_
 
 
@@ -288,24 +288,24 @@ Features
 --------
 
 - Implemented an AST parser for ``setup.py`` for parsing package names, dependencies, and version information if available.  `#106 <https://github.com/sarugaku/requirementslib/issues/106>`_
-  
+
 - Fully implement marker merging and consolidation logic using ``requirement.merge_markers(markers)``.  `#153 <https://github.com/sarugaku/requirementslib/issues/153>`_
-  
+
 
 Bug Fixes
 ---------
 
 - Updated ``attrs`` dependency to constraint ``>=18.2``.  `#142 <https://github.com/sarugaku/requirementslib/issues/142>`_
-  
+
 - Fixed a bug which forced early querying for dependencies via pypi or other indexes just by simply creating a ``Requirement`` instance.
   - Added the ability to skip tests requiring internet by setting ``REQUIREMENTSLIB_SKIP_INTERNET_TESTS``.  `#145 <https://github.com/sarugaku/requirementslib/issues/145>`_
-  
+
 - Egg fragments on ``PEP-508`` style direct URL dependencies are now disregarded rather than merged with the leading name.  `#146 <https://github.com/sarugaku/requirementslib/issues/146>`_
-  
+
 - Fixed a bug which prevented the successful loading of pipfiles using ``Pipfile.load``.  `#148 <https://github.com/sarugaku/requirementslib/issues/148>`_
-  
+
 - Fixed a bug which prevented handling special setup.cfg directives during dependency parsing.  `#150 <https://github.com/sarugaku/requirementslib/issues/150>`_
-  
+
 - Fixed an issue which caused the merging of markers to inadvertently use ``or`` to merge even different variables.  `#153 <https://github.com/sarugaku/requirementslib/issues/153>`_
 
 

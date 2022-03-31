@@ -4,6 +4,8 @@ from __future__ import absolute_import, print_function
 import logging
 import warnings
 
+import setuptools
+
 from .models.lockfile import Lockfile
 from .models.pipfile import Pipfile
 from .models.requirements import Requirement
