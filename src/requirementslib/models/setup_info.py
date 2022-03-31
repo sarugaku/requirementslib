@@ -1229,12 +1229,12 @@ build-backend = "{1}"
                     ).strip()
                 )
             )
-        parsed = urlparse(str(self.ireq.link))
-        subdir = parse_qs(parsed.fragment).get("subdirectory", [])
-        if subdir:
-            directory = f"{self.base_dir}/{subdir[0]}"
-        else:
-            directory = self.base_dir
+        directory = self.base_dir
+        if self.ireq and self.ireq.link:
+            parsed = urlparse(str(self.ireq.link))
+            subdir = parse_qs(parsed.fragment).get("subdirectory", [])
+            if subdir:
+                directory = f"{self.base_dir}/{subdir[0]}"
         need_delete = True
         result = build_pep517(
             directory,
