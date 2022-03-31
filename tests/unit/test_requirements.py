@@ -386,6 +386,15 @@ def test_get_requirements(monkeypatch_if_needed):
     # assert local_wheel_from_line.as_pipfile() == {'six': {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'}}
 
 
+@pytest.mark.utils
+@pytest.mark.requirements
+def test_get_requirements_when_subdirectory_fragment(monkeypatch_if_needed):
+    url_with_egg = Requirement.from_line(
+        "https://github.com/matteius/test-project.git#egg=test_project&subdirectory=parent_folder/pep508-package"
+    ).requirement
+    assert url_with_egg.url == "https://github.com/matteius/test-project.git"
+
+
 @pytest.mark.needs_internet
 def test_get_ref(artifact_dir):
     req_uri = (
