@@ -1550,8 +1550,12 @@ build-backend = "{1}"
         if build_location_func is None:
             build_location_func = getattr(ireq, "ensure_build_location", None)
         if not ireq.source_dir:
+            if subdir:
+                directory = f"{kwargs['build_dir']}/{subdir}"
+            else:
+                directory = kwargs["build_dir"]
             build_kwargs = {
-                "build_dir": kwargs["build_dir"],
+                "build_dir": directory,
                 "autodelete": False,
                 "parallel_builds": True,
             }

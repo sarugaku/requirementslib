@@ -48,6 +48,28 @@ def test_remote_req(url_line, name, requires):
     assert sorted(list(setup_dict.get("requires").keys())) == sorted(requires)
 
 
+@pytest.mark.parametrize(
+    "url_line, name",
+    [
+        [
+            "https://github.com/matteius/test-project/archive/refs/tags/1.0.0.zip#egg=test_project&subdirectory=parent_folder/pep508-package",
+            "test_project",
+        ],
+    ],
+)
+@pytest.mark.needs_internet
+def test_remote_source_in_subdirectory(url_line, name):
+    r = Requirement.from_line(url_line)
+    assert r.name == name
+    setup_dict = r.req.setup_info.as_dict()
+    print(setup_dict)
+    assert setup_dict.get("name") == "pep508_package"
+    assert setup_dict.get("version") == "1.0.0"
+    assert sorted(list(setup_dict.get("requires").keys())) == sorted(
+        ["sibling-package", "six"]
+    )
+
+
 def test_no_duplicate_egg_info():
     """When the package has 'src' directory, do not write egg-info in base
     dir."""
@@ -205,7 +227,7 @@ def test_ast_parser_handles_binops(setup_py_dir):
     assert list(sorted(parsed["install_requires"])) == list(sorted(expected))
 
 
-def test_ast_parser_handles_binops(setup_py_dir):
+def test_ast_parser_handles_binops_alternate(setup_py_dir):
     target = setup_py_dir.joinpath("package_with_setup_from_dict/setup.py").as_posix()
     parsed = ast_parse_setup_py(target)
     assert parsed["name"] == "test package"

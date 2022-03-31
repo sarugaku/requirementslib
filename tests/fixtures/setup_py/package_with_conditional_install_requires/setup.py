@@ -2,15 +2,6 @@ import sys
 
 from setuptools import setup
 
-
-try:
-    from non_existant_pkg import cmdclass
-except ImportError:
-    from distutils import log as logger
-
-    logger.warn("Wheel is not available, disabling bdist_wheel hook")
-    cmdclass = {}
-
 try:
     import incompatible_pkg
 
@@ -56,7 +47,6 @@ setup(
         "cryptography",
         "python-dateutil",
         "requests",
-    ]
-    + (["futures"] if sys.version_info < (3, 0) else []),
+    ],
     cmdclass=cmdclass,
 )
