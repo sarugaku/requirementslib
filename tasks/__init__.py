@@ -16,7 +16,6 @@ import parver
 from towncrier._builder import find_fragments, render_fragments, split_fragments
 from towncrier._settings import load_config
 
-
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 PACKAGE_NAME = "requirementslib"
@@ -108,7 +107,11 @@ def _render_log():
         definitions,
         config["underlines"][1:],
         False,  # Don't add newlines to wrapped text.
-        #{"name": "requirementslib", "version": "1.6.2", "date": "2022-4-18"},  # towncrier==19.9.0
+        {
+            "name": "requirementslib",
+            "version": "1.6.3",
+            "date": "2022-4-18",
+        },  # towncrier==19.9.0
     )
     return rendered
 
@@ -275,18 +278,18 @@ def build_docs(ctx):
     ctx.run("sphinx-apidoc {0}".format(" ".join(args)))
 
 
-@invoke.task
-def clean_mdchangelog(ctx):
-    root = news._get_git_root(ctx)
-    changelog = root / "CHANGELOG.md"
-    content = changelog.read_text()
-    content = re.sub(
-        r"([^\n]+)\n?\s+\[[\\]+(#\d+)\]\(https://github\.com/sarugaku/[\w\-]+/issues/\d+\)",
-        r"\1 \2",
-        content,
-        flags=re.MULTILINE,
-    )
-    changelog.write_text(content)
+# @invoke.task
+# def clean_mdchangelog(ctx):
+#     root = news._get_git_root(ctx)
+#     changelog = root / "CHANGELOG.md"
+#     content = changelog.read_text()
+#     content = re.sub(
+#         r"([^\n]+)\n?\s+\[[\\]+(#\d+)\]\(https://github\.com/sarugaku/[\w\-]+/issues/\d+\)",
+#         r"\1 \2",
+#         content,
+#         flags=re.MULTILINE,
+#     )
+#     changelog.write_text(content)
 
 
 def log(task, message, level=LogLevel.INFO):
@@ -326,7 +329,7 @@ def profile(ctx, filepath, calltree=False):
 ns = invoke.Collection(
     build_docs,
     release,
-    clean_mdchangelog,
+    # clean_mdchangelog,
     profile,
     typecheck,
     build,
