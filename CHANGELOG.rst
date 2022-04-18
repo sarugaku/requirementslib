@@ -1,3 +1,13 @@
+Requirementslib 1.6.3 (2022-04-18)
+==================================
+
+
+Bug Fixes
+---------
+
+- Fixed bug introduced in `requirementslib==1.6.2` where the pyproject.toml would always be deleted after use.  `#313 <https://github.com/sarugaku/requirementslib/issues/313>`_
+
+
 Requirementslib 1.6.2 (2022-04-18)
 ==================================
 
