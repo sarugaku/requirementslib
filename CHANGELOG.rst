@@ -1,3 +1,26 @@
+Requirementslib 1.6.2 (2022-04-18)
+==================================
+
+
+Features
+--------
+
+- Updates to support `pip==22.*` and pass in required verbosity argument to ``VcsSupport.obtain``.
+  Pin ``pyparsing<3.0.0`` in order to prevent failure with parsing certain system markers.  `#308 <https://github.com/sarugaku/requirementslib/issues/308>`_
+  
+
+Bug Fixes
+---------
+
+- Handle edge case of installing from url with fragment containing a subdirectory as the location to the package.  `#312 <https://github.com/sarugaku/requirementslib/issues/312>`_
+  
+
+Removals and Deprecations
+-------------------------
+
+- Officially drop support for Python 3.6.  `#308 <https://github.com/sarugaku/requirementslib/issues/308>`_
+
+
 Requirementslib 1.6.1 (2021-11-04)
 ==================================
 

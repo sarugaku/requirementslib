@@ -16,7 +16,6 @@ import parver
 from towncrier._builder import find_fragments, render_fragments, split_fragments
 from towncrier._settings import load_config
 
-from . import news, vendoring
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -109,6 +108,7 @@ def _render_log():
         definitions,
         config["underlines"][1:],
         False,  # Don't add newlines to wrapped text.
+        {"name": "requirementslib", "version": "1.6.2", "date": "2022-4-18"},
     )
     return rendered
 
@@ -325,8 +325,6 @@ def profile(ctx, filepath, calltree=False):
 
 ns = invoke.Collection(
     build_docs,
-    vendoring,
-    news,
     release,
     clean_mdchangelog,
     profile,

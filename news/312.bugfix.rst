@@ -1,1 +1,0 @@
-Handle edge case of installing from url with fragment containing a subdirectory as the location to the package.
