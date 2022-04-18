@@ -108,7 +108,7 @@ def _render_log():
         definitions,
         config["underlines"][1:],
         False,  # Don't add newlines to wrapped text.
-        {"name": "requirementslib", "version": "1.6.2", "date": "2022-4-18"},
+        #{"name": "requirementslib", "version": "1.6.2", "date": "2022-4-18"},  # towncrier==19.9.0
     )
     return rendered
 
