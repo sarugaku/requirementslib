@@ -13,7 +13,7 @@ import sys
 from collections.abc import Iterable, Mapping
 from functools import lru_cache, partial
 from pathlib import Path
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import parse_qs, urlparse, urlunparse
 from weakref import finalize
 
 import attr
@@ -513,7 +513,11 @@ class SetupReader:
 
 
 def setuptools_parse_setup_cfg(path):
-    from setuptools.config import read_configuration
+    try:
+        # v61.0.0 of setuptools deprecated setuptools.config.read_configuration
+        from setuptools.config.setupcfg import read_configuration
+    except ImportError:
+        from setuptools.config import read_configuration
 
     parsed = read_configuration(path)
     results = parsed.get("metadata", {})
@@ -1230,8 +1234,14 @@ build-backend = "{1}"
                 )
             )
             need_delete = True
+        directory = self.base_dir
+        if self.ireq and self.ireq.link:
+            parsed = urlparse(str(self.ireq.link))
+            subdir = parse_qs(parsed.fragment).get("subdirectory", [])
+            if subdir:
+                directory = f"{self.base_dir}/{subdir[0]}"
         result = build_pep517(
-            self.base_dir,
+            directory,
             self.extra_kwargs["build_dir"],
             config_settings=self.pep517_config,
             dist_type="wheel",
@@ -1544,8 +1554,12 @@ build-backend = "{1}"
         if build_location_func is None:
             build_location_func = getattr(ireq, "ensure_build_location", None)
         if not ireq.source_dir:
+            if subdir:
+                directory = f"{kwargs['build_dir']}/{subdir}"
+            else:
+                directory = kwargs["build_dir"]
             build_kwargs = {
-                "build_dir": kwargs["build_dir"],
+                "build_dir": directory,
                 "autodelete": False,
                 "parallel_builds": True,
             }

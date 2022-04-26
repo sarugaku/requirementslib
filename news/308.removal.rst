@@ -1,1 +1,0 @@
-Officially drop support for Python 3.6.
