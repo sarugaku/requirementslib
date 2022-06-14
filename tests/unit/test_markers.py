@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 from packaging.markers import Marker
-from packaging.specifiers import Specifier, SpecifierSet
+from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 from packaging.version import Version
 
 import requirementslib.models.markers
@@ -209,7 +209,7 @@ def test_normalize_marker_str(marker, expected):
     ],
 )
 def test_normalize_marker_str_invalid_marker(marker):
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidSpecifier):
         requirementslib.models.markers.normalize_marker_str(marker)
 
 

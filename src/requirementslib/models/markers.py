@@ -156,7 +156,7 @@ def _format_pyspec(specifier):
         if version.startswith('*'):
             # don't parse invalid identifiers
             return specifier
-        if version.endwith('*'):
+        if version.endswith('*'):
             if version.endswith(".*"):
                 version = version[:-2]
             version = version.rstrip("*")
