@@ -122,7 +122,7 @@ def _tuplize_version(version):
     # type: (STRING_TYPE) -> Union[Tuple[()], Tuple[int, ...], Tuple[int, int, str]]
     output = []
     for idx, part in enumerate(version.split(".")):
-        if part == '*':
+        if part == "*":
             break
         if idx in (0, 1):
             # Only convert the major and minor identifiers into integers (if present),
@@ -153,10 +153,10 @@ def _format_pyspec(specifier):
         specifier = Specifier(specifier)
     version = getattr(specifier, "version", specifier).rstrip()
     if version:
-        if version.startswith('*'):
+        if version.startswith("*"):
             # don't parse invalid identifiers
             return specifier
-        if version.endswith('*'):
+        if version.endswith("*"):
             if version.endswith(".*"):
                 version = version[:-2]
             version = version.rstrip("*")

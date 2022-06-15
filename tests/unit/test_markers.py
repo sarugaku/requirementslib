@@ -18,8 +18,8 @@ import requirementslib.models.markers
         ("3.*.4", (3,)),
         ("*", tuple()),
         ("*.3.4", tuple()),
-        ("3.4.7", (3, 4, '7')),
-        ("3.11.0b1", (3, 11, '0b1')),
+        ("3.4.7", (3, 4, "7")),
+        ("3.11.0b1", (3, 11, "0b1")),
     ],
 )
 def test_tuplize_version(version, cleaned):
@@ -57,8 +57,8 @@ def test_format_pyspec(specifier, rounded_specifier):
         ),
         (
             "!=3.*,!=3.11.0b1,!=*.2,!=*",
-            [("!=", ()), ("!=", ()), ("!=", (3,)), ("!=", (3, 11, '0b1'))],
-        )
+            [("!=", ()), ("!=", ()), ("!=", (3,)), ("!=", (3, 11, "0b1"))],
+        ),
     ],
 )
 def test_get_specs(specset, new_set):
@@ -77,7 +77,6 @@ def test_get_specs(specset, new_set):
         (SpecifierSet(">2.6,>=2.7,<3.6,<3.7"), [(">=", "2.7"), ("<", "3.7")]),
         (SpecifierSet("!=3.11.0b1"), [("!=", "3.11.0b1")]),
         (SpecifierSet("!=*.3"), [("!=", "")]),
-
     ],
 )
 def test_cleanup_pyspecs(specset, new_set):
