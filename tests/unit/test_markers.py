@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 from packaging.markers import Marker
-from packaging.specifiers import Specifier, SpecifierSet
+from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 from packaging.version import Version
 
 import requirementslib.models.markers
@@ -9,7 +9,18 @@ import requirementslib.models.markers
 
 @pytest.mark.parametrize(
     "version, cleaned",
-    [("3.0.*", (3, 0)), ("3.1.*", (3, 1)), ("3.2.*", (3, 2)), ("3.4.*", (3, 4))],
+    [
+        ("3.0.*", (3, 0)),
+        ("3.1.*", (3, 1)),
+        ("3.2.*", (3, 2)),
+        ("3.4.*", (3, 4)),
+        ("3.*", (3,)),
+        ("3.*.4", (3,)),
+        ("*", tuple()),
+        ("*.3.4", tuple()),
+        ("3.4.7", (3, 4, "7")),
+        ("3.11.0b1", (3, 11, "0b1")),
+    ],
 )
 def test_tuplize_version(version, cleaned):
     assert requirementslib.models.markers._tuplize_version(version) == cleaned
@@ -43,7 +54,11 @@ def test_format_pyspec(specifier, rounded_specifier):
         (
             "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*",
             [("!=", (3, 0)), ("!=", (3, 1)), ("!=", (3, 2)), ("!=", (3, 3))],
-        )
+        ),
+        (
+            "!=3.*,!=3.11.0b1,!=*.2,!=*",
+            [("!=", ()), ("!=", ()), ("!=", (3,)), ("!=", (3, 11, "0b1"))],
+        ),
     ],
 )
 def test_get_specs(specset, new_set):
@@ -60,6 +75,8 @@ def test_get_specs(specset, new_set):
             [(">=", "2.7"), ("not in", "3.0, 3.1, 3.2, 3.3"), ("<", "3.7")],
         ),
         (SpecifierSet(">2.6,>=2.7,<3.6,<3.7"), [(">=", "2.7"), ("<", "3.7")]),
+        (SpecifierSet("!=3.11.0b1"), [("!=", "3.11.0b1")]),
+        (SpecifierSet("!=*.3"), [("!=", "")]),
     ],
 )
 def test_cleanup_pyspecs(specset, new_set):
@@ -172,10 +189,27 @@ def test_get_pyversions(marker, pyversions):
             ),
             "python_version >= '3.6' and python_version < '3.7'",
         ),
+        (
+            Marker("python_version < '3.11.0b1'"),
+            "python_full_version < '3.11.0b1'",
+        ),
     ],
 )
 def test_normalize_marker_str(marker, expected):
     assert requirementslib.models.markers.normalize_marker_str(marker) == expected
+
+
+@pytest.mark.parametrize(
+    "marker",
+    [
+        Marker("python_version < '*'"),
+        Marker("python_version < '*.3'"),
+        Marker("python_version < '*.3.2'"),
+    ],
+)
+def test_normalize_marker_str_invalid_marker(marker):
+    with pytest.raises(InvalidSpecifier):
+        requirementslib.models.markers.normalize_marker_str(marker)
 
 
 @pytest.mark.parametrize(
