@@ -6,6 +6,24 @@ Bug Fixes
 ---------
 
 - Fix an issue for projects with an at sign (``@``) in the path  `#309 <https://github.com/sarugaku/requirementslib/issues/309>`_
+  
+- Resolved issue where a beta python version in the python_version marker would cause an error.  `#317 <https://github.com/sarugaku/requirementslib/issues/317>`_
+  
+
+Removals and Deprecations
+-------------------------
+
+- Fix deprecation warning for `setuptools.config.read_configuration` when using `setuptools >= v61.0.0`  `#315 <https://github.com/sarugaku/requirementslib/issues/315>`_
+
+
+Requirementslib 1.6.5 (2022-06-27)
+==================================
+
+
+Bug Fixes
+---------
+
+- Fix an issue for projects with an at sign (``@``) in the path  `#309 <https://github.com/sarugaku/requirementslib/issues/309>`_
 
 
 Requirementslib 1.6.4 (2022-04-24)
