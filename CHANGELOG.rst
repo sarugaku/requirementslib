@@ -1,3 +1,13 @@
+Requirementslib 1.6.5 (2022-06-27)
+==================================
+
+
+Bug Fixes
+---------
+
+- Fix an issue for projects with an at sign (``@``) in the path  `#309 <https://github.com/sarugaku/requirementslib/issues/309>`_
+
+
 Requirementslib 1.6.4 (2022-04-24)
 ==================================
 
