@@ -1565,13 +1565,14 @@ build-backend = "{1}"
             }
             call_function_with_correct_args(build_location_func, **build_kwargs)
             ireq.ensure_has_source_dir(kwargs["src_dir"])
-            pip_shims.shims.shim_unpack(
-                download_dir=download_dir,
-                ireq=ireq,
-                only_download=only_download,
-                session=session,
-                hashes=ireq.hashes(False),
-            )
+            if not ireq.link or not ireq.link.is_existing_dir():
+                pip_shims.shims.shim_unpack(
+                    download_dir=download_dir,
+                    ireq=ireq,
+                    only_download=only_download,
+                    session=session,
+                    hashes=ireq.hashes(False),
+                )
         created = cls.create(
             ireq.source_dir, subdirectory=subdir, ireq=ireq, kwargs=kwargs, stack=stack
         )
