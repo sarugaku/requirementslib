@@ -1,3 +1,21 @@
+Requirementslib 1.6.5 (2022-06-27)
+==================================
+
+
+Bug Fixes
+---------
+
+- Fix an issue for projects with an at sign (``@``) in the path  `#309 <https://github.com/sarugaku/requirementslib/issues/309>`_
+
+- Resolved issue where a beta python version in the python_version marker would cause an error.  `#317 <https://github.com/sarugaku/requirementslib/issues/317>`_
+
+
+Removals and Deprecations
+-------------------------
+
+- Fix deprecation warning for `setuptools.config.read_configuration` when using `setuptools >= v61.0.0`  `#315 <https://github.com/sarugaku/requirementslib/issues/315>`_
+
+
 Requirementslib 1.6.4 (2022-04-24)
 ==================================
 
@@ -24,13 +42,13 @@ Features
 
 - Updates to support `pip==22.*` and pass in required verbosity argument to ``VcsSupport.obtain``.
   Pin ``pyparsing<3.0.0`` in order to prevent failure with parsing certain system markers.  `#308 <https://github.com/sarugaku/requirementslib/issues/308>`_
-  
+
 
 Bug Fixes
 ---------
 
 - Handle edge case of installing from url with fragment containing a subdirectory as the location to the package.  `#312 <https://github.com/sarugaku/requirementslib/issues/312>`_
-  
+
 
 Removals and Deprecations
 -------------------------
