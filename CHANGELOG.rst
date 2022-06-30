@@ -1,3 +1,17 @@
+Requirementslib 1.6.6 (2022-06-29)
+==================================
+
+
+Bug Fixes
+---------
+
+- Fix boolean logical bug whereby a name may have already been supplied to ``Line.parse_name`` but it was sometimes recomputed incorrectly.  `#319 <https://github.com/sarugaku/requirementslib/issues/319>`_
+  
+- In order to fix the requirementslib build and compatability with ``pip==22.1`` this change adds a file
+  ``requirementslib.models.old_pip_utils`` to maintain the prior version of ``unpack_url`` as ``old_unpack_url``
+  that was dropped from ``pip==22.1``.  `#321 <https://github.com/sarugaku/requirementslib/issues/321>`_
+
+
 Requirementslib 1.6.5 (2022-06-27)
 ==================================
 

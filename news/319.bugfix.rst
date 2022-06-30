@@ -1,1 +1,0 @@
-Fix boolean logical bug whereby a name may have already been supplied to ``Line.parse_name`` but it was sometimes recomputed incorrectly.
