@@ -1565,7 +1565,23 @@ build-backend = "{1}"
             }
             call_function_with_correct_args(build_location_func, **build_kwargs)
             ireq.ensure_has_source_dir(kwargs["src_dir"])
-            if not ireq.link or (ireq.link and not ireq.link.is_existing_dir()):
+            try:  # Support for pip >= 21.1
+                from pip._internal.network.download import Downloader
+
+                from requirementslib.models.old_pip_utils import old_unpack_url
+
+                location = None
+                if getattr(ireq, "source_dir", None):
+                    location = ireq.source_dir
+                old_unpack_url(
+                    link=ireq.link,
+                    location=location,
+                    download=Downloader(session, "off"),
+                    verbosity=1,
+                    download_dir=download_dir,
+                    hashes=ireq.hashes(True),
+                )
+            except ImportError:
                 pip_shims.shims.shim_unpack(
                     download_dir=download_dir,
                     ireq=ireq,

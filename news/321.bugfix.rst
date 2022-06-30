@@ -1,0 +1,3 @@
+In order to fix the requirementslib build and compatability with ``pip==22.1`` this change adds a file
+``requirementslib.models.old_pip_utils`` to maintain the prior version of ``unpack_url`` as ``old_unpack_url``
+that was dropped from ``pip==22.1``.
