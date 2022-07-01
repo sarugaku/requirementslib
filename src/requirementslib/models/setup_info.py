@@ -493,15 +493,17 @@ class SetupReader:
             if not isinstance(elem, (ast.Assign, ast.AnnAssign)):
                 continue
 
-            if getattr(elem, "target", None) and elem.target.id == name:
-                return elem.value
-
-            for target in elem.targets:
-                if not isinstance(target, ast.Name):
+            if isinstance(elem, ast.AnnAssign):
+                if not isinstance(elem.target, ast.Name):
                     continue
-
-                if target.id == name:
+                if elem.value and elem.target.id == name:
                     return elem.value
+            else:
+                for target in elem.targets:
+                    if not isinstance(target, ast.Name):
+                        continue
+                    if target.id == name:
+                        return elem.value
         return None
 
     @staticmethod
