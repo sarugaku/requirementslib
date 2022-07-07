@@ -10,16 +10,6 @@ Bug Fixes
 - Change style of ``packaging`` imports for downstream ``pipenv`` to be able to patch this more easily.  `#324 <https://github.com/sarugaku/requirementslib/issues/324>`_
 
 
-Requirementslib 1.6.7 (2022-07-07)
-==================================
-
-
-Bug Fixes
----------
-
-- Fix tracebacks on encountering Annotated variables  `#307 <https://github.com/sarugaku/requirementslib/issues/307>`_
-
-
 Requirementslib 1.6.6 (2022-06-29)
 ==================================
 
