@@ -17,13 +17,12 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 from weakref import finalize
 
 import attr
-import packaging.specifiers
-import packaging.utils
-import packaging.version
 import pep517.envbuild
 import pep517.wrappers
 from distlib.wheel import Wheel
 from packaging.markers import Marker
+from packaging.specifiers import SpecifierSet
+from packaging.version import parse
 from pip_shims.utils import call_function_with_correct_args
 from platformdirs import user_cache_dir
 from vistir.contextmanagers import cd, temp_path
@@ -1015,9 +1014,7 @@ class SetupInfo(object):
     build_requires = attr.ib(default=None, eq=True)  # type: Optional[Tuple]
     build_backend = attr.ib(eq=True)  # type: STRING_TYPE
     setup_requires = attr.ib(default=None, eq=True)  # type: Optional[Tuple]
-    python_requires = attr.ib(
-        default=None, eq=True
-    )  # type: Optional[packaging.specifiers.SpecifierSet]
+    python_requires = attr.ib(default=None, eq=True)  # type: Optional[SpecifierSet]
     _extras_requirements = attr.ib(default=None, eq=True)  # type: Optional[Tuple]
     setup_cfg = attr.ib(type=Path, default=None, eq=True, hash=False)
     setup_py = attr.ib(type=Path, default=None, eq=True, hash=False)
@@ -1096,7 +1093,7 @@ class SetupInfo(object):
         version = metadata.get("version", None)
         if version:
             try:
-                packaging.version.parse(version)
+                parse(version)
             except TypeError:
                 version = self.version if self.version else None
             else:

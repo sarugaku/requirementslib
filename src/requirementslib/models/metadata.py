@@ -15,13 +15,13 @@ import attr
 import dateutil.parser
 import distlib.metadata
 import distlib.wheel
-import packaging.version
 import requests
 import vistir
 from packaging.markers import Marker
 from packaging.requirements import Requirement as PackagingRequirement
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.tags import Tag
+from packaging.version import _BaseVersion, parse
 
 from ..environment import MYPY_RUNNING
 from .markers import (
@@ -776,8 +776,8 @@ class Release(Sequence):
 
     @property
     def parsed_version(self):
-        # type: () -> packaging.version._BaseVersion
-        return packaging.version.parse(self.version)
+        # type: () -> _BaseVersion
+        return parse(self.version)
 
     @property
     def wheels(self):
