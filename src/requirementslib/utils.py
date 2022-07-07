@@ -645,7 +645,7 @@ def merge_items(target_list, sourced=False):
         if sourced:
 
             def remerge_visit(path, key, value):
-                source_map[path + (key,)] = t_name
+                source_map[path + (key,)] = t_name  # noqa: B023
                 return True
 
         else:
