@@ -1,0 +1,1 @@
+Change style of ``packaging`` imports for downstream ``pipenv`` to be able to patch this more easily.
