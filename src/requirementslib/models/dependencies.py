@@ -9,11 +9,11 @@ from contextlib import ExitStack
 from json import JSONDecodeError
 
 import attr
-import packaging.markers
-import packaging.version
 import pip_shims.shims
 import requests
+from packaging.markers import Marker
 from packaging.utils import canonicalize_name
+from packaging.version import parse
 from vistir.compat import fs_str
 from vistir.contextmanagers import cd, temp_environ
 from vistir.path import create_tracked_tempdir
@@ -48,7 +48,6 @@ if MYPY_RUNNING:
         Union,
     )
 
-    from packaging.markers import Marker
     from packaging.requirements import Requirement as PackagingRequirement
     from pip_shims.shims import (
         Command,
@@ -137,7 +136,7 @@ class AbstractDependency(object):
 
         if len(self.candidates) == 1:
             return set()
-        return set(packaging.version.parse(version_from_ireq(c)) for c in self.candidates)
+        return set(parse(version_from_ireq(c)) for c in self.candidates)
 
     def compatible_versions(self, other):
         """Find compatible version numbers between this abstract dependency and
@@ -178,9 +177,7 @@ class AbstractDependency(object):
             markers.add(other.markers)
         new_markers = None
         if markers:
-            new_markers = packaging.markers.Marker(
-                " or ".join(str(m) for m in sorted(markers))
-            )
+            new_markers = Marker(" or ".join(str(m) for m in sorted(markers)))
         new_ireq = copy.deepcopy(self.requirement.ireq)
         new_ireq.req.specifier = new_specifiers
         new_ireq.req.marker = new_markers
@@ -191,7 +188,7 @@ class AbstractDependency(object):
         candidates = [
             c
             for c in self.candidates
-            if packaging.version.parse(version_from_ireq(c)) in compatible_versions
+            if parse(version_from_ireq(c)) in compatible_versions
         ]
         dep_dict = {}
         candidate_strings = [format_requirement(c) for c in candidates]
@@ -261,7 +258,7 @@ class AbstractDependency(object):
                 candidates.append(req)
                 candidates = sorted(
                     set(candidates),
-                    key=lambda k: packaging.version.parse(version_from_ireq(k)),
+                    key=lambda k: parse(version_from_ireq(k)),
                 )
         else:
             candidates = [requirement.ireq]

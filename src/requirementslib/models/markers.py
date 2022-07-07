@@ -7,9 +7,9 @@ from functools import lru_cache, reduce
 
 import attr
 import distlib.markers
-import packaging.version
 from packaging.markers import InvalidMarker, Marker
 from packaging.specifiers import LegacySpecifier, Specifier, SpecifierSet
+from packaging.version import parse
 from vistir.misc import dedup
 
 from ..environment import MYPY_RUNNING
@@ -343,7 +343,7 @@ def get_versions(specset, group_by_operator=True):
         for grp, keys in itertools.groupby(version_tuples, key=initial_grouping_key)
     ]
     versions = [
-        (op, packaging.version.parse(".".join(str(v) for v in val)))
+        (op, parse(".".join(str(v) for v in val)))
         for op, vals in op_groups
         for val in vals
     ]
