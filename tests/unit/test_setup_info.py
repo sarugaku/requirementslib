@@ -284,7 +284,7 @@ def test_read_requirements_with_string_interpolation(setup_py_dir):
         f"-e {(setup_py_dir / 'package_with_setup_with_string_interpolation').as_posix()}"
     )
     setup_info = req.req.setup_info.as_dict()
-    assert sorted(setup_info["requires"]) == ["requests", "six"]
+    assert sorted(setup_info["install_requires"]) == ["requests", "six"]
 
 
 def test_ast_parse_from_dict_with_name(setup_py_dir):
