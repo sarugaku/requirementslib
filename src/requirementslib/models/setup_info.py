@@ -328,12 +328,10 @@ class SetupReader:
     def _assemble_ast_string_results(value):
         results = []
         for el in value.elts:
-            if isinstance(el, ast.JoinedStr):
-                print(el)
-                results.append(el)
-            else:
-                print(el.s)
+            if hasattr(el, "s"):
                 results.append(el.s)
+            else:
+                results.append(el)
         return results
 
     @classmethod
