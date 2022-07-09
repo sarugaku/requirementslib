@@ -324,6 +324,18 @@ class SetupReader:
 
         return None, None
 
+    @staticmethod
+    def _assemble_ast_string_results(value):
+        results = []
+        for el in value.elts:
+            if isinstance(el, ast.JoinedStr):
+                print(el)
+                results.append(el)
+            else:
+                print(el.s)
+                results.append(el.s)
+        return results
+
     @classmethod
     def _find_install_requires(cls, call: ast.Call, body: "Iterable[Any]") -> "List[str]":
         value = cls._find_in_call(call, "install_requires")
@@ -356,12 +368,12 @@ class SetupReader:
             return []
 
         if isinstance(value, ast.List):
-            return [el.s for el in value.elts]
+            return cls._assemble_ast_string_results(value)
         elif isinstance(value, ast.Name):
             variable = cls._find_variable_in_body(body, value.id)
 
             if variable is not None and isinstance(variable, ast.List):
-                return [el.s for el in variable.elts]
+                return cls._assemble_ast_string_results(variable)
 
         raise Unparsable()
 
