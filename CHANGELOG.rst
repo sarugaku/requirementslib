@@ -19,7 +19,7 @@ Bug Fixes
 
 - Fix boolean logical bug whereby a name may have already been supplied to ``Line.parse_name`` but it was sometimes recomputed incorrectly.  `#319 <https://github.com/sarugaku/requirementslib/issues/319>`_
   
-- In order to fix the requirementslib build and compatability with ``pip==22.1`` this change adds a file
+- In order to fix the requirementslib build and compatibility with ``pip==22.1`` this change adds a file
   ``requirementslib.models.old_pip_utils`` to maintain the prior version of ``unpack_url`` as ``old_unpack_url``
   that was dropped from ``pip==22.1``.  `#321 <https://github.com/sarugaku/requirementslib/issues/321>`_
 
@@ -346,7 +346,7 @@ Bug Fixes
 
 - Fixed handling of ``@``-signs in  ``file:`` URLs, unbreaking the use of local packages in e.g. `Jenkins <https://jenkins.io>`_ workspaces.  `#168 <https://github.com/sarugaku/requirementslib/issues/168>`_
 
-- Fixed occassional recursion error when parsing function references using AST parser on ``setup.py`` files.  `#169 <https://github.com/sarugaku/requirementslib/issues/169>`_
+- Fixed occasional recursion error when parsing function references using AST parser on ``setup.py`` files.  `#169 <https://github.com/sarugaku/requirementslib/issues/169>`_
 
 - Fixed an intermittent issue caused by the use of ``lru_cache`` on a helper function in the translation of markers.  `#171 <https://github.com/sarugaku/requirementslib/issues/171>`_
 
@@ -362,7 +362,7 @@ Bug Fixes
 
 - Fixed a bug which caused local dependencies to incorrectly return ``wheel`` as their name.  `#158 <https://github.com/sarugaku/requirementslib/issues/158>`_
 
-- Wheels which are succesfully built but which contain no valid metadata will now correctly be skipped over during requirements parsing in favor of sdists.  `#160 <https://github.com/sarugaku/requirementslib/issues/160>`_
+- Wheels which are successfully built but which contain no valid metadata will now correctly be skipped over during requirements parsing in favor of sdists.  `#160 <https://github.com/sarugaku/requirementslib/issues/160>`_
 
 
 1.5.0 (2019-05-15)

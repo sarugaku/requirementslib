@@ -109,7 +109,7 @@ def get_pip_command():
     # type: () -> Command
     # Use pip's parser for pip.conf management and defaults.
     # General options (find_links, index_url, extra_index_url, trusted_host,
-    # and pre) are defered to pip.
+    # and pre) are deferred to pip.
     pip_command = pip_shims.shims.InstallCommand()
     return pip_command
 

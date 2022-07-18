@@ -287,7 +287,7 @@ def _get_parsed_url(url):
     # type: (S) -> Url
     """This is a stand-in function for `urllib3.util.parse_url`
 
-    The orignal function doesn't handle special characters very well, this simply splits
+    The original function doesn't handle special characters very well, this simply splits
     out the authentication section, creates the parsed url, then puts the authentication
     section back in, bypassing validation.
 
