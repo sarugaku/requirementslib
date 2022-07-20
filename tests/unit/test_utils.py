@@ -143,6 +143,14 @@ def test_split_vcs_method_from_uri():
             ),
             id="Local path with @ ref",
         ),
+        pytest.param(
+            "git+ssh://git@github.com/mycomp/our_repo.git@release/v318#egg=our_package",
+            (
+                "git+ssh://git@github.com/mycomp/our_repo.git#egg=our_package",
+                "release/v318",
+            ),
+            id="git/ssh VCS with user name, @ ref, egg",
+        ),
     ],
 )
 def test_split_ref_from_uri(uri: str, expected_output):
