@@ -100,33 +100,61 @@ def test_split_vcs_method_from_uri():
     )
 
 
-def test_split_ref_from_uri():
-    assert utils.split_ref_from_uri("https://github.com/sarugaku/plette.git") == (
-        "https://github.com/sarugaku/plette.git",
-        None,
-    )
-    assert utils.split_ref_from_uri("/Users/some.user@acme.com/dev/myproject") == (
-        "/Users/some.user@acme.com/dev/myproject",
-        None,
-    )
-    assert utils.split_ref_from_uri(
-        "https://user:password@github.com/sarugaku/plette.git"
-    ) == (
-        "https://user:password@github.com/sarugaku/plette.git",
-        None,
-    )
-    assert utils.split_ref_from_uri(
-        "git+https://github.com/pypa/pipenv.git@master#egg=pipenv"
-    ) == (
-        "git+https://github.com/pypa/pipenv.git#egg=pipenv",
-        "master",
-    )
-    assert utils.split_ref_from_uri(
-        "/Users/some.user@acme.com/dev/myproject@bugfix/309"
-    ) == (
-        "/Users/some.user@acme.com/dev/myproject",
-        "bugfix/309",
-    )
+@pytest.mark.parametrize(
+    "uri,expected_output",
+    [
+        pytest.param(
+            "https://github.com/sarugaku/plette.git",
+            (
+                "https://github.com/sarugaku/plette.git",
+                None,
+            ),
+            id="https VCS, no ref",
+        ),
+        pytest.param(
+            "/Users/some.user@acme.com/dev/myproject",
+            (
+                "/Users/some.user@acme.com/dev/myproject",
+                None,
+            ),
+            id="Local path with @",
+        ),
+        pytest.param(
+            "https://user:password@github.com/sarugaku/plette.git",
+            (
+                "https://user:password@github.com/sarugaku/plette.git",
+                None,
+            ),
+            id="https VCS, with user@, no ref",
+        ),
+        pytest.param(
+            "git+https://github.com/pypa/pipenv.git@master#egg=pipenv",
+            (
+                "git+https://github.com/pypa/pipenv.git#egg=pipenv",
+                "master",
+            ),
+            id="https VCS, no user, master ref",
+        ),
+        pytest.param(
+            "/Users/some.user@acme.com/dev/myproject@bugfix/309",
+            (
+                "/Users/some.user@acme.com/dev/myproject",
+                "bugfix/309",
+            ),
+            id="Local path with @ ref",
+        ),
+        pytest.param(
+            "git+ssh://git@github.com/mycomp/our_repo.git@release/v318#egg=our_package",
+            (
+                "git+ssh://git@github.com/mycomp/our_repo.git#egg=our_package",
+                "release/v318",
+            ),
+            id="git/ssh VCS with user name, @ ref, egg",
+        ),
+    ],
+)
+def test_split_ref_from_uri(uri: str, expected_output):
+    assert utils.split_ref_from_uri(uri) == expected_output
 
 
 # tests from pip-tools
