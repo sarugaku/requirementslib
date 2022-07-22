@@ -5,10 +5,6 @@ Requirementslib 1.6.8 (2022-07-22)
 Bug Fixes
 ---------
 
-- Fix tracebacks on encountering Annotated variables  `#307 <https://github.com/sarugaku/requirementslib/issues/307>`_
-  
-- Change style of ``packaging`` imports for downstream ``pipenv`` to be able to patch this more easily.  `#324 <https://github.com/sarugaku/requirementslib/issues/324>`_
-  
 - Resolved an issue introduced in 1.6.5 that failed to parse refs in VCS uris  `#330 <https://github.com/sarugaku/requirementslib/issues/330>`_
 
 
