@@ -1,1 +1,0 @@
-Rewrite imports of ``pip_shims.shims`` to be ``from pip_shims import shims`` so that they can be rewritten by the vendoring scripts in ``pipenv``.

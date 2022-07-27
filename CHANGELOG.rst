@@ -1,3 +1,13 @@
+Requirementslib 1.6.9 (2022-07-27)
+==================================
+
+
+Bug Fixes
+---------
+
+- Rewrite imports of ``pip_shims.shims`` to be ``from pip_shims import shims`` so that they can be rewritten by the vendoring scripts in ``pipenv``.  `#332 <https://github.com/sarugaku/requirementslib/issues/332>`_
+
+
 Requirementslib 1.6.8 (2022-07-22)
 ==================================
 
