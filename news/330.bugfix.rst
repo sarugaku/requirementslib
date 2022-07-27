@@ -1,1 +1,0 @@
-Resolved an issue introduced in 1.6.5 that failed to parse refs in VCS uris
