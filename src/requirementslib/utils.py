@@ -468,7 +468,7 @@ def remap(
 ):
     """The remap ("recursive map") function is used to traverse and transform
     nested structures. Lists, tuples, sets, and dictionaries are just a few of
-    the data structures nested into heterogenous tree-like structures that are
+    the data structures nested into heterogeneous tree-like structures that are
     so common in programming. Unfortunately, Python's built-in ways to
     manipulate collections are almost all flat. List comprehensions may be fast
     and succinct, but they do not recurse, making it tedious to apply quick

@@ -57,7 +57,7 @@ Features
 - Default & mandatory values: enforce configuration structure without writing a line of code.
 - Helpful debug logging that will tell you which variables are present and what ``environ_config`` is looking for.
 - Built on top of `attrs <http://www.attrs.org/>`_ which gives you data validation and conversion for free.
-- Plugable secrets extraction.
+- Pluggable secrets extraction.
   Ships with:
 
   * `HashiCorp Vault <https://www.vaultproject.io>`_ support via `envconsul <https://github.com/hashicorp/envconsul>`_.
