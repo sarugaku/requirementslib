@@ -8,9 +8,9 @@ from collections.abc import ItemsView, Mapping, Sequence, Set
 from pathlib import Path
 from urllib.parse import urlparse, urlsplit, urlunparse
 
-import pip_shims.shims
 import tomlkit
 import vistir
+from pip_shims import shims
 from vistir.compat import fs_decode
 from vistir.path import ensure_mkdir_p, is_valid_url
 
@@ -73,7 +73,7 @@ VCS_SCHEMES = [
 
 def is_installable_dir(path):
     # type: (STRING_TYPE) -> bool
-    if pip_shims.shims.is_installable_dir(path):
+    if shims.is_installable_dir(path):
         return True
     pyproject_path = os.path.join(path, "pyproject.toml")
     if os.path.exists(pyproject_path):
@@ -199,14 +199,14 @@ def is_installable_file(path):
     if is_local and not os.path.exists(normalized_path):
         return False
 
-    is_archive = pip_shims.shims.is_archive_file(normalized_path)
+    is_archive = shims.is_archive_file(normalized_path)
     is_local_project = os.path.isdir(normalized_path) and is_installable_dir(
         normalized_path
     )
     if is_local and is_local_project or is_archive:
         return True
 
-    if not is_local and pip_shims.shims.is_archive_file(parsed.path):
+    if not is_local and shims.is_archive_file(parsed.path):
         return True
 
     return False

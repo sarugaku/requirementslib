@@ -14,7 +14,7 @@ on:
       - ".gitattributes"
       - ".editorconfig"
     branches:
-      - master
+      - main
   pull_request:
     paths-ignore:
       - "docs/**"

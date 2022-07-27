@@ -1,3 +1,13 @@
+Requirementslib 1.6.8 (2022-07-22)
+==================================
+
+
+Bug Fixes
+---------
+
+- Resolved an issue introduced in 1.6.5 that failed to parse refs in VCS uris  `#330 <https://github.com/sarugaku/requirementslib/issues/330>`_
+
+
 Requirementslib 1.6.7 (2022-07-07)
 ==================================
 
