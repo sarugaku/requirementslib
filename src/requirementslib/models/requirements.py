@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import, print_function
-
 import collections
 import copy
 import os
@@ -47,6 +43,7 @@ from ..utils import (
     is_vcs,
     strip_ssh_from_git_uri,
 )
+from .dependencies import AbstractDependency, get_abstract_dependencies, get_dependencies
 from .markers import normalize_marker_str
 from .setup_info import (
     SetupInfo,
@@ -113,7 +110,6 @@ if MYPY_RUNNING:
     F = TypeVar("F", "FileRequirement", "VCSRequirement", covariant=True)
     from urllib.parse import SplitResult
 
-    from .dependencies import AbstractDependency
     from .vcs import VCSRepository
 
     NON_STRING_ITERABLE = Union[List, Set, Tuple]
@@ -2937,7 +2933,7 @@ class Requirement(object):
     def ireq(self):
         return self.as_ireq()
 
-    def get_dependencies(self, sources=None):
+    def dependencies(self):
         """Retrieve the dependencies of the current requirement.
 
         Retrieves dependencies of the current requirement.  This only works on pinned
@@ -2948,16 +2944,9 @@ class Requirement(object):
         :return: A set of requirement strings of the dependencies of this requirement.
         :rtype: set(str)
         """
+        return get_dependencies(self.as_ireq())
 
-        from .dependencies import get_dependencies
-
-        if not sources:
-            sources = [
-                {"name": "pypi", "url": "https://pypi.org/simple", "verify_ssl": True}
-            ]
-        return get_dependencies(self.as_ireq(), sources=sources)
-
-    def get_abstract_dependencies(self, sources=None):
+    def abstract_dependencies(self, sources=None):
         """Retrieve the abstract dependencies of this requirement.
 
         Returns the abstract dependencies of the current requirement in order to resolve.
@@ -2967,12 +2956,6 @@ class Requirement(object):
         :return: A list of abstract (unpinned) dependencies
         :rtype: list[ :class:`~requirementslib.models.dependency.AbstractDependency` ]
         """
-
-        from .dependencies import (
-            AbstractDependency,
-            get_abstract_dependencies,
-            get_dependencies,
-        )
 
         if not self.abstract_dep:
             parent = getattr(self, "parent", None)
@@ -2985,8 +2968,8 @@ class Requirement(object):
             deps = self.get_dependencies()
         else:
             ireq = sorted(self.find_all_matches(), key=lambda k: k.version)
-            deps = get_dependencies(ireq.pop(), sources=sources)
-        return get_abstract_dependencies(deps, sources=sources, parent=self.abstract_dep)
+            deps = get_dependencies(ireq.pop())
+        return get_abstract_dependencies(deps, parent=self.abstract_dep)
 
     def find_all_matches(self, sources=None, finder=None):
         # type: (Optional[List[Dict[S, Union[S, bool]]]], Optional[PackageFinder]) -> List[InstallationCandidate]

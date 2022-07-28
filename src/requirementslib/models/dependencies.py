@@ -274,21 +274,18 @@ class AbstractDependency(object):
         return abstract_dep
 
 
-def get_abstract_dependencies(reqs, sources=None, parent=None):
+def get_abstract_dependencies(reqs, parent=None):
     """Get all abstract dependencies for a given list of requirements.
 
     Given a set of requirements, convert each requirement to an Abstract Dependency.
 
     :param reqs: A list of Requirements
     :type reqs: list[:class:`~requirementslib.models.requirements.Requirement`]
-    :param sources: Pipfile-formatted sources, defaults to None
-    :param sources: list[dict], optional
     :param parent: The parent of this list of dependencies, defaults to None
     :param parent: :class:`~requirementslib.models.requirements.Requirement`, optional
     :return: A list of Abstract Dependencies
     :rtype: list[:class:`~requirementslib.models.dependency.AbstractDependency`]
     """
-
     deps = []
     from .requirements import Requirement
 
@@ -310,7 +307,7 @@ def get_abstract_dependencies(reqs, sources=None, parent=None):
     return deps
 
 
-def get_dependencies(ireq, sources=None, parent=None):
+def get_dependencies(ireq):
     # type: (Union[InstallRequirement, InstallationCandidate], Optional[List[Dict[S, Union[S, bool]]]], Optional[AbstractDependency]) -> Set[S, ...]
     """Get all dependencies for a given install requirement.
 
@@ -330,12 +327,11 @@ def get_dependencies(ireq, sources=None, parent=None):
             ireq = shims.InstallRequirement.from_line("{0}".format(name))
         else:
             ireq = shims.InstallRequirement.from_line("{0}=={1}".format(name, version))
-    pip_options = get_pip_options(sources=sources)
     getters = [
         get_dependencies_from_cache,
         get_dependencies_from_wheel_cache,
         get_dependencies_from_json,
-        functools.partial(get_dependencies_from_index, pip_options=pip_options),
+        get_dependencies_from_index,
     ]
     for getter in getters:
         deps = getter(ireq)
@@ -464,7 +460,7 @@ def is_python(section):
     return section.startswith("[") and ":" in section
 
 
-def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache=None):
+def get_dependencies_from_index(dep):
     """Retrieves dependencies for the given install requirement from the pip
     resolver.
 
@@ -475,14 +471,9 @@ def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str) or None
     """
-
-    session, finder = get_finder(sources=sources, pip_options=pip_options)
     dep.is_direct = True
-    requirements = None
     setup_requires = {}
-    with temp_environ(), ExitStack() as stack:
-        if not wheel_cache:
-            wheel_cache = stack.enter_context(_get_wheel_cache())
+    with temp_environ():
         os.environ["PIP_EXISTS_ACTION"] = "i"
         if dep.editable and not dep.prepared and not dep.req:
             setup_info = SetupInfo.from_ireq(dep)
