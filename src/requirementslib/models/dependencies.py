@@ -214,7 +214,7 @@ class AbstractDependency(object):
 
             req = Requirement.from_line(key)
             req = req.merge_markers(self.markers)
-            self.dep_dict[key] = req.get_abstract_dependencies()
+            self.dep_dict[key] = req.abstract_dependencies()
         return self.dep_dict[key]
 
     @classmethod

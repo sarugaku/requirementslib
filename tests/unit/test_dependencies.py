@@ -63,7 +63,7 @@ def test_get_dependencies():
 def get_abstract_deps():
     r = Requirement.from_line("requests")
     deps = [InstallRequirement.from_line(d) for d in get_dependencies(r.as_ireq())]
-    abstract_deps = r.get_abstract_dependencies()
+    abstract_deps = r.abstract_dependencies()
     req_abstract_dep = AbstractDependency.from_requirement(r)
     assert r.abstract_dep == req_abstract_dep
     assert len(abstract_deps) > 0
