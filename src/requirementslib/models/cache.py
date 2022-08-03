@@ -10,6 +10,7 @@ import vistir
 from packaging.requirements import Requirement
 from pip._internal.network.cache import SafeFileCache
 from pip._internal.utils.hashes import FAVORITE_HASH
+from pip._internal.vcs.versioncontrol import VcsSupport
 from platformdirs import user_cache_dir
 
 from .utils import as_tuple, get_pinned_version, key_from_req, lookup_table
@@ -203,8 +204,6 @@ class HashCache(SafeFileCache):
         super(HashCache, self).__init__(*args, **kwargs)
 
     def get_hash(self, location):
-        from pip_shims import VcsSupport
-
         # if there is no location hash (i.e., md5 / sha256 / etc) we on't want to store it
         hash_value = None
         vcs = VcsSupport()

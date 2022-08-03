@@ -13,6 +13,10 @@ import requests
 from packaging.markers import Marker
 from packaging.utils import canonicalize_name
 from packaging.version import parse
+from pip._internal.cache import WheelCache
+from pip._internal.commands.install import InstallCommand
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip_shims import shims
 from vistir.compat import fs_str
 from vistir.contextmanagers import temp_environ
@@ -27,6 +31,7 @@ from .utils import (
     fix_requires_python_marker,
     format_requirement,
     full_groupby,
+    get_package_finder,
     is_pinned_requirement,
     key_from_ireq,
     make_install_requirement,
@@ -49,7 +54,7 @@ if MYPY_RUNNING:
     )
 
     from packaging.requirements import Requirement as PackagingRequirement
-    from shims import Command, InstallationCandidate, InstallRequirement, PackageFinder
+    from shims import Command, InstallationCandidate, PackageFinder
 
     TRequirement = TypeVar("TRequirement")
     RequirementType = TypeVar(
@@ -68,8 +73,8 @@ DEPENDENCY_CACHE = DependencyCache()
 
 @contextlib.contextmanager
 def _get_wheel_cache():
-    with shims.global_tempdir_manager():
-        yield shims.WheelCache(CACHE_DIR, shims.FormatControl(set(), set()))
+    with global_tempdir_manager():
+        yield WheelCache(CACHE_DIR, shims.FormatControl(set(), set()))
 
 
 def _get_filtered_versions(ireq, versions, prereleases):
@@ -98,12 +103,13 @@ def find_all_matches(finder, ireq, pre=False):
     return candidates
 
 
-def get_pip_command():
-    # type: () -> Command
+def get_pip_command() -> InstallCommand:
     # Use pip's parser for pip.conf management and defaults.
     # General options (find_links, index_url, extra_index_url, trusted_host,
     # and pre) are deferred to pip.
-    pip_command = shims.InstallCommand()
+    pip_command = InstallCommand(
+        name="InstallCommand", summary="requirementslib pip Install command."
+    )
     return pip_command
 
 
@@ -290,7 +296,7 @@ def get_abstract_dependencies(reqs, parent=None):
     from .requirements import Requirement
 
     for req in reqs:
-        if isinstance(req, shims.InstallRequirement):
+        if isinstance(req, InstallRequirement):
             requirement = Requirement.from_line("{0}{1}".format(req.name, req.specifier))
             if req.link:
                 requirement.req.link = req.link
@@ -320,13 +326,13 @@ def get_dependencies(ireq):
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str)
     """
-    if not isinstance(ireq, shims.InstallRequirement):
+    if not isinstance(ireq, InstallRequirement):
         name = getattr(ireq, "project_name", getattr(ireq, "project", ireq.name))
         version = getattr(ireq, "version", None)
         if not version:
-            ireq = shims.InstallRequirement.from_line("{0}".format(name))
+            ireq = InstallRequirement.from_line("{0}".format(name))
         else:
-            ireq = shims.InstallRequirement.from_line("{0}=={1}".format(name, version))
+            ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
     getters = [
         get_dependencies_from_cache,
         get_dependencies_from_wheel_cache,
@@ -341,7 +347,7 @@ def get_dependencies(ireq):
 
 
 def get_dependencies_from_wheel_cache(ireq):
-    # type: (shims.InstallRequirement) -> Optional[Set[shims.InstallRequirement]]
+    # type: (InstallRequirement) -> Optional[Set[InstallRequirement]]
     """Retrieves dependencies for the given install requirement from the wheel
     cache.
 
@@ -402,7 +408,7 @@ def get_dependencies_from_json(ireq):
         if not requires_dist:  # The API can return None for this.
             return
         for requires in requires_dist:
-            i = shims.InstallRequirement.from_line(requires)
+            i = InstallRequirement.from_line(requires)
             # See above, we don't handle requirements with extras.
             if not _marker_contains_extra(i):
                 yield format_requirement(i)
@@ -438,7 +444,7 @@ def get_dependencies_from_cache(ireq):
     try:
         broken = False
         for line in cached:
-            dep_ireq = shims.InstallRequirement.from_line(line)
+            dep_ireq = InstallRequirement.from_line(line)
             name = canonicalize_name(dep_ireq.name)
             if _marker_contains_extra(dep_ireq):
                 broken = True  # The "extra =" marker breaks everything.
@@ -528,16 +534,14 @@ def get_finder(sources=None, pip_command=None, pip_options=None):
     """
 
     if not pip_command:
-        pip_command = shims.InstallCommand()
+        pip_command = get_pip_command()
     if not sources:
         sources = [{"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}]
     if not pip_options:
         pip_options = get_pip_options(sources=sources, pip_command=pip_command)
     session = pip_command._build_session(pip_options)
     atexit.register(session.close)
-    finder = shims.get_package_finder(
-        shims.InstallCommand(), options=pip_options, session=session
-    )
+    finder = get_package_finder(get_pip_command(), options=pip_options, session=session)
     return session, finder
 
 
@@ -569,7 +573,7 @@ def start_resolver(finder=None, session=None, wheel_cache=None):
     _source_dir = create_tracked_tempdir(fs_str("source"))
     try:
         with ExitStack() as ctx:
-            ctx.enter_context(shims.global_tempdir_manager())
+            ctx.enter_context(global_tempdir_manager())
             if not wheel_cache:
                 wheel_cache = ctx.enter_context(_get_wheel_cache())
             _ensure_dir(fs_str(os.path.join(wheel_cache.cache_dir, "wheels")))

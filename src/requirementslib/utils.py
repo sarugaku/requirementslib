@@ -10,6 +10,7 @@ from urllib.parse import urlparse, urlsplit, urlunparse
 
 import tomlkit
 import vistir
+from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import is_installable_dir
 from vistir.path import ensure_mkdir_p, is_valid_url
@@ -264,6 +265,35 @@ def prepare_pip_source_args(sources, pip_args=None):
                         ["--trusted-host", urlparse(source["url"]).hostname]
                     )  # type: ignore
     return pip_args
+
+
+def get_package_finder(
+    install_cmd=None,
+    options=None,
+    session=None,
+    platform=None,
+    python_versions=None,
+    abi=None,
+    implementation=None,
+    ignore_requires_python=None,
+):
+    """Reduced Shim for compatibility to generate package finders."""
+    py_version_info = None
+    if python_versions:
+        py_version_info_python = max(python_versions)
+        py_version_info = tuple([int(part) for part in py_version_info_python])
+    target_python = TargetPython(
+        platforms=[platform] if platform else None,
+        py_version_info=py_version_info,
+        abis=[abi] if abi else None,
+        implementation=implementation,
+    )
+    return install_cmd._build_package_finder(
+        options=options,
+        session=session,
+        target_python=target_python,
+        ignore_requires_python=ignore_requires_python,
+    )
 
 
 @ensure_mkdir_p(mode=0o777)
