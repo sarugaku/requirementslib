@@ -150,8 +150,8 @@ def convert_entry_to_path(path):
     elif "path" in path:
         path = path["path"]
     if not os.name == "nt":
-        return os.fs_decode(path)
-    return Path(os.fs_decode(path)).as_posix()
+        return os.fsdecode(path)
+    return Path(os.fsdecode(path)).as_posix()
 
 
 def is_installable_file(path):
@@ -180,7 +180,7 @@ def is_installable_file(path):
         or (len(parsed.scheme) == 1 and os.name == "nt")
     )
     if parsed.scheme and parsed.scheme == "file":
-        path = os.fs_decode(vistir.path.url_to_path(path))
+        path = os.fsdecode(vistir.path.url_to_path(path))
     normalized_path = vistir.path.normalize_path(path)
     if is_local and not os.path.exists(normalized_path):
         return False
