@@ -31,7 +31,7 @@ from vistir.path import create_tracked_tempdir, ensure_mkdir_p, mkdir_p, rmtree
 
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
-from ..utils import pip_command
+from ..utils import get_pip_command
 from .old_pip_utils import old_unpack_url
 from .utils import (
     get_default_pyproject_backend,
@@ -1512,7 +1512,7 @@ build-backend = "{1}"
             return None
         stack = ExitStack()
         if not session:
-            cmd = pip_command()
+            cmd = get_pip_command()
             options, _ = cmd.parser.parse_args([])
             session = cmd._build_session(options)
         stack.enter_context(global_tempdir_manager())
