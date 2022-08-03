@@ -16,6 +16,7 @@ from packaging.version import parse
 from pip._internal.cache import WheelCache
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.build.build_tracker import get_build_tracker
+from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip_shims import shims
@@ -327,9 +328,9 @@ def get_dependencies(ireq):
         name = getattr(ireq, "project_name", getattr(ireq, "project", ireq.name))
         version = getattr(ireq, "version", None)
         if not version:
-            ireq = InstallRequirement.from_line("{0}".format(name))
+            ireq = install_req_from_line("{0}".format(name))
         else:
-            ireq = InstallRequirement.from_line("{0}=={1}".format(name, version))
+            ireq = install_req_from_line("{0}=={1}".format(name, version))
     getters = [
         get_dependencies_from_cache,
         get_dependencies_from_wheel_cache,
@@ -405,7 +406,7 @@ def get_dependencies_from_json(ireq):
         if not requires_dist:  # The API can return None for this.
             return
         for requires in requires_dist:
-            i = InstallRequirement.from_line(requires)
+            i = install_req_from_line(requires)
             # See above, we don't handle requirements with extras.
             if not _marker_contains_extra(i):
                 yield format_requirement(i)
@@ -441,7 +442,7 @@ def get_dependencies_from_cache(ireq):
     try:
         broken = False
         for line in cached:
-            dep_ireq = InstallRequirement.from_line(line)
+            dep_ireq = install_req_from_line(line)
             name = canonicalize_name(dep_ireq.name)
             if _marker_contains_extra(dep_ireq):
                 broken = True  # The "extra =" marker breaks everything.

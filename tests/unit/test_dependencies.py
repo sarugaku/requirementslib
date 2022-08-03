@@ -1,7 +1,6 @@
-# -*- coding=utf-8 -*-
 import pytest
 from packaging.specifiers import Specifier, SpecifierSet
-from pip_shims import InstallRequirement
+from pip._internal.req.constructors import install_req_from_line
 
 import requirementslib
 from requirementslib.models.dependencies import (
@@ -62,7 +61,7 @@ def test_get_dependencies():
 
 def get_abstract_deps():
     r = Requirement.from_line("requests")
-    deps = [InstallRequirement.from_line(d) for d in get_dependencies(r.as_ireq())]
+    deps = [install_req_from_line(d) for d in get_dependencies(r.as_ireq())]
     abstract_deps = r.abstract_dependencies()
     req_abstract_dep = AbstractDependency.from_requirement(r)
     assert r.abstract_dep == req_abstract_dep
