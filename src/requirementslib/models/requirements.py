@@ -656,7 +656,7 @@ class Line(object):
 
         if self.link is None:
             return False
-        return not self.link.is_vcs
+        return getattr(self.link, "is_vcs", False)
 
     @property
     def is_vcs(self):
@@ -1845,7 +1845,7 @@ class FileRequirement(object):
         seed = None  # type: Optional[STRING_TYPE]
         if self.link is not None:
             link_url = self.link.url_without_fragment
-        is_vcs = getattr(self.link, "is_vcs", not self.link.is_artifact)
+        is_vcs = getattr(self.link, "is_vcs", False)
         if self._uri_scheme and self._uri_scheme == "path":
             # We may need any one of these for passing to pip
             seed = self.path or link_url or self.uri
@@ -1894,7 +1894,7 @@ class FileRequirement(object):
         key_match = next(iter(k for k in collision_order if k in pipfile_dict.keys()))
         is_vcs = None
         if self.link is not None:
-            is_vcs = getattr(self.link, "is_vcs", not self.link.is_artifact)
+            is_vcs = getattr(self.link, "is_vcs", False)
         if self._uri_scheme:
             dict_key = self._uri_scheme
             target_key = dict_key if dict_key in pipfile_dict else key_match
