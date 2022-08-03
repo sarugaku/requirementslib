@@ -8,7 +8,8 @@ import sys
 
 import vistir
 from packaging.requirements import Requirement
-from pip_shims.shims import FAVORITE_HASH, SafeFileCache
+from pip._internal.network.cache import SafeFileCache
+from pip._internal.utils.hashes import FAVORITE_HASH
 from platformdirs import user_cache_dir
 
 from .utils import as_tuple, get_pinned_version, key_from_req, lookup_table

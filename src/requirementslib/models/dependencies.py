@@ -15,7 +15,7 @@ from packaging.utils import canonicalize_name
 from packaging.version import parse
 from pip_shims import shims
 from vistir.compat import fs_str
-from vistir.contextmanagers import cd, temp_environ
+from vistir.contextmanagers import temp_environ
 from vistir.path import create_tracked_tempdir
 
 from ..environment import MYPY_RUNNING

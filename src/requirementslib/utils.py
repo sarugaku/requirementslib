@@ -10,8 +10,8 @@ from urllib.parse import urlparse, urlsplit, urlunparse
 
 import tomlkit
 import vistir
-from pip_shims import shims
-from vistir.compat import fs_decode
+from pip._internal.utils.filetypes import is_archive_file
+from pip._internal.utils.misc import is_installable_dir
 from vistir.path import ensure_mkdir_p, is_valid_url
 
 from .environment import MYPY_RUNNING
@@ -69,20 +69,6 @@ VCS_SCHEMES = [
     "bzr+ftp",
     "bzr+lp",
 ]
-
-
-def is_installable_dir(path):
-    # type: (STRING_TYPE) -> bool
-    if shims.is_installable_dir(path):
-        return True
-    pyproject_path = os.path.join(path, "pyproject.toml")
-    if os.path.exists(pyproject_path):
-        pyproject = Path(pyproject_path)
-        pyproject_toml = tomlkit.loads(pyproject.read_text())
-        build_system = pyproject_toml.get("build-system", {}).get("build-backend", "")
-        if build_system:
-            return True
-    return False
 
 
 def strip_ssh_from_git_uri(uri):
@@ -164,8 +150,8 @@ def convert_entry_to_path(path):
     elif "path" in path:
         path = path["path"]
     if not os.name == "nt":
-        return fs_decode(path)
-    return Path(fs_decode(path)).as_posix()
+        return os.fs_decode(path)
+    return Path(os.fs_decode(path)).as_posix()
 
 
 def is_installable_file(path):
@@ -194,19 +180,19 @@ def is_installable_file(path):
         or (len(parsed.scheme) == 1 and os.name == "nt")
     )
     if parsed.scheme and parsed.scheme == "file":
-        path = fs_decode(vistir.path.url_to_path(path))
+        path = os.fs_decode(vistir.path.url_to_path(path))
     normalized_path = vistir.path.normalize_path(path)
     if is_local and not os.path.exists(normalized_path):
         return False
 
-    is_archive = shims.is_archive_file(normalized_path)
+    is_archive = is_archive_file(normalized_path)
     is_local_project = os.path.isdir(normalized_path) and is_installable_dir(
         normalized_path
     )
     if is_local and is_local_project or is_archive:
         return True
 
-    if not is_local and shims.is_archive_file(parsed.path):
+    if not is_local and is_archive_file(parsed.path):
         return True
 
     return False
