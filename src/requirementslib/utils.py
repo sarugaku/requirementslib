@@ -10,6 +10,7 @@ from urllib.parse import urlparse, urlsplit, urlunparse
 
 import tomlkit
 import vistir
+from pip._internal.commands.install import InstallCommand
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import is_installable_dir
@@ -672,3 +673,13 @@ def merge_items(target_list, sourced=False):
     if not sourced:
         return ret
     return ret, source_map
+
+
+def get_pip_command() -> InstallCommand:
+    # Use pip's parser for pip.conf management and defaults.
+    # General options (find_links, index_url, extra_index_url, trusted_host,
+    # and pre) are deferred to pip.
+    pip_command = InstallCommand(
+        name="InstallCommand", summary="requirementslib pip Install command."
+    )
+    return pip_command

@@ -14,7 +14,8 @@ from packaging.markers import Marker
 from packaging.utils import canonicalize_name
 from packaging.version import parse
 from pip._internal.cache import WheelCache
-from pip._internal.commands.install import InstallCommand
+from pip._internal.models.format_control import FormatControl
+from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip_shims import shims
@@ -23,7 +24,12 @@ from vistir.contextmanagers import temp_environ
 from vistir.path import create_tracked_tempdir
 
 from ..environment import MYPY_RUNNING
-from ..utils import _ensure_dir, get_package_finder, prepare_pip_source_args
+from ..utils import (
+    _ensure_dir,
+    get_package_finder,
+    get_pip_command,
+    prepare_pip_source_args,
+)
 from .cache import CACHE_DIR, DependencyCache
 from .setup_info import SetupInfo
 from .utils import (
@@ -53,7 +59,9 @@ if MYPY_RUNNING:
     )
 
     from packaging.requirements import Requirement as PackagingRequirement
-    from shims import Command, InstallationCandidate, PackageFinder
+    from pip._internal.commands.base_command import Command
+    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.models.candidate import InstallationCandidate
 
     TRequirement = TypeVar("TRequirement")
     RequirementType = TypeVar(
@@ -73,7 +81,7 @@ DEPENDENCY_CACHE = DependencyCache()
 @contextlib.contextmanager
 def _get_wheel_cache():
     with global_tempdir_manager():
-        yield WheelCache(CACHE_DIR, shims.FormatControl(set(), set()))
+        yield WheelCache(CACHE_DIR, FormatControl(set(), set()))
 
 
 def _get_filtered_versions(ireq, versions, prereleases):
@@ -100,16 +108,6 @@ def find_all_matches(finder, ireq, pre=False):
         allowed_versions = _get_filtered_versions(ireq, versions, True)
     candidates = {c for c in candidates if c.version in allowed_versions}
     return candidates
-
-
-def get_pip_command() -> InstallCommand:
-    # Use pip's parser for pip.conf management and defaults.
-    # General options (find_links, index_url, extra_index_url, trusted_host,
-    # and pre) are deferred to pip.
-    pip_command = InstallCommand(
-        name="InstallCommand", summary="requirementslib pip Install command."
-    )
-    return pip_command
 
 
 @attr.s
@@ -570,40 +568,31 @@ def start_resolver(finder=None, session=None, wheel_cache=None):
 
     _build_dir = create_tracked_tempdir(fs_str("build"))
     _source_dir = create_tracked_tempdir(fs_str("source"))
+    pip_options.src_dir = _source_dir
     try:
-        with ExitStack() as ctx:
-            ctx.enter_context(global_tempdir_manager())
+        with global_tempdir_manager(), get_build_tracker() as build_tracker:
             if not wheel_cache:
-                wheel_cache = ctx.enter_context(_get_wheel_cache())
+                wheel_cache = _get_wheel_cache()
             _ensure_dir(fs_str(os.path.join(wheel_cache.cache_dir, "wheels")))
-            preparer = ctx.enter_context(
-                shims.make_preparer(
-                    options=pip_options,
-                    finder=finder,
-                    session=session,
-                    build_dir=_build_dir,
-                    src_dir=_source_dir,
-                    download_dir=download_dir,
-                    wheel_download_dir=WHEEL_DOWNLOAD_DIR,
-                    progress_bar="off",
-                    build_isolation=False,
-                    install_cmd=pip_command,
-                )
-            )
-            resolver = shims.get_resolver(
-                finder=finder,
-                ignore_dependencies=False,
-                ignore_requires_python=True,
-                preparer=preparer,
-                session=session,
+            preparer = pip_command.make_requirement_preparer(
+                temp_build_dir=_build_dir,
                 options=pip_options,
-                install_cmd=pip_command,
-                wheel_cache=wheel_cache,
-                force_reinstall=True,
-                ignore_installed=True,
-                upgrade_strategy="to-satisfy-only",
-                isolated=False,
+                build_tracker=build_tracker,
+                session=session,
+                finder=finder,
                 use_user_site=False,
+            )
+            resolver = pip_command.make_resolver(
+                preparer=preparer,
+                finder=finder,
+                options=pip_options,
+                wheel_cache=wheel_cache,
+                use_user_site=False,
+                ignore_installed=True,
+                ignore_requires_python=pip_options.ignore_requires_python,
+                force_reinstall=pip_options.force_reinstall,
+                upgrade_strategy="to-satisfy-only",
+                use_pep517=pip_options.use_pep517,
             )
             yield resolver
     finally:
