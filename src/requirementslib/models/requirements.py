@@ -1671,7 +1671,8 @@ class FileRequirement(object):
         return link
 
     @req.default
-    def get_requirement(self) -> RequirementType:
+    def get_requirement(self):
+        # type () -> RequirementType
         if self.name is None:
             if self._parsed_line is not None and self._parsed_line.name is not None:
                 self.name = self._parsed_line.name
