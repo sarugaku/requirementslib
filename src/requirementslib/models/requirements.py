@@ -10,7 +10,6 @@ from urllib import parse as urllib_parse
 from urllib.parse import unquote
 
 import attr
-import pip_shims
 from cached_property import cached_property
 from packaging.markers import Marker
 from packaging.requirements import Requirement as PackagingRequirement
@@ -21,6 +20,16 @@ from packaging.specifiers import (
     SpecifierSet,
 )
 from packaging.utils import canonicalize_name
+from pip._internal.models.link import Link
+from pip._internal.models.wheel import Wheel
+from pip._internal.req.constructors import (
+    _strip_extras,
+    install_req_from_editable,
+    install_req_from_line,
+)
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.temp_dir import global_tempdir_manager
+from pip._internal.utils.urls import path_to_url, url_to_path
 from vistir.contextmanagers import temp_path
 from vistir.misc import dedup
 from vistir.path import (
@@ -97,12 +106,8 @@ if MYPY_RUNNING:
         Union,
     )
 
-    from pip_shims.shims import (
-        InstallationCandidate,
-        InstallRequirement,
-        Link,
-        PackageFinder,
-    )
+    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.models.candidate import InstallationCandidate
 
     RequirementType = TypeVar(
         "RequirementType", covariant=True, bound=PackagingRequirement
@@ -326,7 +331,7 @@ class Line(object):
             if not line:
                 if self.is_path or self.is_file:
                     if not self.path and self.url is not None:
-                        line = pip_shims.shims.url_to_path(self.url)
+                        line = url_to_path(self.url)
                     else:
                         line = self.path
                     if self.extras:
@@ -568,14 +573,14 @@ class Line(object):
                         strip_ssh=self.parsed_url.is_implicit_ssh,
                     )
             except ValueError:
-                self.line, extras = pip_shims.shims._strip_extras(self.line)
+                self.line, extras = _strip_extras(self.line)
         else:
-            self.line, extras = pip_shims.shims._strip_extras(self.line)
+            self.line, extras = _strip_extras(self.line)
         extras_set = set()  # type: Set[STRING_TYPE]
         if extras is not None:
             extras_set = set(parse_extras(extras))
         if self._name:
-            self._name, name_extras = pip_shims.shims._strip_extras(self._name)
+            self._name, name_extras = _strip_extras(self._name)
             if name_extras:
                 name_extras = set(parse_extras(name_extras))
                 extras_set |= name_extras
@@ -763,7 +768,7 @@ class Line(object):
 
     @property
     def ireq(self):
-        # type: () -> Optional[pip_shims.InstallRequirement]
+        # type: () -> Optional[InstallRequirement]
         if self._ireq is None:
             self.parse_ireq()
         return self._ireq
@@ -787,7 +792,7 @@ class Line(object):
     def get_setup_info(self):
         # type: () -> SetupInfo
         setup_info = None
-        with pip_shims.shims.global_tempdir_manager():
+        with global_tempdir_manager():
             setup_info = SetupInfo.from_ireq(self.ireq, subdir=self.subdirectory)
             if not setup_info.name:
                 setup_info.get_info()
@@ -893,7 +898,7 @@ class Line(object):
         ireq = self.ireq
         wheel_kwargs = self.wheel_kwargs.copy()
         wheel_kwargs["src_dir"] = repo.checkout_directory
-        with pip_shims.shims.global_tempdir_manager(), temp_path():
+        with global_tempdir_manager(), temp_path():
             ireq.ensure_has_source_dir(wheel_kwargs["src_dir"])
             sys.path = [repo.checkout_directory, "", ".", get_python_lib(plat_specific=0)]
             setupinfo = SetupInfo.create(
@@ -909,13 +914,13 @@ class Line(object):
         # type: () -> InstallRequirement
         line = self.line_for_ireq
         if self.editable:
-            ireq = pip_shims.shims.install_req_from_editable(line)
+            ireq = install_req_from_editable(line)
         else:
-            ireq = pip_shims.shims.install_req_from_line(line)
+            ireq = install_req_from_line(line)
         if self.is_named:
-            ireq = pip_shims.shims.install_req_from_line(self.line)
+            ireq = install_req_from_line(self.line)
         if self.is_file or self.is_remote_url:
-            ireq.link = pip_shims.shims.Link(expand_env_variables(self.link.url))
+            ireq.link = Link(expand_env_variables(self.link.url))
         if self.extras and not ireq.extras:
             ireq.extras = set(self.extras)
         if self.parsed_marker is not None and not ireq.markers:
@@ -935,9 +940,7 @@ class Line(object):
     def _parse_wheel(self):
         # type: () -> Optional[STRING_TYPE]
         if not self.is_wheel:
-            pass
-        from pip_shims.shims import Wheel
-
+            return
         _wheel = Wheel(self.link.filename)
         name = _wheel.name
         version = _wheel.version
@@ -1025,7 +1028,7 @@ class Line(object):
                 if self.is_local:
                     name = self._parse_name_from_path()
             if name is not None:
-                name, extras = pip_shims.shims._strip_extras(name)
+                name, extras = _strip_extras(name)
                 if extras is not None and not self.extras:
                     self.extras = tuple(sorted(set(parse_extras(extras))))
                 self._name = name
@@ -1062,7 +1065,7 @@ class Line(object):
         if self.ref and self._requirement is not None:
             self._requirement.revision = self.ref
             if self._vcsrepo is not None:
-                with pip_shims.shims.global_tempdir_manager():
+                with global_tempdir_manager():
                     self._requirement.revision = self._vcsrepo.get_commit_hash()
         return self._requirement
 
@@ -1123,7 +1126,7 @@ class Line(object):
                 or (os.path.exists(self.line) or os.path.isabs(self.line))
             )
         ):
-            url = pip_shims.shims.path_to_url(os.path.abspath(self.line))
+            url = path_to_url(os.path.abspath(self.line))
             self._parsed_url = parsed_url = URI.parse(url)
         elif any(
             [
@@ -1520,14 +1523,12 @@ class FileRequirement(object):
         if parsed_url.scheme == "file" and parsed_url.path:
             # This is a "file://" URI. Use url_to_path and path_to_url to
             # ensure the path is absolute. Also we need to build relpath.
-            path = Path(
-                pip_shims.shims.url_to_path(urllib_parse.urlunsplit(parsed_url))
-            ).as_posix()
+            path = Path(url_to_path(urllib_parse.urlunsplit(parsed_url))).as_posix()
             try:
                 relpath = get_converted_relative_path(path)
             except ValueError:
                 relpath = None
-            uri = pip_shims.shims.path_to_url(path)
+            uri = path_to_url(path)
         else:
             # This is a remote URI. Simply use it.
             path = None
@@ -1611,20 +1612,20 @@ class FileRequirement(object):
                     self._parsed_line._setup_info
                     and not self._parsed_line._setup_info.name
                 ):
-                    with pip_shims.shims.global_tempdir_manager():
+                    with global_tempdir_manager():
                         self._parsed_line._setup_info.get_info()
                 self._setup_info = self.parsed_line._setup_info
             elif self.parsed_line and (
                 self.parsed_line.ireq and not self.parsed_line.is_wheel
             ):
-                with pip_shims.shims.global_tempdir_manager():
+                with global_tempdir_manager():
                     self._setup_info = SetupInfo.from_ireq(
                         self.parsed_line.ireq, subdir=self.subdirectory
                     )
             else:
                 if self.link and not self.link.is_wheel:
                     self._setup_info = Line(self.line_part).setup_info
-                    with pip_shims.shims.global_tempdir_manager():
+                    with global_tempdir_manager():
                         self._setup_info.get_info()
         return self._setup_info
 
@@ -1640,7 +1641,7 @@ class FileRequirement(object):
         # type: () -> STRING_TYPE
         if self.path and not self.uri:
             self._uri_scheme = "path"
-            return pip_shims.shims.path_to_url(os.path.abspath(self.path))
+            return path_to_url(os.path.abspath(self.path))
         elif (
             getattr(self, "req", None)
             and self.req is not None
@@ -1662,8 +1663,7 @@ class FileRequirement(object):
             return self.setup_info.name
 
     @link.default
-    def get_link(self):
-        # type: () -> pip_shims.shims.Link
+    def get_link(self) -> Link:
         target = "{0}".format(self.uri)
         if hasattr(self, "name") and not self._has_hashed_name:
             target = "{0}#egg={1}".format(target, self.name)
@@ -1671,8 +1671,7 @@ class FileRequirement(object):
         return link
 
     @req.default
-    def get_requirement(self):
-        # type: () -> RequirementType
+    def get_requirement(self) -> RequirementType:
         if self.name is None:
             if self._parsed_line is not None and self._parsed_line.name is not None:
                 self.name = self._parsed_line.name
@@ -1705,7 +1704,7 @@ class FileRequirement(object):
         uri = getattr(self, "uri", None)
         if uri is None:
             if getattr(self, "path", None) and self.path is not None:
-                uri = pip_shims.shims.path_to_url(os.path.abspath(self.path))
+                uri = path_to_url(os.path.abspath(self.path))
             elif (
                 getattr(self, "req", None)
                 and self.req is not None
@@ -1784,7 +1783,7 @@ class FileRequirement(object):
             uri_scheme = "file"
 
         if not uri:
-            uri = pip_shims.shims.path_to_url(path)
+            uri = path_to_url(path)
         link_info = None  # type: Optional[LinkInfo]
         if uri and isinstance(uri, str):
             link_info = cls.get_link_from_line(uri)
@@ -1946,14 +1945,14 @@ class VCSRequirement(FileRequirement):
     _repo = attr.ib(default=None)  # type: Optional[VCSRepository]
     _base_line = attr.ib(default=None)  # type: Optional[STRING_TYPE]
     name = attr.ib()  # type: STRING_TYPE
-    link = attr.ib()  # type: Optional[pip_shims.shims.Link]
+    link = attr.ib()  # type: Optional[Link]
     req = attr.ib()  # type: Optional[RequirementType]
 
     def __attrs_post_init__(self):
         # type: () -> None
         if not self.uri:
             if self.path:
-                self.uri = pip_shims.shims.path_to_url(self.path)
+                self.uri = path_to_url(self.path)
         if self.uri is not None:
             split = urllib_parse.urlsplit(self.uri)
             scheme, rest = split[0], split[1:]
@@ -1975,9 +1974,8 @@ class VCSRequirement(FileRequirement):
         raise ValueError("No valid url found for requirement {0!r}".format(self))
 
     @link.default
-    def get_link(self):
-        # type: () -> pip_shims.shims.Link
-        uri = self.uri if self.uri else pip_shims.shims.path_to_url(self.path)
+    def get_link(self) -> Link:
+        uri = self.uri if self.uri else path_to_url(self.path)
         vcs_uri = build_vcs_uri(
             self.vcs,
             add_ssh_scheme_to_git_uri(uri),
@@ -2010,12 +2008,12 @@ class VCSRequirement(FileRequirement):
     def setup_info(self):
         if self._parsed_line and self._parsed_line.setup_info:
             if not self._parsed_line.setup_info.name:
-                with pip_shims.shims.global_tempdir_manager():
+                with global_tempdir_manager():
                     self._parsed_line._setup_info.get_info()
             return self._parsed_line.setup_info
         subdir = self.subdirectory or self.parsed_line.subdirectory
         if self._repo:
-            with pip_shims.shims.global_tempdir_manager():
+            with global_tempdir_manager():
                 self._setup_info = SetupInfo.from_ireq(
                     Line(self._repo.checkout_directory).ireq, subdir=subdir
                 )
@@ -2023,7 +2021,7 @@ class VCSRequirement(FileRequirement):
             return self._setup_info
         ireq = self.parsed_line.ireq
 
-        with pip_shims.shims.global_tempdir_manager():
+        with global_tempdir_manager():
             self._setup_info = SetupInfo.from_ireq(ireq, subdir=subdir)
         return self._setup_info
 
@@ -2120,7 +2118,7 @@ class VCSRequirement(FileRequirement):
         if self.is_local:
             path = self.path
             if not path:
-                path = pip_shims.shims.url_to_path(self.uri)
+                path = url_to_path(self.uri)
             if path and os.path.exists(path):
                 checkout_dir = os.path.abspath(path)
                 return checkout_dir
@@ -2165,7 +2163,7 @@ class VCSRequirement(FileRequirement):
 
     def get_commit_hash(self):
         # type: () -> STRING_TYPE
-        with pip_shims.shims.global_tempdir_manager():
+        with global_tempdir_manager():
             hash_ = self.repo.get_commit_hash()
         return hash_
 
@@ -2192,7 +2190,7 @@ class VCSRequirement(FileRequirement):
                 self.req = self.parsed_line.requirement
             else:
                 self.req = self.get_requirement()
-        with pip_shims.shims.global_tempdir_manager():
+        with global_tempdir_manager():
             revision = self.req.revision = vcsrepo.get_commit_hash()
 
         # Remove potential ref in the end of uri after ref is parsed
@@ -2270,7 +2268,7 @@ class VCSRequirement(FileRequirement):
                     else:
                         creation_args["path"] = target
                         if os.path.isabs(target):
-                            creation_args["uri"] = pip_shims.shims.path_to_url(target)
+                            creation_args["uri"] = path_to_url(target)
             elif key in pipfile_keys:
                 creation_args[key] = pipfile[key]
         creation_args["name"] = name
@@ -2339,7 +2337,7 @@ class VCSRequirement(FileRequirement):
 
     @property
     def pipfile_part(self):
-        # type: () -> Dict[S, Dict[S, Union[List[S], S, bool, RequirementType, pip_shims.shims.Link]]]
+        # type: () -> Dict[S, Dict[S, Union[List[S], S, bool, RequirementType, Link]]]
         excludes = [
             "_repo",
             "_base_line",
@@ -2364,7 +2362,7 @@ class VCSRequirement(FileRequirement):
                 name = self.name = self.setup_info.name
         if "vcs" in pipfile_dict:
             pipfile_dict = self._choose_vcs_source(pipfile_dict)
-        name, _ = pip_shims.shims._strip_extras(name)
+        name, _ = _strip_extras(name)
         return {name: pipfile_dict}  # type: ignore
 
 
@@ -2396,7 +2394,7 @@ class Requirement(object):
     _line_instance = attr.ib(default=None, eq=False, order=False)  # type: Optional[Line]
     _ireq = attr.ib(
         default=None, eq=False, order=False
-    )  # type: Optional[pip_shims.InstallRequirement]
+    )  # type: Optional[InstallRequirement]
 
     def __hash__(self):
         return hash(self.as_line())
@@ -2619,7 +2617,7 @@ class Requirement(object):
         if self.req is not None and (
             not isinstance(self.req, NamedRequirement) and self.req.is_local
         ):
-            with pip_shims.shims.global_tempdir_manager():
+            with global_tempdir_manager():
                 setup_info = self.run_requires()
             build_backend = setup_info.get("build_backend")
             return build_backend
@@ -2665,7 +2663,7 @@ class Requirement(object):
     @lru_cache()
     def from_line(cls, line):
         # type: (AnyStr) -> Requirement
-        if isinstance(line, pip_shims.shims.InstallRequirement):
+        if isinstance(line, InstallRequirement):
             line = format_requirement(line)
         parsed_line = Line(line)
         r = (
@@ -2822,9 +2820,6 @@ class Requirement(object):
             return Specifier(self.specifiers)
         except InvalidSpecifier:
             return LegacySpecifier(self.specifiers)
-
-    def get_version(self):
-        return pip_shims.shims.parse_version(self.get_specifier().version)
 
     def get_requirement(self):
         req_line = self.req.req.line
@@ -3001,7 +2996,7 @@ class Requirement(object):
                 from .dependencies import get_finder
 
                 finder = get_finder(sources=sources)
-            with pip_shims.shims.global_tempdir_manager():
+            with global_tempdir_manager():
                 info = SetupInfo.from_requirement(self, finder=finder)
                 if info is None:
                     return {}
