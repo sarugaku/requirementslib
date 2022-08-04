@@ -1,6 +1,7 @@
 import pytest
 from packaging.specifiers import Specifier, SpecifierSet
 from pip._internal.req.constructors import install_req_from_line
+from pip._internal.req.req_install import InstallRequirement
 
 import requirementslib
 from requirementslib.models.dependencies import (

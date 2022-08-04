@@ -358,7 +358,7 @@ def get_dependencies_from_wheel_cache(ireq):
     if ireq.editable or not is_pinned_requirement(ireq):
         return
     with _get_wheel_cache() as wheel_cache:
-        matches = wheel_cache.get(ireq.link, name_from_req(ireq.req))
+        matches = wheel_cache.get(ireq.link, name_from_req(ireq.req), ireq.markers)
         if matches:
             matches = set(matches)
             if not DEPENDENCY_CACHE.get(ireq):
@@ -574,7 +574,7 @@ def start_resolver(finder=None, session=None, wheel_cache=None):
         with global_tempdir_manager(), get_build_tracker() as build_tracker:
             if not wheel_cache:
                 wheel_cache = _get_wheel_cache()
-            _ensure_dir(fs_str(os.path.join(wheel_cache.cache_dir, "wheels")))
+            _ensure_dir(str(os.path.join(wheel_cache.cache_dir, "wheels")))
             preparer = pip_command.make_requirement_preparer(
                 temp_build_dir=_build_dir,
                 options=pip_options,

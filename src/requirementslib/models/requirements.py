@@ -2965,7 +2965,7 @@ class Requirement(object):
                 {"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}
             ]
         if is_pinned_requirement(self.ireq):
-            deps = self.get_dependencies()
+            deps = self.dependencies()
         else:
             ireq = sorted(self.find_all_matches(), key=lambda k: k.version)
             deps = get_dependencies(ireq.pop())
