@@ -79,7 +79,6 @@ known_third_party = [
   "packaging",
   "parver",
   "pep517",
-  "pip_shims",
   "platformdirs",
   "plette",
   "pyparsing",

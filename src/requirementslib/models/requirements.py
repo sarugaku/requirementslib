@@ -2929,7 +2929,7 @@ class Requirement(object):
     def ireq(self):
         return self.as_ireq()
 
-    def dependencies(self):
+    def dependencies(self, sources=None):
         """Retrieve the dependencies of the current requirement.
 
         Retrieves dependencies of the current requirement.  This only works on pinned
@@ -2940,7 +2940,11 @@ class Requirement(object):
         :return: A set of requirement strings of the dependencies of this requirement.
         :rtype: set(str)
         """
-        return get_dependencies(self.as_ireq())
+        if not sources:
+            sources = [
+                {"name": "pypi", "url": "https://pypi.org/simple", "verify_ssl": True}
+            ]
+        return get_dependencies(self.as_ireq(), sources=sources)
 
     def abstract_dependencies(self, sources=None):
         """Retrieve the abstract dependencies of this requirement.

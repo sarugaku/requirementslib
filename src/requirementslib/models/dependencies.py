@@ -18,8 +18,8 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.temp_dir import global_tempdir_manager
-from pip_shims import shims
+from pip._internal.req.req_set import RequirementSet
+from pip._internal.utils.temp_dir import TempDirectory, global_tempdir_manager
 from vistir.compat import fs_str
 from vistir.contextmanagers import temp_environ
 from vistir.path import create_tracked_tempdir
@@ -311,7 +311,7 @@ def get_abstract_dependencies(reqs, parent=None):
     return deps
 
 
-def get_dependencies(ireq):
+def get_dependencies(ireq, sources=None, parent=None):
     # type: (Union[InstallRequirement, InstallationCandidate], Optional[List[Dict[S, Union[S, bool]]]], Optional[AbstractDependency]) -> Set[S, ...]
     """Get all dependencies for a given install requirement.
 
@@ -335,7 +335,7 @@ def get_dependencies(ireq):
         get_dependencies_from_cache,
         get_dependencies_from_wheel_cache,
         get_dependencies_from_json,
-        get_dependencies_from_index,
+        functools.partial(get_dependencies_from_index, sources=sources),
     ]
     for getter in getters:
         deps = getter(ireq)
@@ -464,7 +464,69 @@ def is_python(section):
     return section.startswith("[") and ":" in section
 
 
-def get_dependencies_from_index(dep):
+def get_resolver(
+    finder, build_tracker, pip_options, session, directory, install_command=None
+):
+    wheel_cache = WheelCache(pip_options.cache_dir, pip_options.format_control)
+    if install_command is None:
+        install_command = get_pip_command()
+    preparer = install_command.make_requirement_preparer(
+        temp_build_dir=directory,
+        options=pip_options,
+        build_tracker=build_tracker,
+        session=session,
+        finder=finder,
+        use_user_site=False,
+    )
+    resolver = install_command.make_resolver(
+        preparer=preparer,
+        finder=finder,
+        options=pip_options,
+        wheel_cache=wheel_cache,
+        use_user_site=False,
+        ignore_installed=True,
+        ignore_requires_python=pip_options.ignore_requires_python,
+        force_reinstall=pip_options.force_reinstall,
+        upgrade_strategy="to-satisfy-only",
+        use_pep517=pip_options.use_pep517,
+    )
+    return resolver
+
+
+def resolve(ireq, sources, install_command, pip_options):
+    with global_tempdir_manager(), get_build_tracker() as build_tracker, TempDirectory() as directory:
+        session, finder = get_finder(
+            sources=sources, pip_command=install_command, pip_options=pip_options
+        )
+        resolver = get_resolver(
+            finder=finder,
+            build_tracker=build_tracker,
+            pip_options=pip_options,
+            session=session,
+            directory=directory,
+            install_command=install_command,
+        )
+        reqset = RequirementSet(install_command)
+        reqset.add_named_requirement(ireq)
+        resolver_args = []
+        resolver_args.append([ireq])
+        resolver_args.append(True)  # check_supported_wheels
+        if getattr(reqset, "prepare_files", None):
+            reqset.prepare_files(finder)
+            result = reqset.requirements
+            reqset.cleanup_files()
+            return result
+        result_reqset = resolver.resolve(*resolver_args)
+        if result_reqset is None:
+            result_reqset = reqset
+        results = result_reqset.requirements
+        cleanup_fn = getattr(reqset, "cleanup_files", None)
+        if cleanup_fn is not None:
+            cleanup_fn()
+        return results
+
+
+def get_dependencies_from_index(dep, sources=None, pip_options=None, wheel_cache=None):
     """Retrieves dependencies for the given install requirement from the pip
     resolver.
 
@@ -475,6 +537,9 @@ def get_dependencies_from_index(dep):
     :return: A set of dependency lines for generating new InstallRequirements.
     :rtype: set(str) or None
     """
+    install_command = get_pip_command()
+    if pip_options is None:
+        pip_options = get_pip_options(sources=sources, pip_command=install_command)
     dep.is_direct = True
     setup_requires = {}
     with temp_environ():
@@ -485,7 +550,12 @@ def get_dependencies_from_index(dep):
             setup_requires.update(results["setup_requires"])
             requirements = set(results["requires"].values())
         else:
-            results = shims.resolve(dep)
+            results = resolve(
+                dep,
+                sources=sources,
+                install_command=install_command,
+                pip_options=pip_options,
+            )
             requirements = [v for v in results.values() if v.name != dep.name]
         requirements = set([format_requirement(r) for r in requirements])
     if not dep.editable and is_pinned_requirement(dep) and requirements is not None:
