@@ -1,7 +1,9 @@
 import pytest
 from packaging.specifiers import Specifier, SpecifierSet
-from pip._internal.req.constructors import install_req_from_line
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.constructors import (
+    install_req_from_editable,
+    install_req_from_line,
+)
 
 import requirementslib
 from requirementslib.models.dependencies import (
@@ -88,7 +90,7 @@ def test_get_deps_from_index():
 
 @pytest.mark.needs_internet
 def test_get_editable_from_index():
-    r = InstallRequirement.from_editable(
+    r = install_req_from_editable(
         "git+https://github.com/requests/requests.git#egg=requests[security]"
     )
     deps = get_dependencies_from_index(r)
