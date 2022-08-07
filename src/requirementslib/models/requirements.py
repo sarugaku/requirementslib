@@ -20,6 +20,7 @@ from packaging.specifiers import (
     SpecifierSet,
 )
 from packaging.utils import canonicalize_name
+from packaging.version import parse
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
@@ -2821,6 +2822,9 @@ class Requirement(object):
             return Specifier(self.specifiers)
         except InvalidSpecifier:
             return LegacySpecifier(self.specifiers)
+
+    def get_version(self):
+        return parse(self.get_specifier().version)
 
     def get_requirement(self):
         req_line = self.req.req.line
