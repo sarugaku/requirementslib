@@ -1,8 +1,8 @@
-# -*- coding=utf-8 -*-
 from contextlib import contextmanager
 
 import attr
-from pip_shims.shims import Wheel
+from pip._internal.models.wheel import Wheel
+from pip._internal.vcs.versioncontrol import VcsSupport
 
 from .cache import HashCache
 from .utils import format_requirement, is_pinned_requirement, version_from_ireq
@@ -198,8 +198,6 @@ class DependencyResolver(object):
 
         if ireq.editable:
             return set()
-
-        from pip_shims import VcsSupport
 
         vcs = VcsSupport()
         if (

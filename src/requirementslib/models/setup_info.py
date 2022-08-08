@@ -1,6 +1,3 @@
-# -*- coding=utf-8 -*-
-from __future__ import absolute_import, print_function
-
 import ast
 import atexit
 import configparser
@@ -23,8 +20,10 @@ from distlib.wheel import Wheel
 from packaging.markers import Marker
 from packaging.specifiers import SpecifierSet
 from packaging.version import parse
-from pip_shims import shims
-from pip_shims.utils import call_function_with_correct_args
+from pip._internal.commands.install import InstallCommand
+from pip._internal.network.download import Downloader
+from pip._internal.utils.temp_dir import global_tempdir_manager
+from pip._internal.utils.urls import url_to_path
 from platformdirs import user_cache_dir
 from vistir.contextmanagers import cd, temp_path
 from vistir.misc import run
@@ -32,6 +31,8 @@ from vistir.path import create_tracked_tempdir, ensure_mkdir_p, mkdir_p, rmtree
 
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
+from ..utils import get_pip_command
+from .old_pip_utils import old_unpack_url
 from .utils import (
     get_default_pyproject_backend,
     get_name_variants,
@@ -73,7 +74,8 @@ if MYPY_RUNNING:
 
     import requests
     from packaging.requirements import Requirement as PackagingRequirement
-    from pip_shims.shims import InstallRequirement, PackageFinder
+    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.req.req_install import InstallRequirement
     from pkg_resources import DistInfoDistribution, EggInfoDistribution, PathMetadata
     from pkg_resources import Requirement as PkgResourcesRequirement
 
@@ -1510,10 +1512,10 @@ build-backend = "{1}"
             return None
         stack = ExitStack()
         if not session:
-            cmd = shims.InstallCommand()
+            cmd = get_pip_command()
             options, _ = cmd.parser.parse_args([])
             session = cmd._build_session(options)
-        stack.enter_context(shims.global_tempdir_manager())
+        stack.enter_context(global_tempdir_manager())
         vcs, uri = split_vcs_method_from_uri(ireq.link.url_without_fragment)
         parsed = urlparse(uri)
         if "file" in parsed.scheme:
@@ -1528,19 +1530,17 @@ build-backend = "{1}"
             is_file = True
             if "file:/" in uri and "file:///" not in uri:
                 uri = uri.replace("file:/", "file:///")
-            path = shims.url_to_path(uri)
+            path = url_to_path(uri)
         kwargs = _prepare_wheel_building_kwargs(ireq)
         is_artifact_or_vcs = getattr(
             ireq.link, "is_vcs", getattr(ireq.link, "is_artifact", False)
         )
         is_vcs = True if vcs else is_artifact_or_vcs
-
+        download_dir = None
         if not (ireq.editable and is_file and is_vcs):
             if ireq.is_wheel:
-                only_download = True
                 download_dir = kwargs["wheel_download_dir"]
             else:
-                only_download = False
                 download_dir = kwargs["download_dir"]
         elif path is not None and os.path.isdir(path):
             raise RequirementError(
@@ -1561,32 +1561,19 @@ build-backend = "{1}"
                 "autodelete": False,
                 "parallel_builds": True,
             }
-            call_function_with_correct_args(build_location_func, **build_kwargs)
+            build_location_func(**build_kwargs)
             ireq.ensure_has_source_dir(kwargs["src_dir"])
-            try:  # Support for pip >= 21.1
-                from pip._internal.network.download import Downloader
-
-                from requirementslib.models.old_pip_utils import old_unpack_url
-
-                location = None
-                if getattr(ireq, "source_dir", None):
-                    location = ireq.source_dir
-                old_unpack_url(
-                    link=ireq.link,
-                    location=location,
-                    download=Downloader(session, "off"),
-                    verbosity=1,
-                    download_dir=download_dir,
-                    hashes=ireq.hashes(True),
-                )
-            except ImportError:
-                shims.shim_unpack(
-                    download_dir=download_dir,
-                    ireq=ireq,
-                    only_download=only_download,
-                    session=session,
-                    hashes=ireq.hashes(False),
-                )
+            location = None
+            if getattr(ireq, "source_dir", None):
+                location = ireq.source_dir
+            old_unpack_url(
+                link=ireq.link,
+                location=location,
+                download=Downloader(session, "off"),
+                verbosity=1,
+                download_dir=download_dir,
+                hashes=ireq.hashes(True),
+            )
         created = cls.create(
             ireq.source_dir, subdirectory=subdir, ireq=ireq, kwargs=kwargs, stack=stack
         )
