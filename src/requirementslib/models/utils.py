@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function
+
 import io
 import os
 import re
@@ -13,8 +16,6 @@ from attr import validators
 from packaging.markers import InvalidMarker, Marker, Op, Value, Variable
 from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 from packaging.version import parse as parse_version
-from pip._internal.models.link import Link
-from pip._internal.req.constructors import install_req_from_line
 from plette.models import Package, PackageCollection
 from tomlkit.container import Container
 from tomlkit.items import AoT, Array, Bool, InlineTable, Item, String, Table
@@ -49,6 +50,7 @@ if MYPY_RUNNING:
     from packaging.markers import Value as PkgResourcesValue
     from packaging.markers import Variable as PkgResourcesVariable
     from packaging.requirements import Requirement as PackagingRequirement
+    from pip_shims.shims import Link
     from pkg_resources import Requirement as PkgResourcesRequirement
     from urllib3.util.url import Url
 
@@ -113,6 +115,7 @@ def create_link(link):
 
     if not isinstance(link, str):
         raise TypeError("must provide a string to instantiate a new link")
+    from pip_shims.shims import Link  # noqa: F811
 
     return Link(link)
 
@@ -306,11 +309,11 @@ def convert_direct_url_to_url(direct_url):
     # type: (AnyStr) -> AnyStr
     """Converts direct URLs to standard, link-style URLs.
 
-    Given a direct url as defined by *PEP 508*, convert to a :class:`Link`
+    Given a direct url as defined by *PEP 508*, convert to a :class:`~pip_shims.shims.Link`
     compatible URL by moving the name and extras into an **egg_fragment**.
 
     :param str direct_url: A pep-508 compliant direct url.
-    :return: A reformatted URL for use with Link objects and :class:`InstallRequirement` objects.
+    :return: A reformatted URL for use with Link objects and :class:`~pip_shims.shims.InstallRequirement` objects.
     :rtype: AnyStr
     """
     direct_match = DIRECT_URL_RE.match(direct_url)  # type: Optional[Match]
@@ -347,10 +350,10 @@ def convert_url_to_direct_url(url, name=None):
     # type: (AnyStr, Optional[AnyStr]) -> AnyStr
     """Converts normal link-style URLs to direct urls.
 
-    Given a :class:`Link` compatible URL, convert to a direct url as
+    Given a :class:`~pip_shims.shims.Link` compatible URL, convert to a direct url as
     defined by *PEP 508* by extracting the name and extras from the **egg_fragment**.
 
-    :param AnyStr url: A :class:`InstallRequirement` compliant URL.
+    :param AnyStr url: A :class:`~pip_shims.shims.InstallRequirement` compliant URL.
     :param Optiona[AnyStr] name: A name to use in case the supplied URL doesn't provide one.
     :return: A pep-508 compliant direct url.
     :rtype: AnyStr
@@ -868,6 +871,11 @@ def make_install_requirement(
     :return: A generated InstallRequirement
     :rtype: :class:`~pip._internal.req.req_install.InstallRequirement`
     """
+
+    # If no extras are specified, the extras string is blank
+    from pip_shims.shims import install_req_from_line
+
+    extras_string = ""
     requirement_string = "{0}".format(name)
     if extras:
         # Sort extras for stability
