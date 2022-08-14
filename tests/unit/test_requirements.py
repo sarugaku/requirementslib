@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from pip_shims import shims
 from vistir.contextmanagers import temp_environ
 
 from requirementslib.exceptions import RequirementError
@@ -193,18 +192,6 @@ def mock_run_requires(cls):
     return {}
 
 
-def mock_unpack(
-    link,
-    source_dir,
-    download_dir,
-    only_download=False,
-    session=None,
-    hashes=None,
-    progress_bar="off",
-):
-    return
-
-
 @pytest.mark.utils
 @pytest.mark.parametrize("expected, requirement", DEP_PIP_PAIRS)
 def test_convert_from_pip(monkeypatch, expected, requirement):
@@ -212,7 +199,6 @@ def test_convert_from_pip(monkeypatch, expected, requirement):
         m.setattr(Requirement, "run_requires", mock_run_requires)
         m.setattr(SetupInfo, "get_info", mock_run_requires)
         m.setattr(Line, "get_setup_info", mock_run_requires)
-        m.setattr(shims, "unpack_url", mock_unpack)
         pkg_name = next(iter(expected.keys()))
         pkg_pipfile = expected[pkg_name]
         line = Line(requirement)
@@ -234,7 +220,6 @@ def test_convert_from_pip(monkeypatch, expected, requirement):
 )
 def test_convert_from_pipfile(monkeypatch, requirement, expected):
     with monkeypatch.context() as m:
-        m.setattr(shims, "unpack_url", mock_unpack)
         m.setattr(SetupInfo, "get_info", mock_run_requires)
         m.setattr(Requirement, "run_requires", mock_run_requires)
         pkg_name = next(iter(requirement.keys()))
@@ -250,7 +235,6 @@ def test_convert_from_pipfile(monkeypatch, requirement, expected):
 def test_convert_from_pipfile_vcs(monkeypatch):
     """ssh VCS links should be converted correctly."""
     with monkeypatch.context() as m:
-        m.setattr(shims, "unpack_url", mock_unpack)
         pkg_name = "shellingham"
         pkg_pipfile = {"editable": True, "git": "git@github.com:sarugaku/shellingham.git"}
         req = Requirement.from_pipfile(pkg_name, pkg_pipfile)
@@ -294,7 +278,6 @@ def test_convert_from_pip_git_uri_normalize(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(Requirement, "run_requires", mock_run_requires)
         m.setattr(SetupInfo, "get_info", mock_run_requires)
-        m.setattr(shims, "unpack_url", mock_unpack)
         dep = "git+git@host:user/repo.git#egg=myname"
         dep = Requirement.from_line(dep).as_pipfile()
         assert dep == {"myname": {"git": "git@host:user/repo.git"}}
@@ -304,7 +287,6 @@ def test_convert_from_pip_git_uri_normalize(monkeypatch):
 @pytest.mark.requirements
 def test_get_requirements(monkeypatch_if_needed):
     # Test eggs in URLs
-    # m.setattr(shims, "unpack_url", mock_unpack)
     # m.setattr(SetupInfo, "get_info", mock_run_requires)
     url_with_egg = Requirement.from_line(
         "https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip#egg=django-user-clipboard"
@@ -433,7 +415,6 @@ def test_stdout_is_suppressed(capsys, tmpdir):
 
 def test_local_editable_ref(monkeypatch):
     with monkeypatch.context() as m:
-        m.setattr(shims, "unpack_url", mock_unpack)
         path = Path(ARTIFACTS_DIR) / "git/requests"
         req = Requirement.from_pipfile(
             "requests", {"editable": True, "git": path.as_uri(), "ref": "2.18.4"}

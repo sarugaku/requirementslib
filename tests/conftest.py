@@ -11,7 +11,6 @@ import shutil
 import warnings
 
 import distlib.wheel
-import pip_shims
 import pytest
 import requests
 import vistir
@@ -114,7 +113,6 @@ def monkeypatch_if_needed(monkeypatch):
 
     with monkeypatch.context() as m:
         if SKIP_INTERNET:
-            m.setattr(pip_shims.shims, "unpack_url", mock_unpack)
             m.setattr(SetupInfo, "get_info", mock_run_requires)
         yield
 
