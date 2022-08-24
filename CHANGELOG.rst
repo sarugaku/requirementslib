@@ -1,3 +1,25 @@
+Requirementslib 2.0.0 (2022-08-24)
+==================================
+
+
+Features
+--------
+
+- ``requirementslib`` has converted off of pip-shims project which had grown into a complicated interface to using ``pip``.
+  It was problematic because ``pip-shims`` could never foresee and accommodate future looking changes to internal interfaces of ``pip``.
+  Also, ``pip-shims`` slowed down this library and required downstream tools such as ``pipenv`` to continue vendoring it despite having already dropped usages.
+  Due to the impact of this change, it requires a major version increase of ``requirementslib`` to ``2.0.0``
+  To utilize version ``2.0.0`` of ``requirementslib``, ensure you have ``pip>=22.2`` as this has not been fully tested to support earlier versions of ``pip``
+  Breakage of the internal ``pip`` interface usage is possible with earlier versions.
+  Additionally, the interface on ``NamedRequierment`` renamed class method ``get_dependencies`` to ``dependencies`` and ``get_abstract_dependencies`` to ``abstract_dependencies`` in order to match interface with ``Line`` class and avoid naming collision with the utility methods they call.  `#334 <https://github.com/sarugaku/requirementslib/issues/334>`_
+  
+
+Bug Fixes
+---------
+
+- ``requirementslib`` adjusted code paths to prevent import of ``setuptools`` that causes issues when upgrading ``setuptools``.  `#339 <https://github.com/sarugaku/requirementslib/issues/339>`_
+
+
 Requirementslib 1.6.9 (2022-07-27)
 ==================================
 

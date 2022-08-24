@@ -109,8 +109,8 @@ def _render_log():
         False,  # Don't add newlines to wrapped text.
         {
             "name": "requirementslib",
-            "version": "1.6.9",
-            "date": "2022-7-27",
+            "version": "2.0.0",
+            "date": "2022-8-24",
         },  # towncrier==19.9.0
     )
     return rendered
