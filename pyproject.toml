@@ -70,7 +70,6 @@ known_third_party = [
   "attr",
   "cached_property",
   "chardet",
-  "dateutil",
   "distlib",
   "environ",
   "hypothesis",
