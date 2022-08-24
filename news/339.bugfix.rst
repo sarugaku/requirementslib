@@ -1,0 +1,1 @@
+``requirementslib`` adjusted code paths to prevent import of ``setuptools`` that causes issues when upgrading ``setuptools``.
