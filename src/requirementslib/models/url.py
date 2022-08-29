@@ -6,7 +6,6 @@ from urllib.parse import unquote as url_unquote
 from urllib.parse import unquote_plus
 
 import attr
-from orderedmultidict import omdict
 from pip._internal.models.link import Link
 from pip._internal.req.constructors import _strip_extras
 from urllib3.util import parse_url as urllib3_parse
