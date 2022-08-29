@@ -1,3 +1,13 @@
+Requirementslib 2.0.1 (2022-08-29)
+==================================
+
+
+Bug Fixes
+---------
+
+- Fix bug with local file installs that are not marked ``editable = "true"`` getting an unexpected ``#egg`` fragment.  `#342 <https://github.com/sarugaku/requirementslib/issues/342>`_
+
+
 Requirementslib 2.0.0 (2022-08-24)
 ==================================
 
