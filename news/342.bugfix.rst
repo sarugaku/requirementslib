@@ -1,0 +1,1 @@
+Fix bug with local file installs that are not marked ``editable = "true"`` getting an unexpected ``#egg`` fragment.
