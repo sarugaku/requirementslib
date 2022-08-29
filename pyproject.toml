@@ -74,7 +74,6 @@ known_third_party = [
   "environ",
   "hypothesis",
   "invoke",
-  "orderedmultidict",
   "packaging",
   "parver",
   "pep517",
