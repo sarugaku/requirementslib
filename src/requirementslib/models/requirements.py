@@ -1286,7 +1286,6 @@ class Line(object):
         if self.markers:
             self.markers = self.markers.replace('"', "'")
         self.parse_extras()
-        self.line = self.line.strip('"').strip("'").strip()
         if self.line.startswith("git+file:/") and not self.line.startswith(
             "git+file:///"
         ):
