@@ -11,7 +11,7 @@ from functools import reduce
 from typing import Sequence
 
 import attr
-from distlib import metadata
+from distlib.metadata import Metadata
 from distlib import wheel
 import requests
 import vistir
@@ -135,7 +135,7 @@ def validate_digest(inst, attrib, value):
 
 
 def get_local_wheel_metadata(wheel_file):
-    # type: (str) -> Optional[metadata.Metadata]
+    # type: (str) -> Optional[Metadata]
     parsed_metadata = None
     with io.open(wheel_file, "rb") as fh:
         with zipfile.ZipFile(fh, mode="r", compression=zipfile.ZIP_DEFLATED) as zf:
@@ -147,7 +147,7 @@ def get_local_wheel_metadata(wheel_file):
             if metadata is None:
                 raise RuntimeError("No metadata found in wheel: {0}".format(wheel_file))
             with zf.open(metadata, "r") as metadata_fh:
-                parsed_metadata = metadata.Metadata(fileobj=metadata_fh)
+                parsed_metadata = Metadata(fileobj=metadata_fh)
     return parsed_metadata
 
 
@@ -163,7 +163,7 @@ def get_remote_sdist_metadata(line):
 
 
 def get_remote_wheel_metadata(whl_file):
-    # type: (str) -> Optional[metadata.Metadata]
+    # type: (str) -> Optional[Metadata]
     parsed_metadata = None
     data = io.BytesIO()
     with vistir.contextmanagers.open_file(whl_file) as fp:
@@ -178,7 +178,7 @@ def get_remote_wheel_metadata(whl_file):
         if metadata is None:
             raise RuntimeError("No metadata found in wheel: {0}".format(whl_file))
         with zf.open(metadata, "r") as metadata_fh:
-            parsed_metadata = metadata.Metadata(fileobj=metadata_fh)
+            parsed_metadata = Metadata(fileobj=metadata_fh)
     return parsed_metadata
 
 
