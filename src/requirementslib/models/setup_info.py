@@ -65,10 +65,7 @@ if MYPY_RUNNING:
 
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.req.req_install import InstallRequirement
-    from pip._vendor.pkg_resources import (
-        DistInfoDistribution,
-        EggInfoDistribution,
-    )
+    from pip._vendor.pkg_resources import DistInfoDistribution, EggInfoDistribution
     from pip._vendor.requests import Session
 
     try:
