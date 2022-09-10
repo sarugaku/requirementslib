@@ -21,11 +21,11 @@ from pip._internal.network.download import Downloader
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.urls import url_to_path
 from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import parse
 from pip._vendor.pkg_resources import (
     PathMetadata,
+    Requirement,
     distributions_from_metadata,
     find_distributions,
 )
@@ -65,6 +65,7 @@ if MYPY_RUNNING:
 
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.req.req_install import InstallRequirement
+    from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
     from pip._vendor.pkg_resources import DistInfoDistribution, EggInfoDistribution
     from pip._vendor.requests import Session
 
@@ -74,7 +75,7 @@ if MYPY_RUNNING:
         from distutils.core import Distribution
 
     TRequirement = TypeVar("TRequirement")
-    RequirementType = TypeVar("RequirementType", covariant=True, bound=Requirement)
+    RequirementType = TypeVar("RequirementType", covariant=True, bound=PackagingRequirement)
     MarkerType = TypeVar("MarkerType", covariant=True, bound=Marker)
     STRING_TYPE = Union[str, bytes, Text]
     S = TypeVar("S", bytes, str, Text)
