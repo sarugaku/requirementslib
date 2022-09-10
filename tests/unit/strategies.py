@@ -9,13 +9,11 @@ from collections import namedtuple
 from urllib import parse as urllib_parse
 
 import vistir
-from hypothesis import assume
 from hypothesis import strategies as st
 from hypothesis.provisional import URL_SAFE_CHARACTERS, domains
-from hypothesis.provisional import urls as url_strategy
-from packaging.markers import MARKER_OP, VARIABLE
-from packaging.specifiers import Specifier
-from packaging.version import parse as parse_version
+from pip._vendor.packaging.markers import MARKER_OP, VARIABLE
+from pip._vendor.packaging.specifiers import Specifier
+from pip._vendor.packaging.version import parse as parse_version
 from pyparsing import Literal, MatchFirst, ParseExpression, ParserElement
 
 from requirementslib.models.url import URI
