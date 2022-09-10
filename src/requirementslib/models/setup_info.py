@@ -24,6 +24,7 @@ from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import parse
 from pip._vendor.pkg_resources import (
+    PathMetadata,
     Requirement,
     distributions_from_metadata,
     find_distributions,
@@ -67,7 +68,6 @@ if MYPY_RUNNING:
     from pip._vendor.pkg_resources import (
         DistInfoDistribution,
         EggInfoDistribution,
-        PathMetadata,
     )
     from pip._vendor.requests import Session
 
