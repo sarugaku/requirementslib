@@ -7,9 +7,6 @@ from json import JSONDecodeError
 
 import attr
 import requests
-from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import parse
 from pip._internal.cache import WheelCache
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.build.build_tracker import get_build_tracker
@@ -17,6 +14,9 @@ from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.utils.temp_dir import TempDirectory, global_tempdir_manager
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import parse
 from vistir.compat import fs_str
 from vistir.contextmanagers import temp_environ
 from vistir.path import create_tracked_tempdir
@@ -42,21 +42,12 @@ from .utils import (
 )
 
 if MYPY_RUNNING:
-    from typing import (
-        Any,
-        Dict,
-        List,
-        Optional,
-        Set,
-        Text,
-        TypeVar,
-        Union,
-    )
+    from typing import Any, Dict, List, Optional, Set, Text, TypeVar, Union
 
-    from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
     from pip._internal.commands import Command
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.candidate import InstallationCandidate
+    from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 
     TRequirement = TypeVar("TRequirement")
     RequirementType = TypeVar(

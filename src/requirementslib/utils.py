@@ -202,9 +202,7 @@ def get_dist_metadata(dist):
 
     from pip._vendor.pkg_resources import DistInfoDistribution
 
-    if isinstance(dist, DistInfoDistribution) and dist.has_metadata(
-        "METADATA"
-    ):
+    if isinstance(dist, DistInfoDistribution) and dist.has_metadata("METADATA"):
         metadata = dist.get_metadata("METADATA")
     elif dist.has_metadata("PKG-INFO"):
         metadata = dist.get_metadata("PKG-INFO")

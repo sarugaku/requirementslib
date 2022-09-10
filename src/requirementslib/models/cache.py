@@ -5,10 +5,10 @@ import json
 import os
 
 import vistir
-from pip._vendor.packaging.requirements import Requirement
 from pip._internal.utils.hashes import FAVORITE_HASH
 from pip._internal.vcs.versioncontrol import VcsSupport
 from pip._vendor.cachecontrol.cache import DictCache
+from pip._vendor.packaging.requirements import Requirement
 from platformdirs import user_cache_dir
 
 from .utils import as_tuple, get_pinned_version, key_from_req, lookup_table

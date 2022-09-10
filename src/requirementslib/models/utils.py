@@ -9,13 +9,13 @@ from pathlib import Path
 
 import tomlkit
 from attr import validators
+from pip._internal.models.link import Link
+from pip._internal.req.constructors import install_req_from_line
 from pip._vendor.packaging.markers import InvalidMarker, Marker, Op, Value, Variable
+from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
-from pip._internal.models.link import Link
-from pip._internal.req.constructors import install_req_from_line
-from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.pkg_resources import Requirement, get_distribution, safe_name
 from plette.models import Package, PackageCollection
 from tomlkit.container import Container

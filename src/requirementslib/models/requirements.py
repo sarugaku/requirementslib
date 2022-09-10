@@ -11,16 +11,6 @@ from urllib.parse import unquote
 
 import attr
 from cached_property import cached_property
-from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
-from pip._vendor.packaging.specifiers import (
-    InvalidSpecifier,
-    LegacySpecifier,
-    Specifier,
-    SpecifierSet,
-)
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import parse
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
@@ -31,6 +21,16 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.urls import path_to_url, url_to_path
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
+from pip._vendor.packaging.specifiers import (
+    InvalidSpecifier,
+    LegacySpecifier,
+    Specifier,
+    SpecifierSet,
+)
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import parse
 from vistir.contextmanagers import temp_path
 from vistir.misc import dedup
 from vistir.path import (

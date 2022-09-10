@@ -6,7 +6,9 @@ import os
 import shutil
 import sys
 from collections.abc import Iterable, Mapping
+from contextlib import ExitStack
 from functools import lru_cache
+from os import scandir
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse, urlunparse
 from weakref import finalize
@@ -15,13 +17,17 @@ import attr
 import pep517.envbuild
 import pep517.wrappers
 from distlib.wheel import Wheel
-from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.version import parse
 from pip._internal.network.download import Downloader
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.urls import url_to_path
-from pip._vendor.pkg_resources import Requirement, find_distributions, distributions_from_metadata
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.version import parse
+from pip._vendor.pkg_resources import (
+    Requirement,
+    distributions_from_metadata,
+    find_distributions,
+)
 from platformdirs import user_cache_dir
 from vistir.contextmanagers import cd, temp_path
 from vistir.misc import run
@@ -39,10 +45,6 @@ from .utils import (
     split_vcs_method_from_uri,
     strip_extras_markers_from_requirement,
 )
-
-
-from contextlib import ExitStack
-from os import scandir
 
 if MYPY_RUNNING:
     from typing import (
@@ -62,8 +64,12 @@ if MYPY_RUNNING:
 
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.req.req_install import InstallRequirement
+    from pip._vendor.pkg_resources import (
+        DistInfoDistribution,
+        EggInfoDistribution,
+        PathMetadata,
+    )
     from pip._vendor.requests import Session
-    from pip._vendor.pkg_resources import DistInfoDistribution, EggInfoDistribution, PathMetadata
 
     try:
         from setuptools.dist import Distribution
@@ -71,9 +77,7 @@ if MYPY_RUNNING:
         from distutils.core import Distribution
 
     TRequirement = TypeVar("TRequirement")
-    RequirementType = TypeVar(
-        "RequirementType", covariant=True, bound=Requirement
-    )
+    RequirementType = TypeVar("RequirementType", covariant=True, bound=Requirement)
     MarkerType = TypeVar("MarkerType", covariant=True, bound=Marker)
     STRING_TYPE = Union[str, bytes, Text]
     S = TypeVar("S", bytes, str, Text)

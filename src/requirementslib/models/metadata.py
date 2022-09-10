@@ -11,10 +11,10 @@ from functools import reduce
 from typing import Sequence
 
 import attr
-from distlib.metadata import Metadata
-from distlib import wheel
 import requests
 import vistir
+from distlib import wheel
+from distlib.metadata import Metadata
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.packaging.specifiers import Specifier, SpecifierSet
@@ -856,8 +856,8 @@ class ReleaseCollection(object):
     def wheels(self):
         # type: () -> Iterator[ReleaseUrl]
         for release in self.sort_releases():
-            for wheel in release.wheels:
-                yield wheel
+            for w in release.wheels:
+                yield w
 
     def sdists(self):
         # type: () -> Iterator[ReleaseUrl]
@@ -1058,8 +1058,8 @@ class Package(object):
     @property
     def latest_wheels(self):
         # type: () -> Iterator[ReleaseUrl]
-        for wheel in self.urls.wheels:
-            yield wheel
+        for w in self.urls.wheels:
+            yield w
 
     @property
     def dependencies(self):
