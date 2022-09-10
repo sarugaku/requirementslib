@@ -256,11 +256,11 @@ class Dependency(object):
                 markers = [marker_from_specifier(str(s)) for s in specifiers]
             py_version_part = reduce(merge_markers, markers)
         if self.markers:
-            line_str = "{0}; {1}".format(line_str, str(self.markers))
+            line_str = "{0} ; {1}".format(line_str, str(self.markers))
             if py_version_part:
                 line_str = "{0} and {1}".format(line_str, py_version_part)
         elif py_version_part and not self.markers:
-            line_str = "{0}; {1}".format(line_str, py_version_part)
+            line_str = "{0} ; {1}".format(line_str, py_version_part)
         return line_str
 
     def pin(self):
@@ -348,7 +348,7 @@ class Dependency(object):
                     marker_str = "{0!s}".format(marker)
         req_str = "{0}=={1}".format(info.name, info.version)
         if marker_str:
-            req_str = "{0}; {1}".format(req_str, marker_str)
+            req_str = "{0} ; {1}".format(req_str, marker_str)
         req = PackagingRequirement(req_str)
         requires_python_str = (
             info.requires_python if info.requires_python is not None else ""
@@ -568,7 +568,7 @@ class ReleaseUrl(object):
         markers = self.markers
         req_str = "{0} @ {1}#egg={0}".format(self.name, self.url)
         if markers:
-            req_str = "{0}; {1}".format(req_str, markers)
+            req_str = "{0} ; {1}".format(req_str, markers)
         return req_str
 
     def get_markers_from_wheel(self):
