@@ -11,16 +11,16 @@ from urllib.parse import unquote
 
 import attr
 from cached_property import cached_property
-from packaging.markers import Marker
-from packaging.requirements import Requirement as PackagingRequirement
-from packaging.specifiers import (
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
+from pip._vendor.packaging.specifiers import (
     InvalidSpecifier,
     LegacySpecifier,
     Specifier,
     SpecifierSet,
 )
-from packaging.utils import canonicalize_name
-from packaging.version import parse
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import parse
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
@@ -60,7 +60,6 @@ from .setup_info import (
     _prepare_wheel_building_kwargs,
     ast_parse_setup_py,
     get_metadata,
-    parse_setup_cfg,
 )
 from .url import URI
 from .utils import (

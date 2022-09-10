@@ -10,8 +10,8 @@ import attr
 import plette
 import plette.models
 import tomlkit
-from packaging.markers import Marker
-from packaging.utils import canonicalize_name
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.utils import canonicalize_name
 
 SectionDifference = collections.namedtuple("SectionDifference", ["inthis", "inthat"])
 FileDifference = collections.namedtuple("FileDifference", ["default", "develop"])

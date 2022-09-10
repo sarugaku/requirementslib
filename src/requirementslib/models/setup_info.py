@@ -2,13 +2,11 @@ import ast
 import atexit
 import configparser
 import contextlib
-import importlib
-import operator
 import os
 import shutil
 import sys
 from collections.abc import Iterable, Mapping
-from functools import lru_cache, partial
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse, urlunparse
 from weakref import finalize
@@ -17,13 +15,13 @@ import attr
 import pep517.envbuild
 import pep517.wrappers
 from distlib.wheel import Wheel
-from packaging.markers import Marker
-from packaging.specifiers import SpecifierSet
-from packaging.version import parse
-from pip._internal.commands.install import InstallCommand
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.version import parse
 from pip._internal.network.download import Downloader
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.urls import url_to_path
+from pip._vendor.pkg_resources import Requirement, find_distributions, distributions_from_metadata
 from platformdirs import user_cache_dir
 from vistir.contextmanagers import cd, temp_path
 from vistir.misc import run
@@ -42,10 +40,6 @@ from .utils import (
     strip_extras_markers_from_requirement,
 )
 
-try:
-    import pkg_resources.extern.packaging.requirements as pkg_resources_requirements
-except ModuleNotFoundError:
-    pkg_resources_requirements = None
 
 from contextlib import ExitStack
 from os import scandir
@@ -66,12 +60,10 @@ if MYPY_RUNNING:
         Union,
     )
 
-    import requests
-    from packaging.requirements import Requirement as PackagingRequirement
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.req.req_install import InstallRequirement
-    from pkg_resources import DistInfoDistribution, EggInfoDistribution, PathMetadata
-    from pkg_resources import Requirement as PkgResourcesRequirement
+    from pip._vendor.requests import Session
+    from pip._vendor.pkg_resources import DistInfoDistribution, EggInfoDistribution, PathMetadata
 
     try:
         from setuptools.dist import Distribution
@@ -80,7 +72,7 @@ if MYPY_RUNNING:
 
     TRequirement = TypeVar("TRequirement")
     RequirementType = TypeVar(
-        "RequirementType", covariant=True, bound=PackagingRequirement
+        "RequirementType", covariant=True, bound=Requirement
     )
     MarkerType = TypeVar("MarkerType", covariant=True, bound=Marker)
     STRING_TYPE = Union[str, bytes, Text]
@@ -157,9 +149,7 @@ def make_base_requirements(reqs):
     for req in reqs:
         if isinstance(req, BaseRequirement):
             requirements.add(req)
-        elif pkg_resources_requirements is not None and isinstance(
-            req, pkg_resources_requirements.Requirement
-        ):
+        elif isinstance(req, Requirement):
             requirements.add(BaseRequirement.from_req(req))
         elif req and isinstance(req, str) and not req.startswith("#"):
             requirements.add(BaseRequirement.from_string(req))
@@ -585,8 +575,7 @@ def _get_src_dir(root):
 
 @lru_cache()
 def ensure_reqs(reqs):
-    # type: (List[Union[S, PkgResourcesRequirement]]) -> List[PkgResourcesRequirement]
-    import pkg_resources
+    # type: (List[Union[S, Requirement]]) -> List[Requirement]
 
     if not isinstance(reqs, Iterable):
         raise TypeError("Expecting an Iterable, got %r" % reqs)
@@ -595,7 +584,7 @@ def ensure_reqs(reqs):
         if not req:
             continue
         if isinstance(req, str):
-            req = pkg_resources.Requirement.parse("{0}".format(str(req)))
+            req = Requirement.parse("{0}".format(str(req)))
         # req = strip_extras_markers_from_requirement(req)
         new_reqs.append(req)
     return new_reqs
@@ -731,13 +720,12 @@ def find_distinfo(target, pkg_name=None):
 
 def get_distinfo_dist(path, pkg_name=None):
     # type: (S, Optional[S]) -> Optional[DistInfoDistribution]
-    import pkg_resources
 
     dist_dir = next(iter(find_distinfo(path, pkg_name=pkg_name)), None)
     if dist_dir is not None:
         metadata_dir = dist_dir.path
         base_dir = os.path.dirname(metadata_dir)
-        dist = next(iter(pkg_resources.find_distributions(base_dir)), None)
+        dist = next(iter(find_distributions(base_dir)), None)
         if dist is not None:
             return dist
     return None
@@ -745,14 +733,13 @@ def get_distinfo_dist(path, pkg_name=None):
 
 def get_egginfo_dist(path, pkg_name=None):
     # type: (S, Optional[S]) -> Optional[EggInfoDistribution]
-    import pkg_resources
 
     egg_dir = next(iter(find_egginfo(path, pkg_name=pkg_name)), None)
     if egg_dir is not None:
         metadata_dir = egg_dir.path
         base_dir = os.path.dirname(metadata_dir)
-        path_metadata = pkg_resources.PathMetadata(base_dir, metadata_dir)
-        dist_iter = pkg_resources.distributions_from_metadata(path_metadata.egg_info)
+        path_metadata = PathMetadata(base_dir, metadata_dir)
+        dist_iter = distributions_from_metadata(path_metadata.egg_info)
         dist = next(iter(dist_iter), None)
         if dist is not None:
             return dist
@@ -829,7 +816,7 @@ def get_metadata_from_dist(dist):
         dep_map = dist._build_dep_map()
     except Exception:
         dep_map = {}
-    deps = []  # type: List[PkgResourcesRequirement]
+    deps = []  # type: List[Requirement]
     extras = {}
     for k in dep_map.keys():
         if k is None:
@@ -926,18 +913,18 @@ class BaseRequirement(object):
     name = attr.ib(default="", eq=True, order=True)  # type: STRING_TYPE
     requirement = attr.ib(
         default=None, eq=True, order=True
-    )  # type: Optional[PkgResourcesRequirement]
+    )  # type: Optional[Requirement]
 
     def __str__(self):
         # type: () -> S
         return "{0}".format(str(self.requirement))
 
     def as_dict(self):
-        # type: () -> Dict[STRING_TYPE, Optional[PkgResourcesRequirement]]
+        # type: () -> Dict[STRING_TYPE, Optional[Requirement]]
         return {self.name: self.requirement}
 
     def as_tuple(self):
-        # type: () -> Tuple[STRING_TYPE, Optional[PkgResourcesRequirement]]
+        # type: () -> Tuple[STRING_TYPE, Optional[Requirement]]
         return (self.name, self.requirement)
 
     @classmethod
@@ -951,7 +938,7 @@ class BaseRequirement(object):
     @classmethod
     @lru_cache()
     def from_req(cls, req):
-        # type: (PkgResourcesRequirement) -> BaseRequirement
+        # type: (Requirement) -> BaseRequirement
         name = None
         key = getattr(req, "key", None)
         name = getattr(req, "name", None)
@@ -1484,7 +1471,7 @@ build-backend = "{1}"
     @classmethod
     @lru_cache()
     def from_ireq(cls, ireq, subdir=None, finder=None, session=None):
-        # type: (InstallRequirement, Optional[AnyStr], Optional[PackageFinder], Optional[requests.Session]) -> Optional[SetupInfo]
+        # type: (InstallRequirement, Optional[AnyStr], Optional[PackageFinder], Optional[Session]) -> Optional[SetupInfo]
         if not ireq.link:
             return None
         if ireq.link.is_wheel:

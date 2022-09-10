@@ -3,11 +3,9 @@ import copy
 import hashlib
 import json
 import os
-import pathlib
-import sys
 
 import vistir
-from packaging.requirements import Requirement
+from pip._vendor.packaging.requirements import Requirement
 from pip._internal.utils.hashes import FAVORITE_HASH
 from pip._internal.vcs.versioncontrol import VcsSupport
 from pip._vendor.cachecontrol.cache import DictCache

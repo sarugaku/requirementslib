@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import itertools
 import operator
 import re
@@ -6,10 +5,10 @@ from collections.abc import Mapping, Set
 from functools import lru_cache, reduce
 
 import attr
-import distlib.markers
-from packaging.markers import InvalidMarker, Marker
-from packaging.specifiers import LegacySpecifier, Specifier, SpecifierSet
-from packaging.version import parse
+from distlib import markers
+from pip._vendor.packaging.markers import InvalidMarker, Marker
+from pip._vendor.packaging.specifiers import LegacySpecifier, Specifier, SpecifierSet
+from pip._vendor.packaging.version import parse
 from vistir.misc import dedup
 
 from ..environment import MYPY_RUNNING
@@ -514,7 +513,7 @@ def get_contained_pyversions(marker):
         return set()
     # Use the distlib dictionary parser to create a dictionary 'trie' which is a bit
     # easier to reason about
-    marker_dict = distlib.markers.parse_marker(marker_str)[0]
+    marker_dict = markers.parse_marker(marker_str)[0]
     version_set = set()
     pyversions, _ = parse_marker_dict(marker_dict)
     if isinstance(pyversions, set):

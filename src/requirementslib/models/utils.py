@@ -1,4 +1,3 @@
-import io
 import os
 import re
 import string
@@ -10,11 +9,14 @@ from pathlib import Path
 
 import tomlkit
 from attr import validators
-from packaging.markers import InvalidMarker, Marker, Op, Value, Variable
-from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
-from packaging.version import parse as parse_version
+from pip._vendor.packaging.markers import InvalidMarker, Marker, Op, Value, Variable
+from pip._vendor.packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import parse as parse_version
 from pip._internal.models.link import Link
 from pip._internal.req.constructors import install_req_from_line
+from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
+from pip._vendor.pkg_resources import Requirement, get_distribution, safe_name
 from plette.models import Package, PackageCollection
 from tomlkit.container import Container
 from tomlkit.items import AoT, Array, Bool, InlineTable, Item, String, Table
@@ -35,7 +37,6 @@ if MYPY_RUNNING:
         List,
         Match,
         Optional,
-        Sequence,
         Set,
         Text,
         Tuple,
@@ -44,13 +45,11 @@ if MYPY_RUNNING:
     )
 
     from attr import _ValidatorType  # noqa
-    from packaging.markers import Marker as PkgResourcesMarker
-    from packaging.markers import Op as PkgResourcesOp
-    from packaging.markers import Value as PkgResourcesValue
-    from packaging.markers import Variable as PkgResourcesVariable
-    from packaging.requirements import Requirement as PackagingRequirement
-    from pkg_resources import Requirement as PkgResourcesRequirement
-    from urllib3.util.url import Url
+    from pip._vendor.packaging.markers import Marker as PkgResourcesMarker
+    from pip._vendor.packaging.markers import Op as PkgResourcesOp
+    from pip._vendor.packaging.markers import Value as PkgResourcesValue
+    from pip._vendor.packaging.markers import Variable as PkgResourcesVariable
+    from pip._vendor.urllib3.util.url import Url
 
     _T = TypeVar("_T")
     TMarker = Union[Marker, PkgResourcesMarker]
@@ -58,7 +57,7 @@ if MYPY_RUNNING:
     TValue = TypeVar("TValue", PkgResourcesValue, Value)
     TOp = TypeVar("TOp", PkgResourcesOp, Op)
     MarkerTuple = Tuple[TVariable, TOp, TValue]
-    TRequirement = Union[PackagingRequirement, PkgResourcesRequirement]
+    TRequirement = Union[PackagingRequirement, Requirement]
     STRING_TYPE = Union[bytes, str, Text]
     TOML_DICT_TYPES = Union[Container, Package, PackageCollection, Table, InlineTable]
     S = TypeVar("S", bytes, str, Text)
@@ -189,7 +188,6 @@ def init_requirement(name):
 
     if not isinstance(name, str):
         raise TypeError("must supply a name to generate a requirement")
-    from pkg_resources import Requirement
 
     req = Requirement.parse(name)
     req.vcs = None
@@ -225,9 +223,6 @@ def parse_extras(extras_str):
     :return: A sorted list of extras
     :rtype: List[str]
     """
-
-    from pkg_resources import Requirement
-
     extras = Requirement.parse("fakepkg{0}".format(extras_to_string(extras_str))).extras
     return sorted(dedup([extra.lower() for extra in extras]))
 
@@ -456,11 +451,8 @@ def _strip_extras_markers(marker):
 @lru_cache()
 def get_setuptools_version():
     # type: () -> Optional[STRING_TYPE]
-    import pkg_resources
 
-    setuptools_dist = pkg_resources.get_distribution(
-        pkg_resources.Requirement("setuptools")
-    )
+    setuptools_dist = get_distribution(Requirement("setuptools"))
     return getattr(setuptools_dist, "version", None)
 
 
@@ -907,7 +899,7 @@ def clean_requires_python(candidates):
     `requires_python` attributes."""
     all_candidates = []
     sys_version = ".".join(map(str, sys.version_info[:3]))
-    from packaging.version import parse as parse_version
+    from pip._vendor.packaging.version import parse as parse_version
 
     py_version = parse_version(os.environ.get("PIP_PYTHON_VERSION", sys_version))
     for c in candidates:
@@ -931,8 +923,6 @@ def clean_requires_python(candidates):
 
 
 def fix_requires_python_marker(requires_python):
-    from packaging.requirements import Requirement as PackagingRequirement
-
     marker_str = ""
     if any(requires_python.startswith(op) for op in Specifier._operators.keys()):
         spec_dict = defaultdict(set)
@@ -981,8 +971,6 @@ def get_name_variants(pkg):
 
     if not isinstance(pkg, str):
         raise TypeError("must provide a string to derive package names")
-    from packaging.utils import canonicalize_name
-    from pkg_resources import safe_name
 
     pkg = pkg.lower()
     names = {safe_name(pkg), canonicalize_name(pkg), pkg.replace("-", "_")}

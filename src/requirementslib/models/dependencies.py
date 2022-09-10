@@ -1,18 +1,15 @@
-# -*- coding=utf-8 -*-
-
 import atexit
 import contextlib
 import copy
 import functools
 import os
-from contextlib import ExitStack
 from json import JSONDecodeError
 
 import attr
 import requests
-from packaging.markers import Marker
-from packaging.utils import canonicalize_name
-from packaging.version import parse
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import parse
 from pip._internal.cache import WheelCache
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.build.build_tracker import get_build_tracker
@@ -35,7 +32,6 @@ from .cache import CACHE_DIR, DependencyCache
 from .setup_info import SetupInfo
 from .utils import (
     clean_requires_python,
-    fix_requires_python_marker,
     format_requirement,
     full_groupby,
     is_pinned_requirement,
@@ -49,18 +45,16 @@ if MYPY_RUNNING:
     from typing import (
         Any,
         Dict,
-        Generator,
         List,
         Optional,
         Set,
         Text,
-        Tuple,
         TypeVar,
         Union,
     )
 
-    from packaging.requirements import Requirement as PackagingRequirement
-    from pip._internal.commands.base_command import Command
+    from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
+    from pip._internal.commands import Command
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.candidate import InstallationCandidate
 
