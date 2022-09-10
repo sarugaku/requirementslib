@@ -332,7 +332,7 @@ def test_get_requirements(monkeypatch_if_needed):
     assert spec.name == "tablib" and spec.specs == [("==", "0.12.1")]
     # Test complex package with both extras and markers
     extras_markers = Requirement.from_line(
-        "requests[security]; os_name=='posix'"
+        "requests[security] ; os_name=='posix'"
     ).requirement
     assert list(extras_markers.extras) == ["security"]
     assert extras_markers.name == "requests"

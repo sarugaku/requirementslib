@@ -459,7 +459,7 @@ def repository_line(draw, repositories=repository_url(), markers=random_marker_s
     marker_selection = draw(markers)
     marker_str = ""
     if marker_selection:
-        marker_str = "; {0}".format(marker_selection)
+        marker_str = " ; {0}".format(marker_selection)
     if prefix:
         line = ""
     line = "{0}{1}{2}".format(prefix, draw(repositories), marker_str)
@@ -533,7 +533,7 @@ def requirements(
     marker_str = ""
     if marker_selection:
         marker_str = "; {0}".format(marker_selection)
-        line = "{0}{1}".format(line, marker_str)
+        line = "{0} {1}".format(line, marker_str)
         as_list = ["{0}".format(line)]
     if hashes_option:
         hashes_list = sorted(set(hashes_option))
