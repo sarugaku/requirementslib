@@ -288,7 +288,8 @@ sample_values = sorted(
         "linux2",
         "darwin",
         "win32",
-        "java1.8.0_51" "x86_64",  # sys.platform
+        "java1.8.0_51",
+        "x86_64",  # sys.platform
         "i386",  # platform.machine
         "CPython",
         "Jython",
@@ -459,7 +460,7 @@ def repository_line(draw, repositories=repository_url(), markers=random_marker_s
     marker_selection = draw(markers)
     marker_str = ""
     if marker_selection:
-        marker_str = " ; {0}".format(marker_selection)
+        marker_str = "; {0}".format(marker_selection)
     if prefix:
         line = ""
     line = "{0}{1}{2}".format(prefix, draw(repositories), marker_str)

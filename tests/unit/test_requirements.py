@@ -177,7 +177,6 @@ def test_repo_line(repo_line):
             reformatted_line = "{0} {1}".format(repo_list[0], repo_list[1])
     else:
         repo_list = [repo_line]
-    line_as_list = repo_line.split(" ", 1) if repo_line.startswith("-e ") else [repo_line]
     assert (
         Line(repo_line).get_line(with_prefix=True, with_markers=True, as_list=False)
         == reformatted_line
