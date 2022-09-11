@@ -1181,8 +1181,7 @@ class Line(object):
     def parse_markers(self):
         # type: () -> None
         if self.markers:
-            marker_str = self.markers.replace('"', "'")
-            markers = PackagingRequirement("fakepkg ; {0}".format(marker_str)).marker
+            pkg_name, markers = split_markers_from_line(self.line)
             self.parsed_marker = markers
 
     @property
