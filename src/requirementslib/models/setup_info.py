@@ -14,8 +14,8 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 from weakref import finalize
 
 import attr
-from pep517 import envbuild, wrappers
 from distlib.wheel import Wheel
+from pep517 import envbuild, wrappers
 from pip._internal.network.download import Downloader
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.urls import url_to_path
