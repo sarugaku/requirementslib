@@ -75,7 +75,9 @@ if MYPY_RUNNING:
         from distutils.core import Distribution
 
     TRequirement = TypeVar("TRequirement")
-    RequirementType = TypeVar("RequirementType", covariant=True, bound=PackagingRequirement)
+    RequirementType = TypeVar(
+        "RequirementType", covariant=True, bound=PackagingRequirement
+    )
     MarkerType = TypeVar("MarkerType", covariant=True, bound=Marker)
     STRING_TYPE = Union[str, bytes, Text]
     S = TypeVar("S", bytes, str, Text)
