@@ -65,7 +65,7 @@ def test_strip_ssh_from_git_url():
 
 
 def test_split_markers_from_line():
-    line = "test_requirement; marker=='something'"
+    line = "test_requirement ; marker=='something'"
     assert utils.split_markers_from_line(line) == (
         "test_requirement",
         "marker=='something'",

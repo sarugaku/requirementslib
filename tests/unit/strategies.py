@@ -1,4 +1,3 @@
-# -*- coding=utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
@@ -12,11 +11,10 @@ import vistir
 from hypothesis import assume
 from hypothesis import strategies as st
 from hypothesis.provisional import URL_SAFE_CHARACTERS, domains
-from hypothesis.provisional import urls as url_strategy
-from packaging.markers import MARKER_OP, VARIABLE
-from packaging.specifiers import Specifier
-from packaging.version import parse as parse_version
-from pyparsing import Literal, MatchFirst, ParseExpression, ParserElement
+from pip._vendor.packaging.markers import MARKER_OP, VARIABLE
+from pip._vendor.packaging.specifiers import Specifier
+from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.pyparsing import Literal, MatchFirst, ParseExpression, ParserElement
 
 from requirementslib.models.url import URI
 
@@ -290,7 +288,8 @@ sample_values = sorted(
         "linux2",
         "darwin",
         "win32",
-        "java1.8.0_51" "x86_64",  # sys.platform
+        "java1.8.0_51",
+        "x86_64",  # sys.platform
         "i386",  # platform.machine
         "CPython",
         "Jython",
@@ -535,7 +534,7 @@ def requirements(
     marker_str = ""
     if marker_selection:
         marker_str = "; {0}".format(marker_selection)
-        line = "{0}{1}".format(line, marker_str)
+        line = "{0} {1}".format(line, marker_str)
         as_list = ["{0}".format(line)]
     if hashes_option:
         hashes_list = sorted(set(hashes_option))

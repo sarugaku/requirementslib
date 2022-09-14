@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import pytest
-from packaging.markers import Marker
-from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
-from packaging.version import Version
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
+from pip._vendor.packaging.version import Version
 
 import requirementslib.models.markers
 

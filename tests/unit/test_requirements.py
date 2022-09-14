@@ -174,10 +174,9 @@ def test_repo_line(repo_line):
     if repo_line.startswith("-e "):
         repo_list = repo_line.split(" ", 1)
         if "; " in repo_list[1]:
-            reformatted_line = '{0} "{1}"'.format(repo_list[0], repo_list[1])
+            reformatted_line = "{0} {1}".format(repo_list[0], repo_list[1])
     else:
         repo_list = [repo_line]
-    line_as_list = repo_line.split(" ", 1) if repo_line.startswith("-e ") else [repo_line]
     assert (
         Line(repo_line).get_line(with_prefix=True, with_markers=True, as_list=False)
         == reformatted_line
@@ -332,7 +331,7 @@ def test_get_requirements(monkeypatch_if_needed):
     assert spec.name == "tablib" and spec.specs == [("==", "0.12.1")]
     # Test complex package with both extras and markers
     extras_markers = Requirement.from_line(
-        "requests[security]; os_name=='posix'"
+        "requests[security] ; os_name=='posix'"
     ).requirement
     assert list(extras_markers.extras) == ["security"]
     assert extras_markers.name == "requests"
