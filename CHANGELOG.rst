@@ -1,3 +1,13 @@
+Requirementslib 2.0.2 (2022-09-14)
+==================================
+
+
+Bug Fixes
+---------
+
+- Rely on ``packaging`` and ``pkg_resources`` internal to ``pip``.  `#343 <https://github.com/sarugaku/requirementslib/issues/343>`_
+
+
 Requirementslib 2.0.1 (2022-08-29)
 ==================================
 
