@@ -1,3 +1,13 @@
+Requirementslib 2.0.3 (2022-09-24)
+==================================
+
+
+Bug Fixes
+---------
+
+- Fix non-deterministic markers by removing ``lru_cache`` usage from ``markers.py``.  `#344 <https://github.com/sarugaku/requirementslib/issues/344>`_
+
+
 Requirementslib 2.0.2 (2022-09-14)
 ==================================
 
