@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
-import pathlib
 from itertools import tee
 
 import pytest
+from plette.pipfiles import Pipfile
 
 import requirementslib.models.project
 
@@ -36,46 +35,18 @@ def test_project_file_works_if_file_exists_but_is_empty(pathlib_tmpdir):
     pipfile.write_text("")
     project_file = requirementslib.models.project.ProjectFile.read(
         pipfile.as_posix(),
-        requirementslib.models.pipfile.plette.pipfiles.Pipfile,
+        Pipfile,
         invalid_ok=True,
     )
     assert project_file.model is not None
     project_file.write()
-    project_file_contents = pipfile.read_text()
     assert project_file.dumps().strip() == pipfile.read_text().strip()
-
-
-def test_dir_with_empty_pipfile_file_raises_exception(pathlib_tmpdir):
-    project = None
-    with pytest.raises(FileNotFoundError):
-        project = requirementslib.models.project.Project(root=pathlib_tmpdir.as_posix())
-    assert project is None
 
 
 def test_dir_with_pipfile_creates_project_file(pathlib_tmpdir):
     pipfile = pathlib_tmpdir.joinpath("Pipfile")
     pipfile.write_text("")
     project_file = requirementslib.models.project.ProjectFile.read(
-        pipfile.as_posix(), requirementslib.models.pipfile.plette.pipfiles.Pipfile
+        pipfile.as_posix(), Pipfile
     )
     assert project_file.model is not None
-
-
-def test_dir_with_pipfile_creates_project(pathlib_tmpdir):
-    pipfile = pathlib_tmpdir.joinpath("Pipfile")
-    pipfile.write_text("")
-    project = requirementslib.models.project.Project(root=pathlib_tmpdir.as_posix())
-    assert project.pipfile is not None
-    assert pathlib.Path(project.pipfile_location).as_posix() == pipfile.as_posix()
-    assert project.lockfile is None
-    assert (
-        pathlib.Path(project.lockfile_location).as_posix()
-        == pathlib_tmpdir.joinpath("Pipfile.lock").as_posix()
-    )
-    project.add_line_to_pipfile("requests[security]", False)
-    assert project.pipfile["packages"]["requests"]._data == {
-        "extras": ["security"],
-        "version": "*",
-    }
-    project.remove_keys_from_pipfile(["requests"], True, False)
-    assert "requests" not in project.pipfile["packages"]
