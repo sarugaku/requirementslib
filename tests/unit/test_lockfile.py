@@ -1,5 +1,3 @@
-# -*- coding=utf-8 -*-
-import json
 import os
 import textwrap
 
@@ -8,7 +6,6 @@ from vistir.contextmanagers import cd, temp_environ
 
 from requirementslib.exceptions import MissingParameter, PipfileNotFound
 from requirementslib.models.lockfile import Lockfile
-from requirementslib.models.pipfile import Pipfile
 from requirementslib.models.requirements import Requirement
 
 
@@ -17,10 +14,10 @@ def test_lockfile(tmpdir, fixture_dir):
         os.environ["PIPENV_CACHE_DIR"] = tmpdir.strpath
         lockfile = Lockfile.create(fixture_dir / "lockfile")
 
-        requires = lockfile.as_requirements(dev=True)
+        requires = lockfile.as_requirements(category="develop")
         assert any(req.startswith("attrs") for req in requires)
 
-        requires = lockfile.as_requirements(dev=False)
+        requires = lockfile.as_requirements(category="default")
         assert requires == []
 
 
@@ -102,8 +99,8 @@ def test_lockfile_requirements(pathlib_tmpdir):
     loaded = Lockfile.load(lockfile.as_posix())
     dump_to = pathlib_tmpdir.joinpath("new_lockfile")
     dump_to.mkdir()
-    assert isinstance(loaded.dev_requirements[0], Requirement)
-    assert isinstance(loaded.dev_requirements_list[0], dict)
+    assert isinstance(list(loaded.get_requirements(dev=True, only=True))[0], Requirement)
+    assert isinstance(loaded.requirements_list(category="develop")[0], dict)
     with cd(pathlib_tmpdir.as_posix()):
         auto_detected_path = Lockfile()
         assert (

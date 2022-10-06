@@ -1,0 +1,1 @@
+Support for named package categories in Pipfile and Pipfile.lock beyond the default and develop categories.
