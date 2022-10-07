@@ -23,7 +23,6 @@ from vistir.path import create_tracked_tempdir
 
 from ..environment import MYPY_RUNNING
 from ..utils import (
-    _ensure_dir,
     get_package_finder,
     get_pip_command,
     prepare_pip_source_args,
@@ -564,7 +563,7 @@ def get_pip_options(args=None, sources=None, pip_command=None):
         pip_command = get_pip_command()
     if not sources:
         sources = [{"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}]
-    _ensure_dir(CACHE_DIR)
+    os.makedirs(CACHE_DIR, mode=0o777)
     pip_args = args or []
     pip_args = prepare_pip_source_args(sources, pip_args)
     pip_options, _ = pip_command.parser.parse_args(pip_args)
@@ -620,7 +619,7 @@ def start_resolver(finder=None, session=None, wheel_cache=None):
         session = pip_command._build_session(pip_options)
 
     download_dir = PKGS_DOWNLOAD_DIR
-    _ensure_dir(download_dir)
+    os.makedir(download_dir, mode=0o777)
 
     _build_dir = create_tracked_tempdir(fs_str("build"))
     _source_dir = create_tracked_tempdir(fs_str("source"))
@@ -629,7 +628,7 @@ def start_resolver(finder=None, session=None, wheel_cache=None):
         with global_tempdir_manager(), get_build_tracker() as build_tracker:
             if not wheel_cache:
                 wheel_cache = _get_wheel_cache()
-            _ensure_dir(str(os.path.join(wheel_cache.cache_dir, "wheels")))
+            os.makdirs(os.path.join(wheel_cache.cache_dir, "wheels"))
             preparer = pip_command.make_requirement_preparer(
                 temp_build_dir=_build_dir,
                 options=pip_options,
