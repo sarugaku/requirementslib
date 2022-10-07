@@ -563,7 +563,7 @@ def get_pip_options(args=None, sources=None, pip_command=None):
         pip_command = get_pip_command()
     if not sources:
         sources = [{"url": "https://pypi.org/simple", "name": "pypi", "verify_ssl": True}]
-    os.makedirs(CACHE_DIR, mode=0o777)
+    os.makedirs(CACHE_DIR, mode=0o777, exist_ok=True)
     pip_args = args or []
     pip_args = prepare_pip_source_args(sources, pip_args)
     pip_options, _ = pip_command.parser.parse_args(pip_args)

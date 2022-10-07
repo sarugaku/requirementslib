@@ -614,10 +614,10 @@ def _prepare_wheel_building_kwargs(
 ):
     # type: (...) -> Dict[STRING_TYPE, STRING_TYPE]
     download_dir = os.path.join(CACHE_DIR, "pkgs")  # type: STRING_TYPE
-    os.path.makedirs(download_dir, exist_ok=False)
+    os.makedirs(download_dir, exist_ok=True)
 
     wheel_download_dir = os.path.join(CACHE_DIR, "wheels")  # type: STRING_TYPE
-    os.makedirs(wheel_download_dir)
+    os.makedirs(wheel_download_dir, exist_ok=True)
     if src_dir is None:
         if editable and src_root is not None:
             src_dir = src_root

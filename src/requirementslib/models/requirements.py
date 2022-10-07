@@ -2122,7 +2122,7 @@ class VCSRequirement(FileRequirement):
                 return checkout_dir
         if src_dir is not None:
             checkout_dir = os.path.join(os.path.abspath(src_dir), self.name)
-            os.makedirs(src_dir)
+            os.makedirs(src_dir, exist_ok=True)
             return checkout_dir
         return os.path.join(create_tracked_tempdir(prefix="requirementslib"), self.name)
 
