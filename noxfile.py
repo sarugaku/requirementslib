@@ -12,13 +12,13 @@ INIT_PY = PACKAGE_ROOT / "__init__.py"
 @nox.session
 def tests(session: nox.Session):
     session.install("-e", ".[tests]")
-    session.run("pytest", "-ra", "tests")
+    session.run("pytest", "-ra", "-x", "-v", "tests")
 
 
 @nox.session
 def coverage(session: nox.Session):
     session.install(".[tests]", "coveralls")
-    session.run("pytest", "--cov=requirementslib", "-ra", "tests")
+    session.run("pytest", "--cov=requirementslib", "-x", "-v", "-ra", "tests")
     session.run("coveralls")
 
 
