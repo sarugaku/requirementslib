@@ -22,11 +22,7 @@ from vistir.contextmanagers import temp_environ
 from vistir.path import create_tracked_tempdir
 
 from ..environment import MYPY_RUNNING
-from ..utils import (
-    get_package_finder,
-    get_pip_command,
-    prepare_pip_source_args,
-)
+from ..utils import get_package_finder, get_pip_command, prepare_pip_source_args
 from .cache import CACHE_DIR, DependencyCache
 from .setup_info import SetupInfo
 from .utils import (
