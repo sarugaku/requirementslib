@@ -1,3 +1,13 @@
+Requirementslib 2.1.0 (2022-10-08)
+==================================
+
+
+Features
+--------
+
+- Support for named package categories in Pipfile and Pipfile.lock beyond the default and develop categories.  `#345 <https://github.com/sarugaku/requirementslib/issues/345>`_
+
+
 Requirementslib 2.0.3 (2022-09-24)
 ==================================
 
