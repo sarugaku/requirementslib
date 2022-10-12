@@ -1,6 +1,7 @@
 # -*- coding=utf-8 -*-
 import os
 import shutil
+from pathlib import Path
 
 import pytest
 import vistir
@@ -73,7 +74,7 @@ def test_remote_source_in_subdirectory(url_line, name):
 def test_no_duplicate_egg_info():
     """When the package has 'src' directory, do not write egg-info in base
     dir."""
-    base_dir = vistir.compat.Path(os.path.abspath(os.getcwd())).as_posix()
+    base_dir = Path(os.path.abspath(os.getcwd())).as_posix()
     r = Requirement.from_line("-e {}".format(base_dir))
     egg_info_name = "{}.egg-info".format(r.name.replace("-", "_"))
     distinfo_name = "{0}.dist-info".format(r.name.replace("-", "_"))
