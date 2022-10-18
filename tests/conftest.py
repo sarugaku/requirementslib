@@ -1,5 +1,4 @@
 # -*- coding=utf-8 -*-
-from __future__ import absolute_import, print_function
 
 import contextlib
 import io
@@ -101,7 +100,7 @@ def pip_src_dir(request, pathlib_tmpdir):
     os.environ["PIP_SRC"] = pathlib_tmpdir.as_posix()
 
     def finalize():
-        os.environ["PIP_SRC"] = vistir.compat.fs_str(old_src_dir)
+        os.environ["PIP_SRC"] = old_src_dir
 
     request.addfinalizer(finalize)
     return request
