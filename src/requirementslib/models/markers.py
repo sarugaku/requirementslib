@@ -9,7 +9,6 @@ from distlib import markers
 from pip._vendor.packaging.markers import InvalidMarker, Marker
 from pip._vendor.packaging.specifiers import LegacySpecifier, Specifier, SpecifierSet
 from pip._vendor.packaging.version import parse
-from vistir.misc import dedup
 
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
@@ -292,7 +291,7 @@ def cleanup_pyspecs(specs, joiner="or"):
     for op_and_version_type, versions in _group_by_op(tuple(specs)):
         op = op_and_version_type[0]
         versions = [version[1] for version in versions]
-        versions = sorted(dedup(versions))
+        versions = sorted(iter(dict.fromkeys(versions)))
         op_key = next(iter(k for k in translation_keys if op in k), None)
         version_value = versions
         if op_key is not None:
