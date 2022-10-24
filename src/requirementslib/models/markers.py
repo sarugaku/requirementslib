@@ -291,7 +291,7 @@ def cleanup_pyspecs(specs, joiner="or"):
     for op_and_version_type, versions in _group_by_op(tuple(specs)):
         op = op_and_version_type[0]
         versions = [version[1] for version in versions]
-        versions = sorted(iter(dict.fromkeys(versions)))
+        versions = sorted(dict.fromkeys(versions))  # remove duplicate entries
         op_key = next(iter(k for k in translation_keys if op in k), None)
         version_value = versions
         if op_key is not None:
