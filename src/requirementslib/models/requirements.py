@@ -2526,7 +2526,7 @@ class Requirement(object):
                 and not local_editable
                 and not self.req.get_uri().startswith("file://")
             ):
-                line_parts.append(f"#egg={self.extras_as_pip}")
+                line_parts.append(f"#egg={self._name}{self.extras_as_pip}")
             else:
                 line_parts.append(self.extras_as_pip)
         if self._specifiers and not (self.is_file_or_url or self.is_vcs):
