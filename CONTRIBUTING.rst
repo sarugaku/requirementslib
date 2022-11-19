@@ -22,3 +22,21 @@ To run the test coverage::
 To generate the docs locally::
 
     nox -s docs
+
+
+Release a new version
+---------------------
+
+Install the release requirements::
+
+    pip install -e . invoke
+
+
+Edit the version inside::
+
+   tasks/__init__.py::_render_log
+
+To release a new version, run::
+
+    
+   invoke release --version=2.2.0
