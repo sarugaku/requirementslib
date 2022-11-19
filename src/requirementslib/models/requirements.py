@@ -3,9 +3,9 @@ import copy
 import os
 import sys
 from contextlib import contextmanager
-from distutils.sysconfig import get_python_lib
 from functools import lru_cache
 from pathlib import Path
+from sysconfig import get_path
 from urllib import parse as urllib_parse
 from urllib.parse import unquote
 
@@ -899,7 +899,7 @@ class Line(object):
         wheel_kwargs["src_dir"] = repo.checkout_directory
         with global_tempdir_manager(), temp_path():
             ireq.ensure_has_source_dir(wheel_kwargs["src_dir"])
-            sys.path = [repo.checkout_directory, "", ".", get_python_lib(plat_specific=0)]
+            sys.path = [repo.checkout_directory, "", ".", get_path("purelib")]
             setupinfo = SetupInfo.create(
                 repo.checkout_directory,
                 ireq=ireq,
