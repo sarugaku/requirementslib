@@ -22,7 +22,6 @@ from tomlkit.container import Container
 from tomlkit.items import AoT, Array, Bool, InlineTable, Item, String, Table
 from urllib3 import util as urllib3_util
 from urllib3.util import parse_url as urllib3_parse
-from vistir.misc import dedup
 from vistir.path import is_valid_url
 
 from ..environment import MYPY_RUNNING
@@ -224,7 +223,7 @@ def parse_extras(extras_str):
     :rtype: List[str]
     """
     extras = Requirement.parse("fakepkg{0}".format(extras_to_string(extras_str))).extras
-    return sorted(dedup([extra.lower() for extra in extras]))
+    return sorted(dict.fromkeys([extra.lower() for extra in extras]))
 
 
 def specs_to_string(specs):
