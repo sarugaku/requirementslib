@@ -4,34 +4,35 @@ import configparser
 import contextlib
 import os
 import shutil
+import subprocess as sp
 import sys
 from collections.abc import Iterable, Mapping
 from contextlib import ExitStack
 from functools import lru_cache
 from os import scandir
 from pathlib import Path
+from subprocess import run as sp_run
 from urllib.parse import parse_qs, urlparse, urlunparse
 from weakref import finalize
 
-import attr
-from distlib.wheel import Wheel
-from pep517 import envbuild, wrappers
-from pip._internal.network.download import Downloader
-from pip._internal.utils.temp_dir import global_tempdir_manager
-from pip._internal.utils.urls import url_to_path
-from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.version import parse
-from pip._vendor.pkg_resources import (
+import pipenv.vendor.attr as attr
+from pipenv.patched.pip._internal.network.download import Downloader
+from pipenv.patched.pip._internal.utils.temp_dir import global_tempdir_manager
+from pipenv.patched.pip._internal.utils.urls import url_to_path
+from pipenv.patched.pip._vendor.distlib.wheel import Wheel
+from pipenv.patched.pip._vendor.packaging.markers import Marker
+from pipenv.patched.pip._vendor.packaging.specifiers import SpecifierSet
+from pipenv.patched.pip._vendor.packaging.version import parse
+from pipenv.patched.pip._vendor.pep517 import envbuild, wrappers
+from pipenv.patched.pip._vendor.pkg_resources import (
     PathMetadata,
     Requirement,
     distributions_from_metadata,
     find_distributions,
 )
-from platformdirs import user_cache_dir
-from vistir.contextmanagers import cd, temp_path
-from vistir.misc import run
-from vistir.path import create_tracked_tempdir, rmtree
+from pipenv.patched.pip._vendor.platformdirs import user_cache_dir
+from pipenv.vendor.vistir.contextmanagers import cd, temp_path
+from pipenv.vendor.vistir.path import create_tracked_tempdir, rmtree
 
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
@@ -62,11 +63,16 @@ if MYPY_RUNNING:
         Union,
     )
 
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
-    from pip._vendor.pkg_resources import DistInfoDistribution, EggInfoDistribution
-    from pip._vendor.requests import Session
+    from pipenv.patched.pip._internal.index.package_finder import PackageFinder
+    from pipenv.patched.pip._internal.req.req_install import InstallRequirement
+    from pipenv.patched.pip._vendor.packaging.requirements import (
+        Requirement as PackagingRequirement,
+    )
+    from pipenv.patched.pip._vendor.pkg_resources import (
+        DistInfoDistribution,
+        EggInfoDistribution,
+    )
+    from pipenv.patched.pip._vendor.requests import Session
     from setuptools.dist import Distribution
 
     TRequirement = TypeVar("TRequirement")
@@ -94,16 +100,7 @@ def pep517_subprocess_runner(cmd, cwd=None, extra_environ=None):
     if extra_environ:
         env.update(extra_environ)
 
-    run(
-        cmd,
-        cwd=cwd,
-        env=env,
-        block=True,
-        combine_stderr=True,
-        return_object=False,
-        write_to_stdout=False,
-        nospin=True,
-    )
+    sp_run(cmd, cwd, env=env, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
 
 
 class BuildEnv(envbuild.BuildEnvironment):
@@ -117,14 +114,8 @@ class BuildEnv(envbuild.BuildEnvironment):
             "--prefix",
             self.path,
         ] + list(reqs)
-        run(
-            cmd,
-            block=True,
-            combine_stderr=True,
-            return_object=False,
-            write_to_stdout=False,
-            nospin=True,
-        )
+
+        sp_run(cmd, shell=True, stderr=sp.PIPE, stdout=sp.PIPE)
 
 
 class HookCaller(wrappers.Pep517HookCaller):
@@ -892,13 +883,12 @@ def run_setup(script_path, egg_base=None):
         # We couldn't import everything needed to run setup
         except Exception:
             python = os.environ.get("PIP_PYTHON_PATH", sys.executable)
-            out, _ = run(
+
+            sp_run(
                 [python, "setup.py"] + args,
                 cwd=target_cwd,
-                block=True,
-                combine_stderr=False,
-                return_object=False,
-                nospin=True,
+                stdout=sp.PIPE,
+                stderr=sp.PIPE,
             )
         finally:
             _setup_stop_after = None
