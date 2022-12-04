@@ -11,26 +11,25 @@ from contextlib import ExitStack
 from functools import lru_cache
 from os import scandir
 from pathlib import Path
-from subprocess import run as sp_run
 from urllib.parse import parse_qs, urlparse, urlunparse
 from weakref import finalize
 
-import attr as attr
+import attr
+from distlib.wheel import Wheel
+from pep517 import envbuild, wrappers
 from pip._internal.network.download import Downloader
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.urls import url_to_path
-from pip._vendor.distlib.wheel import Wheel
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import parse
-from pip._vendor.pep517 import envbuild, wrappers
 from pip._vendor.pkg_resources import (
     PathMetadata,
     Requirement,
     distributions_from_metadata,
     find_distributions,
 )
-from pip._vendor.platformdirs import user_cache_dir
+from platformdirs import user_cache_dir
 from vistir.contextmanagers import cd, temp_path
 from vistir.path import create_tracked_tempdir, rmtree
 
@@ -95,7 +94,8 @@ def pep517_subprocess_runner(cmd, cwd=None, extra_environ=None):
     if extra_environ:
         env.update(extra_environ)
 
-    sp_run(cmd, cwd, env=env, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+    cmd_as_str = " ".join(cmd)
+    sp.run(cmd_as_str, cwd=cwd, env=env, stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
 
 
 class BuildEnv(envbuild.BuildEnvironment):
@@ -110,7 +110,7 @@ class BuildEnv(envbuild.BuildEnvironment):
             self.path,
         ] + list(reqs)
 
-        sp_run(cmd, shell=True, stderr=sp.PIPE, stdout=sp.PIPE)
+        sp.run(cmd, shell=True, stderr=sp.PIPE, stdout=sp.PIPE)
 
 
 class HookCaller(wrappers.Pep517HookCaller):
@@ -879,7 +879,7 @@ def run_setup(script_path, egg_base=None):
         except Exception:
             python = os.environ.get("PIP_PYTHON_PATH", sys.executable)
 
-            sp_run(
+            sp.run(
                 [python, "setup.py"] + args,
                 cwd=target_cwd,
                 stdout=sp.PIPE,
