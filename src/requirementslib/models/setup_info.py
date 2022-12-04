@@ -15,24 +15,24 @@ from subprocess import run as sp_run
 from urllib.parse import parse_qs, urlparse, urlunparse
 from weakref import finalize
 
-import pipenv.vendor.attr as attr
-from pipenv.patched.pip._internal.network.download import Downloader
-from pipenv.patched.pip._internal.utils.temp_dir import global_tempdir_manager
-from pipenv.patched.pip._internal.utils.urls import url_to_path
-from pipenv.patched.pip._vendor.distlib.wheel import Wheel
-from pipenv.patched.pip._vendor.packaging.markers import Marker
-from pipenv.patched.pip._vendor.packaging.specifiers import SpecifierSet
-from pipenv.patched.pip._vendor.packaging.version import parse
-from pipenv.patched.pip._vendor.pep517 import envbuild, wrappers
-from pipenv.patched.pip._vendor.pkg_resources import (
+import attr as attr
+from pip._internal.network.download import Downloader
+from pip._internal.utils.temp_dir import global_tempdir_manager
+from pip._internal.utils.urls import url_to_path
+from pip._vendor.distlib.wheel import Wheel
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.version import parse
+from pip._vendor.pep517 import envbuild, wrappers
+from pip._vendor.pkg_resources import (
     PathMetadata,
     Requirement,
     distributions_from_metadata,
     find_distributions,
 )
-from pipenv.patched.pip._vendor.platformdirs import user_cache_dir
-from pipenv.vendor.vistir.contextmanagers import cd, temp_path
-from pipenv.vendor.vistir.path import create_tracked_tempdir, rmtree
+from pip._vendor.platformdirs import user_cache_dir
+from vistir.contextmanagers import cd, temp_path
+from vistir.path import create_tracked_tempdir, rmtree
 
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
@@ -63,16 +63,11 @@ if MYPY_RUNNING:
         Union,
     )
 
-    from pipenv.patched.pip._internal.index.package_finder import PackageFinder
-    from pipenv.patched.pip._internal.req.req_install import InstallRequirement
-    from pipenv.patched.pip._vendor.packaging.requirements import (
-        Requirement as PackagingRequirement,
-    )
-    from pipenv.patched.pip._vendor.pkg_resources import (
-        DistInfoDistribution,
-        EggInfoDistribution,
-    )
-    from pipenv.patched.pip._vendor.requests import Session
+    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.req.req_install import InstallRequirement
+    from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
+    from pip._vendor.pkg_resources import DistInfoDistribution, EggInfoDistribution
+    from pip._vendor.requests import Session
     from setuptools.dist import Distribution
 
     TRequirement = TypeVar("TRequirement")
