@@ -1,3 +1,13 @@
+Requirementslib 2.2.2 (2022-12-19)
+==================================
+
+
+Bug Fixes
+---------
+
+- Fix for prior release that was using ``shell=True`` without the proper command, launch subprocess without ``shell=True``.  `#353 <https://github.com/sarugaku/requirementslib/issues/353>`_
+
+
 Requirementslib 2.2.1 (2022-12-06)
 ==================================
 

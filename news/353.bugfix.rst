@@ -1,1 +1,0 @@
-Fix for prior release that was using ``shell=True`` without the proper command, launch subprocess without ``shell=True``.
