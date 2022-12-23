@@ -4,14 +4,13 @@ from pathlib import Path
 
 import pytest
 from hypothesis import given, settings
-from hypothesis import strategies as st
 from vistir.contextmanagers import temp_environ
 
 from requirementslib.exceptions import RequirementError
 from requirementslib.models.requirements import Line, NamedRequirement, Requirement
 from requirementslib.models.setup_info import SetupInfo
 
-from .strategies import random_marker_strings, repository_line, requirements
+from .strategies import repository_line, requirements
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DIR = os.path.dirname(UNIT_TEST_DIR)

@@ -367,7 +367,7 @@ def random_op_val_pair(draw, ops=random_marker_ops(), vals=random_marker_values(
 
 def random_marker_strings():
     return st.lists(
-        marker_tuple() | marker_tuple_val_lists(), min_size=0, max_size=3
+        marker_tuple() | marker_tuple_val_lists(), min_size=1, max_size=3
     ).map(" and ".join)
 
 
