@@ -154,6 +154,7 @@ lines = [
 ]
 
 
+@settings(deadline=None)
 @given(requirements())
 def test_requirement_line(req):
     line = Line(req.line)
