@@ -500,9 +500,11 @@ def make_version_key(value):
 
 
 @st.composite
-def requirements(
-    draw, requirement_selection=random_requirements(), markers=random_marker_strings()
-):
+def requirements(draw, requirement_selection=None, markers=None):
+    if requirement_selection is None:
+        requirement_selection = random_requirements()
+    if markers is None:
+        markers = random_marker_strings()
     req = draw(requirement_selection)
     marker_selection = draw(markers)
     name, versions, extras, hashes = req
