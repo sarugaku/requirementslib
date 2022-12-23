@@ -203,7 +203,7 @@ class Line(object):
     def __str__(self):
         # type: () -> str
         if self.markers:
-            return "{0} ; {1}".format(self.get_line(), self.markers)
+            return "{0}; {1}".format(self.get_line(), self.markers)
         return self.get_line()
 
     def get_line(
@@ -235,7 +235,7 @@ class Line(object):
         # we anticipate this will be used if passing directly to the command line
         # for pip.
         if with_markers and self.markers:
-            line = "{0} ; {1}".format(line, self.markers)
+            line = "{0}; {1}".format(line, self.markers)
             if with_prefix and self.editable and not as_list:
                 line = '"{0}"'.format(line)
         if as_list:
@@ -2532,7 +2532,7 @@ class Requirement(object):
         if self._specifiers and not (self.is_file_or_url or self.is_vcs):
             line_parts.append(self._specifiers)
         if self.markers:
-            line_parts.append(" ; {0}".format(self.markers.replace('"', "'")))
+            line_parts.append("; {0}".format(self.markers.replace('"', "'")))
         if self.hashes_as_pip and not (self.editable or self.vcs or self.is_vcs):
             line_parts.append(self.hashes_as_pip)
         if self.editable:
@@ -2691,9 +2691,7 @@ class Requirement(object):
             r = named_req_from_parsed_line(parsed_line)
         req_markers = None
         if parsed_line.markers:
-            req_markers = PackagingRequirement(
-                "fakepkg ; {0}".format(parsed_line.markers)
-            )
+            req_markers = PackagingRequirement("fakepkg; {0}".format(parsed_line.markers))
         if r is not None and r.req is not None:
             r.req.marker = getattr(req_markers, "marker", None) if req_markers else None
         args = {}  # type: Dict[STRING_TYPE, CREATION_ARG_TYPES]
@@ -2752,7 +2750,7 @@ class Requirement(object):
         req_markers = None
         if markers:
             markers = str(markers)
-            req_markers = PackagingRequirement("fakepkg ; {0}".format(markers))
+            req_markers = PackagingRequirement("fakepkg; {0}".format(markers))
             if r.req is not None:
                 r.req.marker = req_markers.marker
         extras = _pipfile.get("extras")
@@ -2819,7 +2817,7 @@ class Requirement(object):
         # type: () -> Marker
         markers = self.markers
         if markers:
-            fake_pkg = PackagingRequirement("fakepkg ; {0}".format(markers))
+            fake_pkg = PackagingRequirement("fakepkg; {0}".format(markers))
             markers = fake_pkg.marker
         return markers
 

@@ -517,7 +517,10 @@ def split_markers_from_line(line):
     )
     if line_quote and line.endswith(line_quote):
         line = line.strip(line_quote)
-    marker_sep = " ; "
+    if not any(line.startswith(uri_prefix) for uri_prefix in SCHEME_LIST):
+        marker_sep = ";"
+    else:
+        marker_sep = "; "
     markers = None
     if marker_sep in line:
         line, markers = line.split(marker_sep, 1)
@@ -632,7 +635,7 @@ def _requirement_to_str_lowercase_name(requirement):
         parts.append("@ {0}".format(requirement.url))
 
     if requirement.marker:
-        parts.append(" ; {0}".format(requirement.marker))
+        parts.append("; {0}".format(requirement.marker))
 
     return "".join(parts)
 
@@ -654,11 +657,11 @@ def format_requirement(ireq):
 
     if str(ireq.req.marker) != str(ireq.markers):
         if not ireq.req.marker:
-            line = "{} ; {}".format(line, ireq.markers)
+            line = "{}; {}".format(line, ireq.markers)
         else:
             name, markers = line.split(";", 1)
             markers = markers.strip()
-            line = "{} ; ({}) and ({})".format(name, markers, ireq.markers)
+            line = "{}; ({}) and ({})".format(name, markers, ireq.markers)
 
     return line
 
@@ -864,7 +867,7 @@ def make_install_requirement(
     if version:
         requirement_string = "{0}=={1}".format(requirement_string, str(version))
     if markers:
-        requirement_string = "{0} ; {1}".format(requirement_string, str(markers))
+        requirement_string = "{0}; {1}".format(requirement_string, str(markers))
     return install_req_from_line(requirement_string, constraint=constraint)
 
 
@@ -938,7 +941,7 @@ def fix_requires_python_marker(requires_python):
                 for op, vals in spec_dict.items()
             ]
         )
-    marker_to_add = PackagingRequirement("fakepkg ; {0}".format(marker_str)).marker
+    marker_to_add = PackagingRequirement("fakepkg; {0}".format(marker_str)).marker
     return marker_to_add
 
 
