@@ -213,7 +213,7 @@ class Line(object):
         line = self.line
         extras_str = extras_to_string(self.extras)
         with_hashes = False if self.editable or self.is_vcs else with_hashes
-        hash_list = ["--hash={0}".format(h) for h in self.hashes]
+        hash_list = ["--hash={0}".format(h) for h in sorted(self.hashes)]
         if self.is_named:
             line = self.name_and_specifier
         elif self.is_direct_url:
