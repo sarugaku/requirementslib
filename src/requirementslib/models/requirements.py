@@ -32,7 +32,6 @@ from pip._vendor.packaging.specifiers import (
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse
 from vistir.contextmanagers import temp_path
-from vistir.misc import dedup
 from vistir.path import (
     create_tracked_tempdir,
     get_converted_relative_path,
@@ -43,6 +42,7 @@ from vistir.path import (
 
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
+from ..funktools import dedup
 from ..utils import (
     VCS_LIST,
     add_ssh_scheme_to_git_uri,
