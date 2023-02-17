@@ -7,20 +7,19 @@ import os
 import pathlib
 import random
 import shutil
+import subprocess as sp
 import warnings
 
 import distlib.wheel
 import pytest
 import requests
-import vistir
+import vistir.contextmanagers
 
 CURRENT_FILE = pathlib.Path(__file__).absolute()
 
 
 def check_for_mercurial():
-    c = vistir.misc.run(
-        ["hg, --help"], return_object=True, block=True, nospin=True, combine_stderr=False
-    )
+    c = sp.run(["hg, --help"], shell=True, capture_output=True)
     if c.returncode != 0:
         return False
     else:
