@@ -7,7 +7,6 @@ import sys
 from collections import namedtuple
 from urllib import parse as urllib_parse
 
-import vistir
 from hypothesis import assume
 from hypothesis import strategies as st
 from hypothesis.provisional import URL_SAFE_CHARACTERS, domains
@@ -106,9 +105,7 @@ def urls():
             ),
             min_size=2,
             max_size=2,
-        )
-        .map("=".join)
-        .map(vistir.misc.to_text),
+        ).map("=".join),
         ref=st.text(max_size=64, alphabet="abcdefghijklmnopqrstuvwxyz0123456789"),
         subdirectory=st.text(
             max_size=64, alphabet="abcdefghijklmnopqrstuvwxyz0123456789"
@@ -144,11 +141,7 @@ def legal_path_chars():
 
 def relative_paths():
     relative_leaders = (".", "..")
-    separators = [
-        vistir.misc.to_text(sep)
-        for sep in (os.sep, os.path.sep, os.path.altsep)
-        if sep is not None
-    ]
+    separators = [sep for sep in (os.sep, os.path.sep, os.path.altsep) if sep is not None]
     return st.builds(
         relative_path,
         leading_dots=st.sampled_from(relative_leaders),
