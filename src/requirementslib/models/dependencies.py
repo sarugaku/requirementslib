@@ -8,7 +8,6 @@ from json import JSONDecodeError
 import attr
 import requests
 from pip._internal.cache import WheelCache
-from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_install import InstallRequirement
@@ -61,7 +60,7 @@ DEPENDENCY_CACHE = DependencyCache()
 @contextlib.contextmanager
 def _get_wheel_cache():
     with global_tempdir_manager():
-        yield WheelCache(CACHE_DIR, FormatControl(set(), set()))
+        yield WheelCache(CACHE_DIR)
 
 
 def _get_filtered_versions(ireq, versions, prereleases):
@@ -446,7 +445,7 @@ def is_python(section):
 def get_resolver(
     finder, build_tracker, pip_options, session, directory, install_command=None
 ):
-    wheel_cache = WheelCache(pip_options.cache_dir, pip_options.format_control)
+    wheel_cache = WheelCache(pip_options.cache_dir)
     if install_command is None:
         install_command = get_pip_command()
     preparer = install_command.make_requirement_preparer(
