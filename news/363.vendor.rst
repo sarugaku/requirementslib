@@ -1,1 +1,0 @@
-Update ``WheelCache`` usage to be compatible with ``pip==23.1``

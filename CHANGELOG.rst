@@ -1,3 +1,13 @@
+Requirementslib 2.2.5 (2023-04-19)
+==================================
+
+
+Vendored Libraries
+------------------
+
+- Update ``WheelCache`` usage to be compatible with ``pip==23.1``  `#363 <https://github.com/sarugaku/requirementslib/issues/363>`_
+
+
 Requirementslib 2.2.4 (2023-03-17)
 ==================================
 
