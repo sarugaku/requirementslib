@@ -158,7 +158,7 @@ class SetupReader:
     @classmethod
     def read_setup_py(cls, file: Path, raising: bool = True) -> "Dict[str, Any]":
 
-        with file.open(encoding="utf-8") as f:
+        with file.open(encoding="utf-8-sig") as f:
             content = f.read()
 
         body = ast.parse(content).body

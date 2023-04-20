@@ -1,0 +1,1 @@
+Fix an error when parsing a setup.py file that has a UTF-8 BOM.
