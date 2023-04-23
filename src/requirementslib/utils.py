@@ -1,18 +1,51 @@
+# This Module is taken in part from the click project and expanded
+# see https://github.com/pallets/click/blob/6cafd32/click/_winconsole.py
+# Copyright © 2014 by the Pallets team.
+
+# Some rights reserved.
+
+# Redistribution and use in source and binary forms of the software as well as
+# documentation, with or without modification, are permitted provided that the
+# following conditions are met:
+#     Redistributions of source code must retain the above copyright notice,
+#           this list of conditions and the following disclaimer.
+#     Redistributions in binary form must reproduce the above copyright notice,
+#           this list of conditions and the following disclaimer in the
+#           documentation and/or other materials provided with the distribution.
+#     Neither the name of the copyright holder nor the names of its contributors
+#           may be used to endorse or promote products derived from this
+#           software without specific prior written permission.
+
+# THIS SOFTWARE AND DOCUMENTATION IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+# CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
+# NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE AND
+# DOCUMENTATION, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
 import logging
 import os
 import sys
 from collections.abc import ItemsView, Mapping, Sequence, Set
+from ctypes import create_unicode_buffer, windll
 from pathlib import Path
+from typing import Any
+from urllib import parse as urllib_parse
+from urllib import request as urllib_request
 from urllib.parse import urlparse, urlsplit, urlunparse
 
 import tomlkit
-import vistir
 from pip._internal.commands.install import InstallCommand
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import is_installable_dir
 from pip._vendor.packaging import specifiers
-from vistir.path import is_valid_url
 
 from .environment import MYPY_RUNNING
 
@@ -69,6 +102,39 @@ VCS_SCHEMES = [
     "bzr+ftp",
     "bzr+lp",
 ]
+
+
+def is_file_url(url: Any) -> bool:
+    """Returns true if the given url is a file url."""
+    if not url:
+        return False
+    if not isinstance(url, str):
+        try:
+            url = url.url
+        except AttributeError:
+            raise ValueError("Cannot parse url from unknown type: {!r}".format(url))
+    return urllib_parse.urlparse(url.lower()).scheme == "file"
+
+
+def is_valid_url(url: str) -> bool:
+    """Checks if a given string is an url."""
+    pieces = urlparse(url)
+    return all([pieces.scheme, pieces.netloc])
+
+
+def url_to_path(url: str) -> str:
+    """Convert a valid file url to a local filesystem path.
+
+    Follows logic taken from pip's equivalent function
+    """
+    assert is_file_url(url), "Only file: urls can be converted to local paths"
+    _, netloc, path, _, _ = urllib_parse.urlsplit(url)
+    # Netlocs are UNC paths
+    if netloc:
+        netloc = "\\\\" + netloc
+
+    path = urllib_request.url2pathname(netloc + path)
+    return urllib_parse.unquote(path)
 
 
 def strip_ssh_from_git_uri(uri):
@@ -145,13 +211,39 @@ def convert_entry_to_path(path):
         raise ValueError("missing path-like entry in supplied mapping {0!r}".format(path))
 
     if "file" in path:
-        path = vistir.path.url_to_path(path["file"])
+        path = url_to_path(path["file"])
 
     elif "path" in path:
         path = path["path"]
     if not os.name == "nt":
         return os.fsdecode(path)
     return Path(os.fsdecode(path)).as_posix()
+
+
+# from click _winconsole.py
+def get_long_path(short_path):
+    # type: (Text, str) -> Text
+    BUFFER_SIZE = 500
+    buffer = create_unicode_buffer(BUFFER_SIZE)
+    get_long_path_name = windll.kernel32.GetLongPathNameW
+    get_long_path_name(short_path, buffer, BUFFER_SIZE)
+    return buffer.value
+
+
+def normalize_path(path):
+    """Return a case-normalized absolute variable-expanded path.
+
+    :param str path: The non-normalized path
+    :return: A normalized, expanded, case-normalized path
+    :rtype: str
+    """
+
+    path = os.path.abspath(os.path.expandvars(os.path.expanduser(str(path))))
+    if os.name == "nt" and os.path.exists(path):
+
+        path = get_long_path(path)
+
+    return os.path.normpath(os.path.normcase(path))
 
 
 def is_installable_file(path):
@@ -179,8 +271,8 @@ def is_installable_file(path):
         or (len(parsed.scheme) == 1 and os.name == "nt")
     )
     if parsed.scheme and parsed.scheme == "file":
-        path = os.fsdecode(vistir.path.url_to_path(path))
-    normalized_path = vistir.path.normalize_path(path)
+        path = os.fsdecode(url_to_path(path))
+    normalized_path = normalize_path(path)
     if is_local and not os.path.exists(normalized_path):
         return False
 
