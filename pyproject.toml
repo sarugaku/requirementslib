@@ -86,7 +86,6 @@ known_third_party = [
   "tomlkit",
   "towncrier",
   "urllib3",
-  "vistir"
 ]
 known_first_party = [
   "requirementslib",
