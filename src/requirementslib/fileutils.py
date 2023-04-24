@@ -1,10 +1,11 @@
 """A collection for utilities for working with files and paths."""
 import io
 import os
+import sys
 from contextlib import closing, contextmanager
 from http.client import HTTPResponse as Urllib_HTTPResponse
 from pathlib import Path
-from typing import IO, Any, ContextManager, Optional, Text, TypeVar, Union
+from typing import IO, Any, ContextManager, Iterator, Optional, Text, TypeVar, Union
 from urllib import parse as urllib_parse
 from urllib import request as urllib_request
 from urllib.parse import quote, urlparse
@@ -178,3 +179,37 @@ def open_file(
                         if conn is not None:
                             conn.close()
                     result.close()
+
+
+@contextmanager
+def temp_path():
+    # type: () -> Iterator[None]
+    """A context manager which allows the ability to set sys.path temporarily.
+
+    >>> path_from_virtualenv = load_path("/path/to/venv/bin/python")
+    >>> print(sys.path)
+    [
+        '/home/user/.pyenv/versions/3.7.0/bin',
+        '/home/user/.pyenv/versions/3.7.0/lib/python37.zip',
+        '/home/user/.pyenv/versions/3.7.0/lib/python3.7',
+        '/home/user/.pyenv/versions/3.7.0/lib/python3.7/lib-dynload',
+        '/home/user/.pyenv/versions/3.7.0/lib/python3.7/site-packages'
+    ]
+    >>> with temp_path():
+            sys.path = path_from_virtualenv
+            # Running in the context of the path above
+            run(["pip", "install", "stuff"])
+    >>> print(sys.path)
+    [
+        '/home/user/.pyenv/versions/3.7.0/bin',
+        '/home/user/.pyenv/versions/3.7.0/lib/python37.zip',
+        '/home/user/.pyenv/versions/3.7.0/lib/python3.7',
+        '/home/user/.pyenv/versions/3.7.0/lib/python3.7/lib-dynload',
+        '/home/user/.pyenv/versions/3.7.0/lib/python3.7/site-packages'
+    ]
+    """
+    path = [p for p in sys.path]
+    try:
+        yield
+    finally:
+        sys.path = [p for p in path]
