@@ -38,11 +38,10 @@ from pip._vendor.pkg_resources import (
     find_distributions,
 )
 from platformdirs import user_cache_dir
-from vistir.contextmanagers import cd
 
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
-from ..fileutils import create_tracked_tempdir, temp_path
+from ..fileutils import cd, create_tracked_tempdir, temp_path
 from ..utils import get_pip_command
 from .old_pip_utils import _copy_source_tree
 from .utils import (
