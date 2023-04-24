@@ -2,6 +2,7 @@
 import atexit
 import io
 import os
+import posixpath
 import sys
 import warnings
 from contextlib import closing, contextmanager
@@ -17,6 +18,32 @@ from requests import Session
 from urllib3.response import HTTPResponse as Urllib3_HTTPResponse
 
 _T = TypeVar("_T")
+
+
+@contextmanager
+def cd(path):
+    # type: () -> Iterator[None]
+    """Context manager to temporarily change working directories.
+
+    :param str path: The directory to move into
+    >>> print(os.path.abspath(os.curdir))
+    '/home/user/code/myrepo'
+    >>> with cd("/home/user/code/otherdir/subdir"):
+    ...     print("Changed directory: %s" % os.path.abspath(os.curdir))
+    Changed directory: /home/user/code/otherdir/subdir
+    >>> print(os.path.abspath(os.curdir))
+    '/home/user/code/myrepo'
+    """
+    if not path:
+        return
+    prev_cwd = Path.cwd().as_posix()
+    if isinstance(path, Path):
+        path = path.as_posix()
+    os.chdir(str(path))
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)
 
 
 def is_file_url(url: Any) -> bool:
@@ -236,27 +263,64 @@ def create_tracked_tempdir(*args: Any, **kwargs: Any) -> str:
     return tempdir.name
 
 
-@contextmanager
-def cd(path):
-    # type: () -> Iterator[None]
-    """Context manager to temporarily change working directories.
+def check_for_unc_path(path):
+    # type: (Path) -> bool
+    """Checks to see if a pathlib `Path` object is a unc path or not."""
+    if (
+        os.name == "nt"
+        and len(path.drive) > 2
+        and not path.drive[0].isalpha()
+        and path.drive[1] != ":"
+    ):
+        return True
+    else:
+        return False
 
-    :param str path: The directory to move into
-    >>> print(os.path.abspath(os.curdir))
-    '/home/user/code/myrepo'
-    >>> with cd("/home/user/code/otherdir/subdir"):
-    ...     print("Changed directory: %s" % os.path.abspath(os.curdir))
-    Changed directory: /home/user/code/otherdir/subdir
-    >>> print(os.path.abspath(os.curdir))
-    '/home/user/code/myrepo'
+
+def get_converted_relative_path(path, relative_to=None):
+    """Convert `path` to be relative.
+
+    Given a vague relative path, return the path relative to the given
+    location.
+
+    :param str path: The location of a target path
+    :param str relative_to: The starting path to build against, optional
+    :returns: A relative posix-style path with a leading `./`
+
+    This performs additional conversion to ensure the result is of POSIX form,
+    and starts with `./`, or is precisely `.`.
+
+    >>> os.chdir('/home/user/code/myrepo/myfolder')
+    >>> vistir.path.get_converted_relative_path('/home/user/code/file.zip')
+    './../../file.zip'
+    >>> vistir.path.get_converted_relative_path('/home/user/code/myrepo/myfolder/mysubfolder')
+    './mysubfolder'
+    >>> vistir.path.get_converted_relative_path('/home/user/code/myrepo/myfolder')
+    '.'
     """
-    if not path:
-        return
-    prev_cwd = Path.cwd().as_posix()
-    if isinstance(path, Path):
-        path = path.as_posix()
-    os.chdir(str(path))
+    if not relative_to:
+        relative_to = os.getcwd()
+
+    start_path = Path(str(relative_to))
     try:
-        yield
-    finally:
-        os.chdir(prev_cwd)
+        start = start_path.resolve()
+    except OSError:
+        start = start_path.absolute()
+
+    # check if there is a drive letter or mount point
+    # if it is a mountpoint use the original absolute path
+    # instead of the unc path
+    if check_for_unc_path(start):
+        start = start_path.absolute()
+
+    path = start.joinpath(str(path)).relative_to(start)
+
+    # check and see if the path that was passed into the function is a UNC path
+    # and raise value error if it is not.
+    if check_for_unc_path(path):
+        raise ValueError("The path argument does not currently accept UNC paths")
+
+    relpath_s = posixpath.normpath(path.as_posix())
+    if not (relpath_s == "." or relpath_s.startswith("./")):
+        relpath_s = posixpath.join(".", relpath_s)
+    return relpath_s
