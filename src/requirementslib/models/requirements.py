@@ -31,11 +31,17 @@ from pip._vendor.packaging.specifiers import (
 )
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse
-from vistir.path import create_tracked_tempdir, get_converted_relative_path
+from vistir.path import get_converted_relative_path
 
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
-from ..fileutils import is_file_url, is_valid_url, normalize_path, temp_path
+from ..fileutils import (
+    create_tracked_tempdir,
+    is_file_url,
+    is_valid_url,
+    normalize_path,
+    temp_path,
+)
 from ..funktools import dedup
 from ..utils import (
     VCS_LIST,

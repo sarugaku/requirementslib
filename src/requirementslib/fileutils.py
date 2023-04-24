@@ -1,10 +1,13 @@
 """A collection for utilities for working with files and paths."""
+import atexit
 import io
 import os
 import sys
+import warnings
 from contextlib import closing, contextmanager
 from http.client import HTTPResponse as Urllib_HTTPResponse
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import IO, Any, ContextManager, Iterator, Optional, Text, TypeVar, Union
 from urllib import parse as urllib_parse
 from urllib import request as urllib_request
@@ -213,3 +216,21 @@ def temp_path():
         yield
     finally:
         sys.path = [p for p in path]
+
+
+TRACKED_TEMPORARY_DIRECTORIES = []
+
+
+def create_tracked_tempdir(*args: Any, **kwargs: Any) -> str:
+    """Create a tracked temporary directory.
+
+    This uses `TemporaryDirectory`, but does not remove the directory
+    when the return value goes out of scope, instead registers a handler
+    to cleanup on program exit. The return value is the path to the
+    created directory.
+    """
+    tempdir = TemporaryDirectory(*args, **kwargs)
+    TRACKED_TEMPORARY_DIRECTORIES.append(tempdir)
+    atexit.register(tempdir.cleanup)
+    warnings.simplefilter("ignore", ResourceWarning)
+    return tempdir.name
