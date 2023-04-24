@@ -17,7 +17,7 @@ from functools import lru_cache
 from itertools import count
 from os import scandir
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 from urllib.parse import parse_qs, urlparse, urlunparse
 from weakref import finalize
 
@@ -61,7 +61,6 @@ if MYPY_RUNNING:
         Dict,
         Generator,
         List,
-        Optional,
         Sequence,
         Set,
         Text,

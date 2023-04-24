@@ -22,9 +22,9 @@ from tomlkit.container import Container
 from tomlkit.items import AoT, Array, Bool, InlineTable, Item, String, Table
 from urllib3 import util as urllib3_util
 from urllib3.util import parse_url as urllib3_parse
-from vistir.path import is_valid_url
 
 from ..environment import MYPY_RUNNING
+from ..fileutils import is_valid_url
 from ..utils import SCHEME_LIST, VCS_LIST, is_star
 
 if MYPY_RUNNING:
