@@ -6,11 +6,11 @@ from pathlib import Path
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from vistir.contextmanagers import temp_environ
 
 from requirementslib.exceptions import RequirementError
 from requirementslib.models.requirements import Line, NamedRequirement, Requirement
 from requirementslib.models.setup_info import SetupInfo
+from requirementslib.utils import temp_environ
 
 from .strategies import random_marker_strings, repository_line, requirements
 
