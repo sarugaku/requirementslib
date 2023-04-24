@@ -33,6 +33,7 @@ import logging
 import os
 import sys
 from collections.abc import ItemsView, Mapping, Sequence, Set
+from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import urlparse, urlsplit, urlunparse
 
@@ -47,7 +48,7 @@ from .environment import MYPY_RUNNING
 from .fileutils import is_valid_url, normalize_path, url_to_path
 
 if MYPY_RUNNING:
-    from typing import Dict, List, Optional, Text, Tuple, TypeVar, Union
+    from typing import Dict, Iterator, List, Optional, Text, Tuple, TypeVar, Union
 
     STRING_TYPE = Union[bytes, str, Text]
     S = TypeVar("S", bytes, str, Text)
@@ -703,3 +704,17 @@ def get_pip_command() -> InstallCommand:
         name="InstallCommand", summary="requirementslib pip Install command."
     )
     return pip_command
+
+
+# Borrowed from Pew.
+# See https://github.com/berdario/pew/blob/master/pew/_utils.py#L82
+@contextmanager
+def temp_environ():
+    # type: () -> Iterator[None]
+    """Allow the ability to set os.environ temporarily."""
+    environ = dict(os.environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(environ)

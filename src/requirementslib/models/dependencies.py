@@ -17,11 +17,15 @@ from pip._internal.utils.temp_dir import TempDirectory, global_tempdir_manager
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse
-from vistir.contextmanagers import temp_environ
 
 from ..environment import MYPY_RUNNING
 from ..fileutils import create_tracked_tempdir
-from ..utils import get_package_finder, get_pip_command, prepare_pip_source_args
+from ..utils import (
+    get_package_finder,
+    get_pip_command,
+    prepare_pip_source_args,
+    temp_environ,
+)
 from .cache import CACHE_DIR, DependencyCache
 from .setup_info import SetupInfo
 from .utils import (

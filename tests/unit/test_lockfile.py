@@ -2,11 +2,12 @@ import os
 import textwrap
 
 import pytest
-from vistir.contextmanagers import cd, temp_environ
+from vistir.contextmanagers import cd
 
 from requirementslib.exceptions import MissingParameter, PipfileNotFound
 from requirementslib.models.lockfile import Lockfile
 from requirementslib.models.requirements import Requirement
+from requirementslib.utils import temp_environ
 
 
 def test_lockfile(tmpdir, fixture_dir):
