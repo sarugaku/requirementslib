@@ -39,10 +39,10 @@ from pip._vendor.pkg_resources import (
 )
 from platformdirs import user_cache_dir
 from vistir.contextmanagers import cd, temp_path
-from vistir.path import create_tracked_tempdir
 
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
+from ..fileutils import create_tracked_tempdir
 from ..utils import get_pip_command
 from .old_pip_utils import _copy_source_tree
 from .utils import (

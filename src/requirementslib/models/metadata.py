@@ -12,7 +12,6 @@ from typing import Sequence
 
 import attr
 import requests
-import vistir
 from distlib import wheel
 from distlib.metadata import Metadata
 from pip._vendor.packaging.markers import Marker
@@ -22,6 +21,7 @@ from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.version import _BaseVersion, parse
 
 from ..environment import MYPY_RUNNING
+from ..fileutils import open_file
 from .markers import (
     get_contained_extras,
     get_contained_pyversions,
@@ -166,7 +166,7 @@ def get_remote_wheel_metadata(whl_file):
     # type: (str) -> Optional[Metadata]
     parsed_metadata = None
     data = io.BytesIO()
-    with vistir.contextmanagers.open_file(whl_file) as fp:
+    with open_file(whl_file) as fp:
         for chunk in iter(lambda: fp.read(8096), b""):
             data.write(chunk)
     with zipfile.ZipFile(data, mode="r", compression=zipfile.ZIP_DEFLATED) as zf:
