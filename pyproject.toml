@@ -68,7 +68,6 @@ line_length = 90
 filter_files = true
 known_third_party = [
   "attr",
-  "cached_property",
   "chardet",
   "distlib",
   "environ",
