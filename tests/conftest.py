@@ -13,7 +13,8 @@ import warnings
 import distlib.wheel
 import pytest
 import requests
-import vistir.contextmanagers
+
+import requirementslib.fileutils
 
 CURRENT_FILE = pathlib.Path(__file__).absolute()
 
@@ -158,7 +159,7 @@ def monkeypatch_wheel_download(monkeypatch, fixture_dir):
         yield buff
 
     with monkeypatch.context() as m:
-        m.setattr(vistir.contextmanagers, "open_file", open_file)
+        m.setattr(requirementslib.fileutils, "open_file", open_file)
         yield
 
 

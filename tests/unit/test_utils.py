@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 
 import pytest
-from vistir.contextmanagers import temp_environ
 
 from requirementslib import utils as base_utils
 from requirementslib.models import utils
@@ -250,7 +249,7 @@ def test_editable_check(input, expected):
 
 
 def test_expand_env_variables():
-    with temp_environ():
+    with base_utils.temp_environ():
         os.environ["FOO"] = "foo"
 
         assert expand_env_variables("echo ${FOO} ${BAR}") == "echo foo ${BAR}"

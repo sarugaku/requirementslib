@@ -4,8 +4,8 @@ import shutil
 from pathlib import Path
 
 import pytest
-import vistir
 
+import requirementslib.fileutils
 from requirementslib.models.requirements import Requirement
 from requirementslib.models.setup_info import ast_parse_setup_py
 
@@ -136,7 +136,7 @@ setup(
     """.strip()
     )
     setup_dict = None
-    with vistir.contextmanagers.cd(setup_dir.as_posix()):
+    with requirementslib.fileutils.cd(setup_dir.as_posix()):
         pipfile_entry = {
             "path": os.path.abspath(os.curdir),
             "editable": True,
@@ -170,7 +170,7 @@ def test_extras(pathlib_tmpdir, setup_py_dir, setup_py_name, extras, dependencie
         "editable": True,
     }
     setup_dict = None
-    with vistir.contextmanagers.cd(pathlib_tmpdir.as_posix()):
+    with requirementslib.fileutils.cd(pathlib_tmpdir.as_posix()):
         r = Requirement.from_pipfile("test-package", pipfile_entry)
         assert r.name == "test-package"
         r.req.setup_info.get_info()

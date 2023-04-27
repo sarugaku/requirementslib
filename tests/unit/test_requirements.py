@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
+import subprocess as sp
 from pathlib import Path
 
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from vistir.contextmanagers import temp_environ
 
 from requirementslib.exceptions import RequirementError
 from requirementslib.models.requirements import Line, NamedRequirement, Requirement
 from requirementslib.models.setup_info import SetupInfo
+from requirementslib.utils import temp_environ
 
 from .strategies import random_marker_strings, repository_line, requirements
 
@@ -391,12 +392,9 @@ def test_get_ref(artifact_dir):
 def test_get_local_ref(tmpdir):
     # TODO: add this as a git submodule and don't clone it from the internet all the time
     six_dir = tmpdir.join("six")
-    import vistir
 
-    c = vistir.misc.run(
+    c = sp.run(
         ["git", "clone", "https://github.com/benjaminp/six.git", six_dir.strpath],
-        return_object=True,
-        nospin=True,
     )
     assert c.returncode == 0
     r = Requirement.from_line("git+{0}#egg=six".format(Path(six_dir.strpath).as_uri()))
