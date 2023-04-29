@@ -1,3 +1,13 @@
+Requirementslib 2.2.6 (2023-04-28)
+==================================
+
+
+Bug Fixes
+---------
+
+- Fix an error when parsing a setup.py file that has a UTF-8 BOM.  `#364 <https://github.com/sarugaku/requirementslib/issues/364>`_
+
+
 Requirementslib 2.2.5 (2023-04-19)
 ==================================
 
