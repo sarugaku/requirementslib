@@ -103,8 +103,8 @@ def validate_extras(inst, attrib, value) -> None:
     return None
 
 
-def validate_digest(inst, attrib, value) -> None:
-    expected_length = VALID_ALGORITHMS[inst.algorithm.lower()]
+def validate_digest(algorithm, value) -> None:
+    expected_length = VALID_ALGORITHMS[algorithm.lower()]
     if len(value) != expected_length:
         raise ValueError(
             "Expected a digest of length {0!s}, got one of length {1!s}".format(
@@ -176,7 +176,7 @@ class Dependency(ReqLibBaseModel):
     specifier: SpecifierSet
     extras: Tuple[str, ...] = tuple()
     from_extras: Optional[str] = None
-    python_version: SpecifierSet = ""
+    python_version: Any = ""
     parent: Optional["Dependency"] = None
     markers: Optional[Marker] = None
     _specset_str: str = ""
@@ -189,6 +189,10 @@ class Dependency(ReqLibBaseModel):
         allow_mutation = True
         include_private_attributes = True
         # keep_untouched = (cached_property,)
+
+    def __hash__(self):
+        # type: () -> int
+        return hash(self.name)
 
     def __str__(self):
         # type: () -> str
@@ -349,22 +353,21 @@ class Digest(BaseModel):
     def create(cls, algorithm: str, value: str) -> "Digest":
         if algorithm not in VALID_ALGORITHMS.keys():
             raise ValueError("Invalid algorithm")
-        validate_digest(value)  # Assuming this function raises an exception if invalid
+        validate_digest(algorithm, value)
         return cls(algorithm=algorithm, value=value)
 
     @classmethod
     def collection_from_dict(cls, digest_dict: Dict[str, str]) -> List["Digest"]:
         return [cls.create(k, v) for k, v in digest_dict.items()]
 
-    @validator("algorithm")
-    def check_algorithm(cls, algorithm):
+    def check_algorithm(self, algorithm):
         if algorithm not in VALID_ALGORITHMS.keys():
             raise ValueError("Invalid algorithm")
         return algorithm
 
-    @validator("value")
-    def check_value(cls, value):
-        validate_digest(value)  # Assuming this function raises an exception if invalid
+    def check_value(self, algorithm, value):
+        self.check_algorithm(algorithm)
+        validate_digest(algorithm, value)
         return value
 
 
@@ -448,19 +451,16 @@ class ReleaseUrl(BaseModel):
     upload_time_iso_8601: datetime
     size: int
     url: str
-    digests: List[Digest]
+    digests: Any
     name: Optional[str] = None
     comment_text: str = ""
     yanked: bool = False
     downloads: int = -1
     filename: str = ""
     has_sig: bool = False
-    python_version: str = "source"
+    python_version: Optional[str] = "source"
     requires_python: Optional[str] = None
     tags: List[ParsedTag] = []
-
-    class Config:
-        frozen = True
 
     @validator("packagetype", pre=True)
     def validate_package_type(cls, packagetype):
@@ -798,7 +798,7 @@ class PackageInfo(ReqLibBaseModel):
     package_url: str
     summary: Optional[str] = None
     author: Optional[str] = None
-    keywords: Optional[List[str]] = []
+    keywords: Optional[Union[str, List[str]]] = []
     description: Optional[str] = ""
     download_url: Optional[str] = ""
     home_page: Optional[str] = ""
@@ -811,14 +811,14 @@ class PackageInfo(ReqLibBaseModel):
     project_url: Optional[str] = ""
     project_urls: Optional[Dict[str, str]] = {}
     requires_python: Optional[str] = None
-    requires_dist: Optional[List[Dependency]] = []
+    requires_dist: Optional[List[Any]] = []
     release_url: Optional[str] = None
     description_content_type: Optional[str] = "text/md"
     bugtrack_url: Optional[str] = None
     classifiers: Optional[List[str]] = []
     author_email: Optional[str] = None
     markers: Optional[str] = None
-    dependencies: Optional[Tuple[Dependency]] = None
+    dependencies: Optional[Tuple[Any]] = None
 
     @classmethod
     def from_json(cls, info_json) -> "PackageInfo":
@@ -854,7 +854,7 @@ class PackageInfo(ReqLibBaseModel):
                 if dep is None:
                     continue
                 deps.add(dep)
-        self.dependencies = tuple(sorted(deps))
+        self.dependencies = deps
         return self
 
 
@@ -915,11 +915,11 @@ class Package(BaseModel):
             yield w
 
     @property
-    def dependencies(self) -> List[Dependency]:
+    def dependencies(self) -> Set[Dependency]:
         if self.info.dependencies is None and list(self.urls):
             rval = self.get_dependencies()
-            return rval.dependencies
-        return list(self.info.dependencies)
+            return set(rval.dependencies)
+        return set(self.info.dependencies)
 
     def get_dependencies(self) -> "Package":
         urls = []
@@ -952,8 +952,7 @@ class Package(BaseModel):
         return self
 
     @classmethod
-    def from_json(cls, package_json):
-        # type: (Dict[str, Any]) -> "Package"
+    def from_json(cls, package_json) -> "Package":
         info = convert_package_info(package_json["info"]).create_dependencies()
         releases = convert_releases_to_collection(
             package_json["releases"], name=info.name
