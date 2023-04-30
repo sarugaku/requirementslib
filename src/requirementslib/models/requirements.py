@@ -90,7 +90,8 @@ from .utils import (
     init_requirement,
     make_install_requirement,
     normalize_name,
-    parse_extras,
+    parse_extras_from_line,
+    parse_extras_str,
     specs_to_string,
     split_markers_from_line,
     split_ref_from_uri,
@@ -150,17 +151,20 @@ class Line(ReqLibBaseModel):
         self,
         line: str,
         extras: Optional[Union[List[str], Set[str], Tuple[str, ...]]] = None,
+        name: Optional[str] = None,
     ) -> None:
         super().__init__(line=line, extras=extras)
+        self._name = name
         if line.startswith("-e "):
             line = line[len("-e ") :]
             self.editable = True
         if extras is not None:
             self.extras = tuple(sorted(set(extras)))
         if line == ".":
-            line = os.path.abspath(line)
+            line = os.path.relpath(line)
         self.line = line
         self.parse()
+        self.parse_extras()
 
     def __hash__(self):
         # Convert the _requirement attribute to a hashable type if it's a dict
@@ -293,7 +297,7 @@ class Line(ReqLibBaseModel):
         return self.get_line(with_prefix=True, with_hashes=False)
 
     def line_for_ireq(self) -> str:
-        line = ""
+        line = self.line or ""
         if self.is_file or self.is_remote_url and not self.is_vcs:
             scheme = self.preferred_scheme if self.preferred_scheme is not None else "uri"
             local_line = next(
@@ -553,33 +557,25 @@ class Line(ReqLibBaseModel):
         :returns: self
         :rtype: :class:`~Line`
         """
-        extras = None
-        line = "{0}".format(self.line)
-        if any([self.is_vcs, self.is_url, "@" in line]):
+        extras = parse_extras_from_line(self.line)
+        if extras:
+            self.extras = extras
+            return self
+        if any([self.is_vcs, self.is_url, "@" in self.line]):
             try:
                 if self.parsed_url.name:
                     self._name = self.parsed_url.name
-                if (
-                    self.parsed_url.host
-                    and self.parsed_url.path
-                    and self.parsed_url.scheme
-                ):
-                    self.line = self.parsed_url.to_string(
-                        escape_password=False,
-                        direct=False,
-                        strip_ssh=self.parsed_url.is_implicit_ssh,
-                    )
             except ValueError:
-                self.line, extras = _strip_extras(self.line)
+                line, extras = _strip_extras(self.line)
         else:
-            self.line, extras = _strip_extras(self.line)
-        extras_set = set()  # type: Set[str]
+            line, extras = _strip_extras(self.line)
+        extras_set = set()
         if extras is not None:
-            extras_set = set(parse_extras(extras))
+            extras_set = set(parse_extras_str(extras))
         if self._name:
             self._name, name_extras = _strip_extras(self._name)
             if name_extras:
-                name_extras = set(parse_extras(name_extras))
+                name_extras = set(parse_extras_str(name_extras))
                 extras_set |= name_extras
         if extras_set is not None:
             self.extras = tuple(sorted(extras_set))
@@ -935,18 +931,23 @@ class Line(ReqLibBaseModel):
         return None
 
     def _parse_name_from_line(self) -> Optional[str]:
+        name = None
         line = self.line
-        if line == ".":
-            line = os.path.abspath(self.line)
+        line, extras = _strip_extras(line)
+        if line.startswith("-e "):
+            line = line[3:].strip()
+        if line.startswith("."):
+            line = os.path.relpath(line)
         try:
             self._requirement = init_requirement(line)
         except Exception:
-            raise RequirementError("Failed parsing requirement from {0!r}".format(line))
-        name = self._requirement.name
-        if not self._specifier and self._requirement and self._requirement.specifier:
-            self._specifier = specs_to_string(self._requirement.specifier)
-        if self._requirement.extras and not self.extras:
-            self.extras = self._requirement.extras
+            pass
+        else:
+            name = self._requirement.name
+            if not self._specifier and self._requirement and self._requirement.specifier:
+                self._specifier = specs_to_string(self._requirement.specifier)
+            if self._requirement.extras and not self.extras:
+                self.extras = self._requirement.extras
         if not name:
             name = self.line
             specifier_match = next(
@@ -1005,7 +1006,7 @@ class Line(ReqLibBaseModel):
         if name is not None:
             name, extras = _strip_extras(name)
             if extras is not None and not self.extras:
-                self.extras = tuple(sorted(set(parse_extras(extras))))
+                self.extras = tuple(sorted(set(parse_extras_str(extras))))
         self._name = name
 
     def _parse_requirement_from_vcs(self):
@@ -1213,6 +1214,7 @@ class Line(ReqLibBaseModel):
         requirement.
         """
         line = self.line
+        line, extras = _strip_extras(line)
         direct_url_match = DIRECT_URL_RE.match(line)
         if direct_url_match:
             match_dict = direct_url_match.groupdict()
@@ -1259,7 +1261,6 @@ class Line(ReqLibBaseModel):
         self.line, self.markers = split_markers_from_line(self.parse_hashes().line)
         if self.markers:
             self.markers = self.markers.replace('"', "'")
-        self.parse_extras()
         if self.line.startswith("git+file:/") and not self.line.startswith(
             "git+file:///"
         ):
@@ -1295,7 +1296,8 @@ class NamedRequirement(ReqLibBaseModel):
     def __init__(self, **data):
         super().__init__(**data)
 
-        self.parsed_line = Line(line=self.line_part)
+        if not self.parsed_line:
+            self.parsed_line = Line(line=self.line_part)
 
         # Set default values using the methods
         if not self.req:
@@ -1775,7 +1777,7 @@ class FileRequirement(ReqLibBaseModel):
                 line = "{0}&subdirectory={1}".format(line, pipfile["subdirectory"])
         if editable:
             line = "-e {0}".format(line)
-        arg_dict["parsed_line"] = Line(line=line, extras=extras)
+        arg_dict["parsed_line"] = Line(line=line, extras=extras, name=name)
         arg_dict["setup_info"] = arg_dict["parsed_line"].setup_info
         return cls(**arg_dict)  # type: ignore
 
@@ -2382,17 +2384,16 @@ class Requirement(ReqLibBaseModel):
                 line_parts.extend(self.req.line_part.split(" ", 1))
             else:
                 line_parts.append(self.req.line_part)
+        if self.extras and isinstance(self.req, NamedRequirement):
+            line_parts.append(self.extras_as_pip)
         if not self.is_vcs and not self.vcs and self.extras_as_pip:
             if (
                 self.is_file_or_url
                 and not local_editable
                 and not self.req.get_uri().startswith("file://")
                 # fix for file uri with egg names and extras
-                and not len(self.req.line_part.split("#")) > 1
             ):
                 line_parts.append(f"#egg={self.name}{self.extras_as_pip}")
-            else:
-                line_parts.append(self.extras_as_pip)
         if not (self.is_file_or_url or self.is_vcs) and self.specifiers:
             line_parts.append(self.specifiers)
         if self.markers and not self.is_file_or_url:
@@ -2412,7 +2413,7 @@ class Requirement(ReqLibBaseModel):
         self.line_instance_ref = Line(line=line)
         return self.line_instance_ref
 
-    @cached_property
+    @property
     def line_instance(self) -> Optional[Line]:
         if self.line_instance_ref:
             return self.line_instance_ref

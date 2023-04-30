@@ -224,7 +224,7 @@ def extras_to_string(extras) -> str:
     return "[{0}]".format(",".join(sorted(set(extras))))
 
 
-def parse_extras(extras_str):
+def parse_extras_str(extras_str):
     """Turn a string of extras into a parsed extras list.
 
     :param str extras_str: An extras string
@@ -233,6 +233,20 @@ def parse_extras(extras_str):
     """
     extras = Requirement.parse("fakepkg{0}".format(extras_to_string(extras_str))).extras
     return sorted(dict.fromkeys([extra.lower() for extra in extras]))
+
+
+def parse_extras_from_line(installable_line):
+    extras = []
+
+    # Extract the part within square brackets, if any
+    start = installable_line.find("[")
+    end = installable_line.find("]")
+
+    if start != -1 and end != -1 and start < end:
+        extras_str = installable_line[start + 1 : end]
+        extras = extras_str.split(",")
+
+    return extras
 
 
 def specs_to_string(specs):

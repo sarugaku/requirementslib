@@ -237,7 +237,7 @@ def test_convert_from_pipfile(monkeypatch, requirement, expected):
         if " (" in expected and expected.endswith(")"):
             # To strip out plette[validation] (>=0.1.1)
             expected = expected.replace(" (", "").rstrip(")")
-        assert req.as_line() == expected.lower() if "://" not in expected else expected
+        assert req.as_line() == (expected.lower() if "://" not in expected else expected)
 
 
 @pytest.mark.requirements

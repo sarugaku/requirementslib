@@ -12,7 +12,7 @@ from pydantic import Field
 from ..environment import MYPY_RUNNING
 from ..utils import is_installable_file
 from .common import ReqLibBaseModel
-from .utils import DIRECT_URL_RE, extras_to_string, parse_extras, split_ref_from_uri
+from .utils import DIRECT_URL_RE, extras_to_string, parse_extras_str, split_ref_from_uri
 
 if MYPY_RUNNING:
 
@@ -127,11 +127,11 @@ class URI(ReqLibBaseModel):
             val = unquote_plus(val)
             fragment_items[key] = val
             if key == "egg":
-                from .utils import parse_extras
+                from .utils import parse_extras_str
 
                 name, stripped_extras = _strip_extras(val)
                 if stripped_extras:
-                    extras = tuple(parse_extras(stripped_extras))
+                    extras = tuple(parse_extras_str(stripped_extras))
             elif key == "subdirectory":
                 subdirectory = val
         self.name = name
@@ -458,7 +458,7 @@ def update_url_name_and_fragment(name_with_extras, ref, parsed_dict):
         parsed_extras = ()
         name, extras = _strip_extras(name_with_extras)
         if extras:
-            parsed_extras = parsed_extras + tuple(parse_extras(extras))
+            parsed_extras = parsed_extras + tuple(parse_extras_str(extras))
         if parsed_dict["fragment"] is not None:
             fragment = "{0}".format(parsed_dict["fragment"])
             if fragment.startswith("egg="):
@@ -466,7 +466,9 @@ def update_url_name_and_fragment(name_with_extras, ref, parsed_dict):
                 fragment_name, fragment_extras = _strip_extras(fragment_part)
                 name = name if name else fragment_name
                 if fragment_extras:
-                    parsed_extras = parsed_extras + tuple(parse_extras(fragment_extras))
+                    parsed_extras = parsed_extras + tuple(
+                        parse_extras_str(fragment_extras)
+                    )
                 name_with_extras = "{0}{1}".format(name, extras_to_string(parsed_extras))
         elif (
             parsed_dict.get("path") is not None and "&subdirectory" in parsed_dict["path"]
