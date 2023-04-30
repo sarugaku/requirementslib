@@ -1,4 +1,3 @@
-import datetime
 import io
 import json
 import logging
@@ -6,6 +5,7 @@ import operator
 import os
 import zipfile
 from collections import defaultdict
+from datetime import datetime
 from functools import reduce
 from typing import (
     Any,
@@ -97,7 +97,7 @@ PACKAGE_TYPES = {
 
 class PackageEncoder(json.JSONEncoder):
     def default(self, obj):  # noqa:E0202 # noqa:W0221
-        if isinstance(obj, datetime.datetime):
+        if isinstance(obj, datetime):
             return obj.isoformat()
         elif isinstance(obj, PackagingRequirement):
             return obj.__dict__
