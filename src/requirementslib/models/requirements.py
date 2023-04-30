@@ -2708,6 +2708,15 @@ class Requirement(ReqLibBaseModel):
             base_dict["hashes"] = sorted(hashes)
         if "extras" in base_dict:
             base_dict["extras"] = list(base_dict["extras"])
+        result_keys = list(base_dict.keys())
+        for vcs_key in VCS_LIST:
+            if vcs_key in result_keys:
+                if "path" in result_keys:
+                    base_dict.pop("path")
+                if "uri" in result_keys:
+                    base_dict.pop("uri")
+                if "name" in result_keys:
+                    base_dict.pop("name")
         if len(base_dict.keys()) == 1 and "version" in base_dict:
             base_dict = base_dict.get("version")
 
