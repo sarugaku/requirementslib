@@ -528,12 +528,14 @@ class ReleaseUrl(BaseModel):
                 if not self.requires_python:
                     results["requires_python"] = metadata._legacy.get("Requires-Python")
         else:
+            requires_dist = []
             try:
                 metadata = get_remote_sdist_metadata(self.pep508_url)
             except Exception:
-                requires_dist = []
+                pass
             else:
-                requires_dist = [str(v) for v in metadata.requires.values()]
+                if metadata.requires:
+                    requires_dist = [str(v) for v in metadata.requires.values()]
         results["requires_dist"] = requires_dist
         requires_python = getattr(self, "requires_python", results["requires_python"])
         self.requires_python = requires_python
@@ -811,14 +813,14 @@ class PackageInfo(ReqLibBaseModel):
     project_url: Optional[str] = ""
     project_urls: Optional[Dict[str, str]] = {}
     requires_python: Optional[str] = None
-    requires_dist: Optional[List[Any]] = []
+    requires_dist: Optional[Any] = []
     release_url: Optional[str] = None
     description_content_type: Optional[str] = "text/md"
     bugtrack_url: Optional[str] = None
     classifiers: Optional[List[str]] = []
     author_email: Optional[str] = None
     markers: Optional[str] = None
-    dependencies: Optional[Tuple[Any]] = None
+    dependencies: Optional[Any] = None
 
     @classmethod
     def from_json(cls, info_json) -> "PackageInfo":
