@@ -1306,8 +1306,9 @@ class SetupInfo(ReqLibBaseModel):
     def version(self) -> Optional[str]:
         if not self._version:
             self.get_info()
-            metadata_dict = tuple_to_dict(self.metadata)
-            self._version = metadata_dict.get("version")
+            if self.metadata:
+                metadata_dict = tuple_to_dict(self.metadata)
+                self._version = metadata_dict.get("version")
         return self._version
 
     @property

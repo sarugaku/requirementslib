@@ -197,6 +197,9 @@ def mock_setup_requires(cls):
 
 @pytest.mark.utils
 @pytest.mark.parametrize("expected, requirement", DEP_PIP_PAIRS)
+@mock.patch(
+    "requirementslib.models.setup_info.unpack_url", mock.MagicMock(return_value={})
+)
 def test_convert_from_pip(monkeypatch, expected, requirement):
     with monkeypatch.context() as m:
         m.setattr(Requirement, "run_requires", mock_run_requires)
@@ -221,6 +224,9 @@ def test_convert_from_pip(monkeypatch, expected, requirement):
 @pytest.mark.parametrize(
     "requirement, expected", DEP_PIP_PAIRS + DEP_PIP_PAIRS_LEGACY_PIPFILE
 )
+@mock.patch(
+    "requirementslib.models.setup_info.unpack_url", mock.MagicMock(return_value={})
+)
 def test_convert_from_pipfile(monkeypatch, requirement, expected):
     with monkeypatch.context() as m:
         m.setattr(SetupInfo, "get_info", mock_run_requires)
@@ -235,6 +241,9 @@ def test_convert_from_pipfile(monkeypatch, requirement, expected):
 
 
 @pytest.mark.requirements
+@mock.patch(
+    "requirementslib.models.setup_info.unpack_url", mock.MagicMock(return_value={})
+)
 def test_convert_from_pipfile_vcs(monkeypatch):
     """ssh VCS links should be converted correctly."""
     with monkeypatch.context() as m:
@@ -275,7 +284,6 @@ def test_one_way_editable_extras():
     assert dep[k]["extras"] == ["socks"]
 
 
-@pytest.mark.skip
 @pytest.mark.utils
 def test_convert_from_pip_git_uri_normalize(monkeypatch):
     """Pip does not parse this correctly, but we can (by converting to

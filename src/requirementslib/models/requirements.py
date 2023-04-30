@@ -1425,11 +1425,14 @@ class FileRequirement(ReqLibBaseModel):
         # self.parse_setup_info()
         if self.parsed_line is None:
             self.parsed_line = Line(line=self.line_part)
-        if self.name is None and self.parsed_line:
-            if self.parsed_line.setup_info:
-                self.setup_info = self.parsed_line.setup_info
-                if self.parsed_line.setup_info.name:
-                    self.name = self.parsed_line.setup_info.name
+        if not self.setup_info:
+            self.parse_setup_info()
+        if self.setup_info and self.parsed_line and not self.parsed_line.setup_info:
+            self.parsed_line.setup_info = self.setup_info
+        if self.parsed_line and self.parsed_line.setup_info:
+            self.setup_info = self.parsed_line.setup_info
+            if not self.name and self.parsed_line.setup_info.name:
+                self.name = self.parsed_line.setup_info.name
         if self.req is None and (
             self.parsed_line is not None and self.parsed_line.requirement is not None
         ):
@@ -2711,12 +2714,9 @@ class Requirement(ReqLibBaseModel):
         result_keys = list(base_dict.keys())
         for vcs_key in VCS_LIST:
             if vcs_key in result_keys:
-                if "path" in result_keys:
-                    base_dict.pop("path")
-                if "uri" in result_keys:
-                    base_dict.pop("uri")
-                if "name" in result_keys:
-                    base_dict.pop("name")
+                for remove_key in ["path", "uri", "name", "setup_info"]:
+                    if remove_key in result_keys:
+                        base_dict.pop(remove_key)
         if len(base_dict.keys()) == 1 and "version" in base_dict:
             base_dict = base_dict.get("version")
 

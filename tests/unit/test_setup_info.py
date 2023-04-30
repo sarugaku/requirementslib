@@ -169,7 +169,6 @@ def test_extras(pathlib_tmpdir, setup_py_dir, setup_py_name, extras, dependencie
         "extras": extras,
         "editable": True,
     }
-    setup_dict = None
     with requirementslib.fileutils.cd(pathlib_tmpdir.as_posix()):
         r = Requirement.from_pipfile("test-package", pipfile_entry)
         assert r.name == "test-package"
