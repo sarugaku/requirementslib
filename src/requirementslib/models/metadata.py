@@ -7,7 +7,21 @@ import os
 import zipfile
 from collections import defaultdict
 from functools import reduce
-from typing import Sequence, List, Dict
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import pip._vendor.requests as requests
 from pip._vendor.distlib import wheel
@@ -17,13 +31,12 @@ from pip._vendor.packaging.requirements import Requirement as PackagingRequireme
 from pip._vendor.packaging.specifiers import Specifier, SpecifierSet
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.version import _BaseVersion, parse
-from pydantic.json import pydantic_encoder
 from pydantic import BaseModel, Field, validator
-
-from .common import ReqLibBaseModel
+from pydantic.json import pydantic_encoder
 
 from ..environment import MYPY_RUNNING
 from ..fileutils import open_file
+from .common import ReqLibBaseModel
 from .markers import (
     get_contained_extras,
     get_contained_pyversions,
@@ -44,20 +57,6 @@ logger.setLevel(logging.INFO)
 
 
 if MYPY_RUNNING:
-    from typing import (
-        Any,
-        Callable,
-        Dict,
-        Generic,
-        Iterator,
-        List,
-        Optional,
-        Set,
-        Tuple,
-        Type,
-        TypeVar,
-        Union,
-    )
     from .setup_info import SetupInfo
 
     TDigestDict = Dict[str, str]
@@ -350,7 +349,6 @@ class Dependency(ReqLibBaseModel):
         return cls.from_requirement(req, parent=parent)
 
 
-
 class Digest(BaseModel):
     algorithm: str
     value: str
@@ -382,6 +380,7 @@ class Digest(BaseModel):
     def check_value(cls, value):
         validate_digest(value)  # Assuming this function raises an exception if invalid
         return value
+
 
 # XXX: This is necessary because attrs converters can only be functions, not classmethods
 def create_digest_collection(digest_dict):
@@ -478,10 +477,14 @@ class ReleaseUrl(BaseModel):
     class Config:
         frozen = True
 
-    @validator('packagetype', pre=True)
+    @validator("packagetype", pre=True)
     def validate_package_type(cls, packagetype):
         if packagetype not in PACKAGE_TYPES:
-            raise ValueError("Invalid package type: {0}. Expected one of {1}".format(packagetype, " ".join(PACKAGE_TYPES)))
+            raise ValueError(
+                "Invalid package type: {0}. Expected one of {1}".format(
+                    packagetype, " ".join(PACKAGE_TYPES)
+                )
+            )
         return packagetype
 
     @property
@@ -561,7 +564,9 @@ class ReleaseUrl(BaseModel):
     def create(cls, release_dict: Dict, name: Optional[str] = None) -> "ReleaseUrl":
         valid_digest_keys = set("{0}_digest".format(k) for k in VALID_ALGORITHMS.keys())
         digest_keys = set(release_dict.keys()) & valid_digest_keys
-        creation_kwargs = {}  # type: Dict[str, Union[bool, int, str, Digest, TDigestDict]]
+        creation_kwargs = (
+            {}
+        )  # type: Dict[str, Union[bool, int, str, Digest, TDigestDict]]
         creation_kwargs = {k: v for k, v in release_dict.items() if k not in digest_keys}
         if name is not None:
             creation_kwargs["name"] = name
@@ -599,7 +604,9 @@ class ReleaseUrlCollection(BaseModel, Sequence):
         frozen = True
 
     @classmethod
-    def create(cls, urls: TReleasesList, name: Optional[str] = None) -> "ReleaseUrlCollection":
+    def create(
+        cls, urls: TReleasesList, name: Optional[str] = None
+    ) -> "ReleaseUrlCollection":
         return cls(urls=create_release_urls_from_list(urls), name=name)
 
     @property
@@ -770,7 +777,9 @@ class ReleaseCollection(BaseModel):
         return next(iter(r for r in self.sort_releases() if not r.yanked))
 
     @classmethod
-    def load(cls, releases: Union[TReleasesDict, List[Release]], name: Optional[str] = None) -> "ReleaseCollection":
+    def load(
+        cls, releases: Union[TReleasesDict, List[Release]], name: Optional[str] = None
+    ) -> "ReleaseCollection":
         if not isinstance(releases, list):
             releases = get_releases_from_package(releases, name=name)
         return cls(releases=releases)
@@ -903,11 +912,15 @@ class Package(BaseModel):
     info: PackageInfo = Field(converter=convert_package_info)
     last_serial: int
     releases: ReleaseCollection = Field(
-        converter=instance_check_converter(ReleaseCollection, convert_releases_to_collection)
+        converter=instance_check_converter(
+            ReleaseCollection, convert_releases_to_collection
+        )
     )
     urls: ReleaseUrlCollection = Field(
         default_factory=lambda: [],
-        converter=instance_check_converter(ReleaseUrlCollection, convert_release_urls_to_collection)
+        converter=instance_check_converter(
+            ReleaseUrlCollection, convert_release_urls_to_collection
+        ),
     )
 
     @property
