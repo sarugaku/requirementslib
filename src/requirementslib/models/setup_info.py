@@ -49,7 +49,6 @@ from pip._vendor.pkg_resources import (
 from pip._internal.req.req_install import InstallRequirement
 from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.pkg_resources import DistInfoDistribution, EggInfoDistribution
-from setuptools.dist import Distribution
 from pydantic import Field
 
 from pip._vendor.platformdirs import user_cache_dir
@@ -1140,7 +1139,7 @@ def ast_parse_setup_py(path: str, raising: bool = True) -> "Dict[str, Any]":
 
 
 def run_setup(script_path, egg_base=None):
-    # type: (str, Optional[str]) -> Distribution
+    # type: (str, Optional[str]) -> "Distribution"
     """Run a `setup.py` script with a target **egg_base** if provided.
 
     :param S script_path: The path to the `setup.py` script to run
