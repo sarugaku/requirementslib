@@ -94,6 +94,33 @@ def test_get_extras(marker, extras):
 
 
 @pytest.mark.parametrize(
+    "marker, pyversions",
+    [
+        (
+            Marker(
+                "os_name == 'nt' and python_version >= '2.7' and python_version <= '3.5'"
+            ),
+            SpecifierSet("<=3.5,>=2.7"),
+        ),
+        (
+            Marker(
+                "os_name == 'posix' and python_version >= '2.7' and python_version not in '3.0.*,3.1.*,3.2.*,3.3.*'"
+            ),
+            SpecifierSet("!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"),
+        ),
+        (
+            Marker(
+                "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'"
+            ),
+            SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3,!=3.4,>=2.7"),
+        ),
+    ],
+)
+def test_get_pyversions(marker, pyversions):
+    assert requirementslib.models.markers.get_contained_pyversions(marker) == pyversions
+
+
+@pytest.mark.parametrize(
     "marker, expected",
     [
         (

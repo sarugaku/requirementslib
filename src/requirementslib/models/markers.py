@@ -282,13 +282,15 @@ def fix_version_tuple(version_tuple):
     return (op, version)
 
 
-def _ensure_marker(marker) -> Marker:
+def _ensure_marker(marker):
+    # type: (Union[str, Marker]) -> Marker
     if not is_instance(marker, Marker):
         return Marker(str(marker))
     return marker
 
 
-def gen_marker(mkr) -> Marker:
+def gen_marker(mkr):
+    # type: (List[str]) -> Marker
     m = Marker("python_version == '1'")
     m._markers.pop()
     m._markers.append(mkr)
