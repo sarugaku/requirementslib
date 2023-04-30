@@ -103,7 +103,7 @@ def test_lockfile_requirements(pathlib_tmpdir):
     assert isinstance(list(loaded.get_requirements(dev=True, only=True))[0], Requirement)
     assert isinstance(loaded.requirements_list(category="develop")[0], dict)
     with cd(pathlib_tmpdir.as_posix()):
-        auto_detected_path = Lockfile()
+        auto_detected_path = Lockfile.create(path=pathlib_tmpdir.as_posix())
         assert (
             auto_detected_path.path.absolute().as_posix()
             == lockfile.absolute().as_posix()
