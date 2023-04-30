@@ -5,7 +5,7 @@ import zipfile
 
 import pytest
 
-import requirementslib.models.metadata
+from requirementslib.models.metadata import Package
 
 
 @pytest.mark.parametrize(
@@ -17,7 +17,7 @@ import requirementslib.models.metadata
     indirect=True,
 )
 def test_metadata(monkeypatch_wheel_download, package_json):
-    package = requirementslib.models.metadata.Package.from_json(package_json)
+    package = Package.from_json(package_json)
     package = package.get_dependencies()
     deps = sorted([str(d.requirement) for d in package.dependencies])
     if package.name == "llvmlite":
