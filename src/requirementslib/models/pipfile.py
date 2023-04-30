@@ -210,7 +210,7 @@ class Pipfile(ReqLibBaseModel):
     def __getattr__(self, k, *args, **kwargs):
         pipfile = self.pipfile
         try:
-            retval = getattr(self, k)
+            retval = super(Pipfile).__getattribute__(k)
         except AttributeError:
             retval = getattr(pipfile, k, None)
         return retval

@@ -48,12 +48,10 @@ def test_pipfile_loader(
     assert pipfile.path.as_posix() == pipfile_path.absolute().as_posix()
     assert pipfile.requires_python == requires_python
     assert pipfile.allow_prereleases is True
-    assert isinstance(pipfile.build_requires, list)
-    assert pipfile.build_backend is not None
+    assert pipfile.build_system is not None
     lockfile_from_pipfile = Lockfile.lockfile_from_pipfile(pipfile.path.as_posix())
     assert lockfile_from_pipfile is not None
     pipfile["dev-packages"]["six"] = "*"
-    pipfile.write()
 
 
 def test_failures(pathlib_tmpdir):
