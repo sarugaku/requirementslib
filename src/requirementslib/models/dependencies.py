@@ -1,14 +1,10 @@
 import atexit
 import os
 
-from pip._vendor.platformdirs import user_cache_dir
 from pip._internal.index.package_finder import PackageFinder
+from pip._vendor.platformdirs import user_cache_dir
 
-from ..utils import (
-    get_package_finder,
-    get_pip_command,
-    prepare_pip_source_args,
-)
+from ..utils import get_package_finder, get_pip_command, prepare_pip_source_args
 
 CACHE_DIR = os.environ.get("PIPENV_CACHE_DIR", user_cache_dir("pipenv"))
 

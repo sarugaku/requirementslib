@@ -97,7 +97,6 @@ def normalize_path(path):
     )
 
 
-
 def normalize_drive(path):
     """Normalize drive in path so they stay consistent.
 

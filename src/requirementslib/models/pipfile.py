@@ -1,24 +1,21 @@
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Text, Union
 import itertools
 import os
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Text, Union
 
 import tomlkit as tomlkit
 from plette import pipfiles
 from pydantic import BaseModel, validator
 
-from .common import ReqLibBaseModel
-
 from ..environment import MYPY_RUNNING
 from ..exceptions import RequirementError
 from ..utils import is_editable, is_vcs, merge_items
+from .common import ReqLibBaseModel
 from .project import ProjectFile
 from .requirements import Requirement
 from .utils import get_url_name, tomlkit_value_to_python
 
 if MYPY_RUNNING:
-    from typing import Any, Dict, Iterable, List, Text, Union
-
     package_type = Dict[Text, Dict[Text, Union[List[Text], Text]]]
     source_type = Dict[Text, Union[Text, bool]]
     sources_type = Iterable[source_type]
@@ -142,7 +139,7 @@ class Pipfile(ReqLibBaseModel):
         arbitrary_types_allowed = True
         allow_mutation = True
         include_private_attributes = True
-        #keep_untouched = (cached_property,)
+        # keep_untouched = (cached_property,)
 
     @validator("path", pre=True, always=True)
     def _get_path(cls, v):
@@ -154,7 +151,7 @@ class Pipfile(ReqLibBaseModel):
 
     @validator("pipfile", pre=True, always=True)
     def _get_pipfile(cls, v, values):
-        return v or values['projectfile'].model
+        return v or values["projectfile"].model
 
     @property
     def root(self):

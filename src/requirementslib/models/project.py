@@ -2,10 +2,10 @@ import collections
 import io
 import json
 import os
-from typing import Optional, Any
+from typing import Any, Optional
 
-from pydantic import BaseModel
 from pip._vendor.packaging.markers import Marker
+from pydantic import BaseModel
 
 SectionDifference = collections.namedtuple("SectionDifference", ["inthis", "inthat"])
 FileDifference = collections.namedtuple("FileDifference", ["default", "develop"])

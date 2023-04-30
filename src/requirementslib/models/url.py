@@ -1,3 +1,4 @@
+from typing import Dict, Optional, Text, Tuple, TypeVar, Union
 from urllib.parse import quote
 from urllib.parse import unquote as url_unquote
 from urllib.parse import unquote_plus
@@ -6,14 +7,12 @@ from pip._internal.models.link import Link
 from pip._internal.req.constructors import _strip_extras
 from pip._vendor.urllib3.util import parse_url as urllib3_parse
 from pip._vendor.urllib3.util.url import Url
+from pydantic import Field
 
 from ..environment import MYPY_RUNNING
 from ..utils import is_installable_file
-from .utils import extras_to_string, parse_extras, DIRECT_URL_RE, split_ref_from_uri
-
-from typing import Dict, Optional, Text, Tuple, TypeVar, Union
-from pydantic import Field
 from .common import ReqLibBaseModel
+from .utils import DIRECT_URL_RE, extras_to_string, parse_extras, split_ref_from_uri
 
 if MYPY_RUNNING:
 
@@ -47,17 +46,34 @@ def _get_parsed_url(url) -> Url:
 
 class URI(ReqLibBaseModel):
     host: Optional[str] = Field(...)
-    scheme: Optional[str] = Field("https", description="The URI Scheme, e.g. `salesforce`")
-    port: Optional[int] = Field(None, description="The numeric port of the url if specified")
+    scheme: Optional[str] = Field(
+        "https", description="The URI Scheme, e.g. `salesforce`"
+    )
+    port: Optional[int] = Field(
+        None, description="The numeric port of the url if specified"
+    )
     path: str = Field("", description="The url path, e.g. `/path/to/endpoint`")
-    query:  Optional[str] = Field("", description="Query parameters, e.g. `?variable=value...`")
-    fragment: Optional[str] = Field("", description="URL Fragments, e.g. `#fragment=value`")
-    subdirectory: Optional[str] = Field("", description="Subdirectory fragment, e.g. `&subdirectory=blah...`")
+    query: Optional[str] = Field(
+        "", description="Query parameters, e.g. `?variable=value...`"
+    )
+    fragment: Optional[str] = Field(
+        "", description="URL Fragments, e.g. `#fragment=value`"
+    )
+    subdirectory: Optional[str] = Field(
+        "", description="Subdirectory fragment, e.g. `&subdirectory=blah...`"
+    )
     ref: Optional[str] = Field("", description="VCS ref this URI points at, if available")
-    username: Optional[str] = Field("", description="The username if provided, parsed from `user:password@hostname`")
-    password: Optional[str] = Field("", description="Password parsed from `user:password@hostname`", repr=False)
+    username: Optional[str] = Field(
+        "", description="The username if provided, parsed from `user:password@hostname`"
+    )
+    password: Optional[str] = Field(
+        "", description="Password parsed from `user:password@hostname`", repr=False
+    )
     query_dict: Optional[Dict] = Field(default_factory=dict)
-    name: Optional[str] = Field("", description="The name of the specified package in case it is a VCS URI with an egg fragment")
+    name: Optional[str] = Field(
+        "",
+        description="The name of the specified package in case it is a VCS URI with an egg fragment",
+    )
     extras: Optional[Tuple] = Field(default_factory=tuple)
     is_direct_url: Optional[bool] = Field(False)
     is_implicit_ssh: Optional[bool] = Field(False)
@@ -71,7 +87,7 @@ class URI(ReqLibBaseModel):
         arbitrary_types_allowed = True
         allow_mutation = True
         include_private_attributes = True
-        #keep_untouched = (cached_property,)
+        # keep_untouched = (cached_property,)
 
     def __init__(self, **data):
         super().__init__(**data)

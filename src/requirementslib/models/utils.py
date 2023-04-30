@@ -16,25 +16,22 @@ from typing import (
     TypeVar,
     Union,
 )
+
 import tomlkit as tomlkit
 from pip._internal.models.link import Link
 from pip._internal.req.constructors import install_req_from_line
-from pip._internal.utils._jaraco_text import (
-    yield_lines,
-    drop_comment,
-    join_continuation,
-)
+from pip._internal.utils._jaraco_text import drop_comment, join_continuation, yield_lines
 from pip._vendor.packaging.markers import InvalidMarker, Marker, Op, Value, Variable
 from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pkg_resources import Requirement, get_distribution, safe_name
+from pip._vendor.urllib3 import util as urllib3_util
+from pip._vendor.urllib3.util import parse_url as urllib3_parse
 from plette.models import Package, PackageCollection
 from tomlkit.container import Container
 from tomlkit.items import AoT, Array, Bool, InlineTable, Item, String, Table
-from pip._vendor.urllib3 import util as urllib3_util
-from pip._vendor.urllib3.util import parse_url as urllib3_parse
 
 from ..environment import MYPY_RUNNING
 from ..fileutils import is_valid_url
@@ -175,16 +172,20 @@ def get_url_name(url):
 class HashableRequirement(Requirement):
     def __hash__(self):
         specifier_hash = hash(tuple((str(s),) for s in self.specifier))
-        return hash((
-            self.url,
-            specifier_hash,
-            frozenset(self.extras),
-            str(self.marker) if self.marker else None,
-        ))
+        return hash(
+            (
+                self.url,
+                specifier_hash,
+                frozenset(self.extras),
+                str(self.marker) if self.marker else None,
+            )
+        )
 
     @staticmethod
     def parse(s):
-        (req,) = map(HashableRequirement, join_continuation(map(drop_comment, yield_lines(s))))
+        (req,) = map(
+            HashableRequirement, join_continuation(map(drop_comment, yield_lines(s)))
+        )
         return req
 
 
@@ -717,8 +718,7 @@ def make_install_requirement(
 
 
 def normalize_name(pkg) -> str:
-    """Given a package name, return its normalized, non-canonicalized form.
-    """
+    """Given a package name, return its normalized, non-canonicalized form."""
     return pkg.replace("_", "-").lower()
 
 

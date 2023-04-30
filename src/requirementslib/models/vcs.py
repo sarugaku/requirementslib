@@ -1,18 +1,14 @@
 import importlib
 import os
 import sys
+from typing import Any, Optional, Tuple
 
-from pip._vendor.pyparsing.core import cached_property
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.vcs.versioncontrol import VcsSupport
-from pydantic import Field
-from .common import ReqLibBaseModel
-
-
-from typing import Any, Optional, Tuple
+from pip._vendor.pyparsing.core import cached_property
 from pydantic import BaseModel, Field
-from tempfile import gettempdir as global_tempdir_manager
 
+from .common import ReqLibBaseModel
 from .url import URI
 
 
