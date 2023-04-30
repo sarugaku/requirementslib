@@ -47,6 +47,7 @@ from .markers import (
     normalize_specifier_set,
 )
 from .requirements import Requirement
+from .setup_info import SetupInfo
 from .utils import filter_dict, get_pinned_version, is_pinned_requirement
 
 ch = logging.StreamHandler()
@@ -57,8 +58,6 @@ logger.setLevel(logging.INFO)
 
 
 if MYPY_RUNNING:
-    from .setup_info import SetupInfo
-
     TDigestDict = Dict[str, str]
     TProjectUrls = Dict[str, str]
     TReleaseUrlDict = Dict[str, Union[bool, int, str, TDigestDict]]
