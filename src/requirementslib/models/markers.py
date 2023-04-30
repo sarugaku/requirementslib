@@ -552,11 +552,11 @@ def parse_marker_dict(marker_dict):
     # Essentially we will iterate over each side of the parsed marker if either one is
     # A mapping instance (i.e. a dictionary) and recursively parse and reduce the specset
     # Union the "and" specs, intersect the "or"s to find the most appropriate range
-    if any(isinstance(type(side), Mapping) for side in (lhs, rhs)):
+    if any(isinstance(side, Mapping) for side in (lhs, rhs)):
         for side in (lhs, rhs):
             side_specs = set()
             side_markers = set()
-            if isinstance(type(side), Mapping):
+            if isinstance(side, Mapping):
                 merged_side_specs, merged_side_markers = parse_marker_dict(side)
                 side_specs.update(merged_side_specs)
                 side_markers.update(merged_side_markers)
