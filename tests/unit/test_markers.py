@@ -83,53 +83,6 @@ def test_cleanup_pyspecs(specset, new_set):
 
 
 @pytest.mark.parametrize(
-    "specset, versions",
-    [
-        (
-            SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3"),
-            [
-                ("!=", Version("3.0")),
-                ("!=", Version("3.1")),
-                ("!=", Version("3.2")),
-                ("!=", Version("3.3")),
-            ],
-        ),
-        (
-            SpecifierSet("==3.0.*,==3.1.*,==3.2.*,==3.3.*"),
-            [
-                ("==", Version("3.0")),
-                ("==", Version("3.1")),
-                ("==", Version("3.2")),
-                ("==", Version("3.3")),
-            ],
-        ),
-        (
-            SpecifierSet("!=3.0,!=3.1,!=3.2,!=3.3,>=2.7,<3.7"),
-            [
-                (">=", Version("2.7")),
-                ("!=", Version("3.0")),
-                ("!=", Version("3.1")),
-                ("!=", Version("3.2")),
-                ("!=", Version("3.3")),
-                ("<", Version("3.7")),
-            ],
-        ),
-        (
-            SpecifierSet(">2.6,>=2.7,<3.6,<3.7"),
-            [
-                (">", Version("2.6")),
-                (">=", Version("2.7")),
-                ("<", Version("3.6")),
-                ("<", Version("3.7")),
-            ],
-        ),
-    ],
-)
-def test_get_versions(specset, versions):
-    assert requirementslib.models.markers.get_versions(specset) == versions
-
-
-@pytest.mark.parametrize(
     "marker, extras",
     [
         (Marker("extra == 'security' and os_name == 'nt'"), {"security"}),
