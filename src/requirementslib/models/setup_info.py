@@ -1332,8 +1332,8 @@ class SetupInfo(ReqLibBaseModel):
 
     def update_from_dict(self, metadata: Dict[str, Any]) -> None:
         name = metadata.get("name", self.name)
-        if isinstance(name, str):
-            self.name = self.name if self.name else name
+        if name and isinstance(name, str):
+            self.name = name
         version = metadata.get("version", None)
         if version:
             try:
