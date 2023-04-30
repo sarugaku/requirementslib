@@ -34,7 +34,6 @@ from pip._vendor.packaging.version import _BaseVersion, parse
 from pydantic import BaseModel, Field, validator
 from pydantic.json import pydantic_encoder
 
-from ..environment import MYPY_RUNNING
 from ..fileutils import open_file
 from .common import ReqLibBaseModel
 from .markers import (
@@ -56,18 +55,6 @@ ch.setFormatter(formatter)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
-if MYPY_RUNNING:
-    TDigestDict = Dict[str, str]
-    TProjectUrls = Dict[str, str]
-    TReleaseUrlDict = Dict[str, Union[bool, int, str, TDigestDict]]
-    TReleasesList = List[TReleaseUrlDict]
-    TReleasesDict = Dict[str, TReleasesList]
-    TDownloads = Dict[str, int]
-    TPackageInfo = Dict[str, Optional[Union[str, List[str], TDownloads, TProjectUrls]]]
-    TPackage = Dict[str, Union[TPackageInfo, int, TReleasesDict, TReleasesList]]
-
-
 VALID_ALGORITHMS = {
     "sha1": 40,
     "sha3_224": 56,
@@ -81,7 +68,7 @@ VALID_ALGORITHMS = {
     "md5": 32,
     "sha3_384": 96,
     "sha224": 56,
-}  # type: Dict[str, int]
+}
 
 PACKAGE_TYPES = {
     "sdist",
@@ -382,8 +369,7 @@ class Digest(BaseModel):
 
 
 # XXX: This is necessary because attrs converters can only be functions, not classmethods
-def create_digest_collection(digest_dict):
-    # type: (TDigestDict) -> List["Digest"]
+def create_digest_collection(digest_dict) -> List["Digest"]:
     return Digest.collection_from_dict(digest_dict)
 
 
@@ -563,9 +549,6 @@ class ReleaseUrl(BaseModel):
     def create(cls, release_dict: Dict, name: Optional[str] = None) -> "ReleaseUrl":
         valid_digest_keys = set("{0}_digest".format(k) for k in VALID_ALGORITHMS.keys())
         digest_keys = set(release_dict.keys()) & valid_digest_keys
-        creation_kwargs = (
-            {}
-        )  # type: Dict[str, Union[bool, int, str, Digest, TDigestDict]]
         creation_kwargs = {k: v for k, v in release_dict.items() if k not in digest_keys}
         if name is not None:
             creation_kwargs["name"] = name
@@ -603,9 +586,7 @@ class ReleaseUrlCollection(BaseModel, Sequence):
         frozen = True
 
     @classmethod
-    def create(
-        cls, urls: TReleasesList, name: Optional[str] = None
-    ) -> "ReleaseUrlCollection":
+    def create(cls, urls, name: Optional[str] = None) -> "ReleaseUrlCollection":
         return cls(urls=create_release_urls_from_list(urls), name=name)
 
     @property
@@ -656,8 +637,7 @@ class ReleaseUrlCollection(BaseModel, Sequence):
         return next(iter(url for url in self.urls if url.packagetype == type_), None)
 
 
-def convert_release_urls_to_collection(urls=None, name=None):
-    # type: (Optional[TReleasesList], Optional[str]) -> ReleaseUrlCollection
+def convert_release_urls_to_collection(urls=None, name=None) -> ReleaseUrlCollection:
     if urls is None:
         urls = []
     urls = create_release_urls_from_list(urls, name=name)
@@ -714,8 +694,7 @@ class Release(BaseModel, Sequence):
         }
 
 
-def get_release(version, urls, name=None):
-    # type: (str, TReleasesList, Optional[str]) -> Release
+def get_release(version, urls, name=None) -> Release:
     release_kwargs = {"version": version, "name": name}
     if not isinstance(urls, ReleaseUrlCollection):
         release_kwargs["urls"] = convert_release_urls_to_collection(urls, name=name)
@@ -724,8 +703,7 @@ def get_release(version, urls, name=None):
     return Release(**release_kwargs)  # type: ignore
 
 
-def get_releases_from_package(releases, name=None):
-    # type: (TReleasesDict, Optional[str]) -> List[Release]
+def get_releases_from_package(releases, name=None) -> List[Release]:
     release_list = []
     for version, urls in releases.items():
         release_list.append(get_release(version, urls, name=name))
@@ -776,9 +754,7 @@ class ReleaseCollection(BaseModel):
         return next(iter(r for r in self.sort_releases() if not r.yanked))
 
     @classmethod
-    def load(
-        cls, releases: Union[TReleasesDict, List[Release]], name: Optional[str] = None
-    ) -> "ReleaseCollection":
+    def load(cls, releases, name: Optional[str] = None) -> "ReleaseCollection":
         if not isinstance(releases, list):
             releases = get_releases_from_package(releases, name=name)
         return cls(releases=releases)
@@ -787,8 +763,7 @@ class ReleaseCollection(BaseModel):
         frozen = True
 
 
-def convert_releases_to_collection(releases, name=None):
-    # type: (TReleasesDict, Optional[str]) -> ReleaseCollection
+def convert_releases_to_collection(releases, name=None) -> ReleaseCollection:
     return ReleaseCollection.load(releases, name=name)
 
 
@@ -846,16 +821,13 @@ class PackageInfo(ReqLibBaseModel):
     dependencies: Optional[Tuple[Dependency]] = None
 
     @classmethod
-    def from_json(cls, info_json):
-        # type: (TPackageInfo) -> "PackageInfo"
+    def from_json(cls, info_json) -> "PackageInfo":
         return cls(**filter_dict(info_json))  # type: ignore
 
-    def to_dependency(self):
-        # type: () -> Dependency
+    def to_dependency(self) -> Dependency:
         return Dependency.from_info(self)
 
-    def create_dependencies(self, force=False):
-        # type: (bool) -> "PackageInfo"
+    def create_dependencies(self, force=False) -> "PackageInfo":
         """Create values for **self.dependencies**.
 
         :param bool force: Sets **self.dependencies** to an empty tuple if it would be
@@ -886,8 +858,7 @@ class PackageInfo(ReqLibBaseModel):
         return self
 
 
-def convert_package_info(info_json):
-    # type: (Union[TPackageInfo, PackageInfo]) -> PackageInfo
+def convert_package_info(info_json) -> PackageInfo:
     if isinstance(info_json, PackageInfo):
         return info_json
     return PackageInfo.from_json(info_json)
