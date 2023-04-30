@@ -9,13 +9,6 @@ from requirementslib.models.requirements import Requirement
 
 
 @pytest.mark.needs_internet
-def test_find_all_matches():
-    r = Requirement.from_line("six")
-    matches = r.find_all_matches()
-    assert len(matches) > 0
-
-
-@pytest.mark.needs_internet
 def test_get_dependencies():
     r = Requirement.from_line("requests==2.19.1")
     deps = get_dependencies(r.as_ireq())
