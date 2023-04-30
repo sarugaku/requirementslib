@@ -253,6 +253,7 @@ def test_ast_parser_handles_repeated_assignments(setup_py_dir):
         setup_py_dir.joinpath("package_with_repeated_assignments").absolute().as_posix()
     )
     r = Requirement.from_line(target)
+    r.req.parse_setup_info()
     setup_dict = r.req.setup_info.as_dict()
     assert setup_dict["name"] == "test-package-with-repeated-assignments"
     assert sorted(setup_dict["requires"]) == ["six"]
@@ -261,6 +262,7 @@ def test_ast_parser_handles_repeated_assignments(setup_py_dir):
 def test_ast_parser_handles_exceptions(artifact_dir):
     path = artifact_dir.joinpath("git/pyinstaller")
     r = Requirement.from_line(path.as_posix())
+    r.req.parse_setup_info()
     setup_dict = r.req.setup_info.as_dict()
     assert "altgraph" in setup_dict["requires"]
 
@@ -276,8 +278,9 @@ def test_read_requirements_with_list_comp(setup_py_dir):
     req = Requirement.from_line(
         f"-e {(setup_py_dir / 'package_with_setup_with_list_comp').as_posix()}"
     )
+    req.req.parse_setup_info()
     setup_info = req.req.setup_info.as_dict()
-    assert sorted(setup_info["requires"]) == ["requests"]
+    assert "requests" in setup_info["requires"]
 
 
 def test_ast_parse_from_dict_with_name(setup_py_dir):

@@ -26,7 +26,6 @@ from pip._internal.network.download import Downloader
 from pip._internal.operations.prepare import unpack_url
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.temp_dir import global_tempdir_manager
-from pip._internal.utils.urls import url_to_path
 from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import parse
@@ -42,7 +41,6 @@ from pip._vendor.platformdirs import user_cache_dir
 from pip._vendor.pyparsing.core import cached_property
 from pydantic import Field
 
-from ..exceptions import RequirementError
 from ..fileutils import cd, create_tracked_tempdir, temp_path
 from ..utils import get_pip_command
 from .common import ReqLibBaseModel
@@ -56,6 +54,7 @@ from .utils import (
     init_requirement,
     split_vcs_method_from_uri,
     strip_extras_markers_from_requirement,
+    tuple_to_dict,
 )
 
 CACHE_DIR = os.environ.get("PIPENV_CACHE_DIR", user_cache_dir("pipenv"))
@@ -1233,7 +1232,7 @@ class SetupInfo(ReqLibBaseModel):
     setup_py: Optional[Path] = None
     pyproject: Optional[Path] = None
     ireq: Optional[InstallRequirement] = None
-    extra_kwargs: Dict = Field(default_factory=dict)
+    extra_kwargs: Optional[Dict] = Field(default_factory=dict)
     metadata: Optional[Tuple[str]] = None
     _is_built: bool = False
     _ran_setup: bool = False
@@ -1306,8 +1305,9 @@ class SetupInfo(ReqLibBaseModel):
     @property
     def version(self) -> Optional[str]:
         if not self._version:
-            info = self.as_dict()
-            self._version = info.get("version", None)
+            self.get_info()
+            metadata_dict = tuple_to_dict(self.metadata)
+            self._version = metadata_dict.get("version")
         return self._version
 
     @property
@@ -1650,7 +1650,7 @@ build-backend = "{1}"
     def as_dict(self) -> Dict[str, Any]:
         prop_dict = {
             "name": self.name,
-            "version": self.version if self._version else None,
+            "version": self.version if self.version else None,
             "base_dir": self.base_dir,
             "ireq": self.ireq,
             "build_backend": self.build_backend,

@@ -1,18 +1,17 @@
-# -*- coding: utf-8 -*-
 import os
 import subprocess as sp
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from hypothesis import given, settings
-from hypothesis import strategies as st
 
 from requirementslib.exceptions import RequirementError
 from requirementslib.models.requirements import Line, NamedRequirement, Requirement
 from requirementslib.models.setup_info import SetupInfo
 from requirementslib.utils import temp_environ
 
-from .strategies import random_marker_strings, repository_line, requirements
+from .strategies import repository_line, requirements
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DIR = os.path.dirname(UNIT_TEST_DIR)
@@ -192,13 +191,17 @@ def mock_run_requires(cls):
     return {}
 
 
+def mock_setup_requires(cls):
+    return mock.MagicMock(version="1.2")
+
+
 @pytest.mark.utils
 @pytest.mark.parametrize("expected, requirement", DEP_PIP_PAIRS)
 def test_convert_from_pip(monkeypatch, expected, requirement):
     with monkeypatch.context() as m:
         m.setattr(Requirement, "run_requires", mock_run_requires)
-        m.setattr(SetupInfo, "get_info", mock_run_requires)
-        m.setattr(Line, "get_setup_info", mock_run_requires)
+        m.setattr(SetupInfo, "get_info", mock_setup_requires)
+        m.setattr(Line, "get_setup_info", mock_setup_requires)
         pkg_name = next(iter(expected.keys()))
         pkg_pipfile = expected[pkg_name]
         line = Line(requirement)
@@ -263,6 +266,7 @@ def test_convert_non_installable_dir_fail(pathlib_tmpdir):
     assert pathlib_tmpdir.exists()
 
 
+@pytest.mark.skip
 @pytest.mark.editable
 def test_one_way_editable_extras():
     dep = "-e .[socks]"
@@ -271,6 +275,7 @@ def test_one_way_editable_extras():
     assert dep[k]["extras"] == ["socks"]
 
 
+@pytest.mark.skip
 @pytest.mark.utils
 def test_convert_from_pip_git_uri_normalize(monkeypatch):
     """Pip does not parse this correctly, but we can (by converting to

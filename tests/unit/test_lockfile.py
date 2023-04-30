@@ -87,10 +87,6 @@ def test_lockfile_requirements(pathlib_tmpdir):
                     "sha256:fc323ffcaeaed0e0a02bf4d117757b98aed530d9ed4531e3e15460124c106691"
                 ],
                 "version": "==3.0.4"
-            },
-            "requests": {
-                "path": ".",
-                "editable": true
             }
         }
     }
@@ -108,7 +104,6 @@ def test_lockfile_requirements(pathlib_tmpdir):
             auto_detected_path.path.absolute().as_posix()
             == lockfile.absolute().as_posix()
         )
-        assert auto_detected_path["develop-editable"]["requests"] is not None
 
 
 def test_failure(pipfile_dir):

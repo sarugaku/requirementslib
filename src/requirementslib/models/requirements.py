@@ -157,6 +157,8 @@ class Line(ReqLibBaseModel):
             self.editable = True
         if extras is not None:
             self.extras = tuple(sorted(set(extras)))
+        if line == ".":
+            line = os.path.abspath(line)
         self.line = line
         self.parse()
 
@@ -783,10 +785,9 @@ class Line(ReqLibBaseModel):
             self._wheel_kwargs = _prepare_wheel_building_kwargs(self.ireq)
         return self._wheel_kwargs
 
-    def get_setup_info(self):
-        # type: () -> SetupInfo
+    def get_setup_info(self) -> SetupInfo:
         setup_info = self.setup_info
-        if setup_info is None:
+        if not setup_info:
             with global_tempdir_manager():
                 setup_info = SetupInfo.from_ireq(self.ireq, subdir=self.subdirectory)
                 if not setup_info.name:
@@ -933,16 +934,14 @@ class Line(ReqLibBaseModel):
             return self._parse_wheel()
         return None
 
-    def _parse_name_from_line(self):
-        # type: () -> Optional[str]
-        if not self.is_named:
-            pass
+    def _parse_name_from_line(self) -> Optional[str]:
+        line = self.line
+        if line == ".":
+            line = os.path.abspath(self.line)
         try:
-            self._requirement = init_requirement(self.line)
+            self._requirement = init_requirement(line)
         except Exception:
-            raise RequirementError(
-                "Failed parsing requirement from {0!r}".format(self.line)
-            )
+            raise RequirementError("Failed parsing requirement from {0!r}".format(line))
         name = self._requirement.name
         if not self._specifier and self._requirement and self._requirement.specifier:
             self._specifier = specs_to_string(self._requirement.specifier)
@@ -1549,20 +1548,23 @@ class FileRequirement(ReqLibBaseModel):
         build_deps = []  # type: List[Union[S, PackagingRequirement]]
         setup_deps = []  # type: List[S]
         deps = {}  # type: Dict[S, PackagingRequirement]
-        if self.setup_info:
-            setup_info = self.setup_info.as_dict()
-            deps.update(setup_info.get("requires", {}))
-            setup_deps.extend(setup_info.get("setup_requires", []))
-            build_deps.extend(setup_info.get("build_requires", []))
-            if self.extras and self.setup_info.extras:
-                for dep in self.extras:
-                    if dep not in self.setup_info.extras:
-                        continue
-                    extras_list = self.setup_info.extras.get(dep, [])  # type: ignore
-                    for req_instance in extras_list:  # type: ignore
-                        deps[req_instance.key] = req_instance
         if self.pyproject_requires:
             build_deps.extend(list(self.pyproject_requires))
+        else:
+            if not self.setup_info:
+                self.parse_setup_info()
+            if self.setup_info:
+                setup_info = self.setup_info.as_dict()
+                deps.update(setup_info.get("requires", {}))
+                setup_deps.extend(setup_info.get("setup_requires", []))
+                build_deps.extend(setup_info.get("build_requires", []))
+                if self.extras and self.setup_info.extras:
+                    for dep in self.extras:
+                        if dep not in self.setup_info.extras:
+                            continue
+                        extras_list = self.setup_info.extras.get(dep, [])  # type: ignore
+                        for req_instance in extras_list:  # type: ignore
+                            deps[req_instance.key] = req_instance
         setup_deps = list(set(setup_deps))
         build_deps = list(set(build_deps))
         return deps, setup_deps, build_deps

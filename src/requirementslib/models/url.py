@@ -52,7 +52,7 @@ class URI(ReqLibBaseModel):
     port: Optional[int] = Field(
         None, description="The numeric port of the url if specified"
     )
-    path: str = Field("", description="The url path, e.g. `/path/to/endpoint`")
+    path: Optional[str] = Field("", description="The url path, e.g. `/path/to/endpoint`")
     query: Optional[str] = Field(
         "", description="Query parameters, e.g. `?variable=value...`"
     )

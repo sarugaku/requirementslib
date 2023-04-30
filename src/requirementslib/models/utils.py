@@ -755,3 +755,20 @@ def expand_env_variables(line):
         return value if value else match.group()
 
     return re.sub(r"\$\{([A-Z0-9_]+)\}", replace_with_env, line)
+
+
+def tuple_to_dict(input_tuple):
+    result_dict = {}
+    i = 0
+    while i < len(input_tuple):
+        key = input_tuple[i]
+        i += 1
+        if i < len(input_tuple):
+            if isinstance(input_tuple[i], tuple):
+                value = tuple_to_dict(input_tuple[i])
+                i += 1
+            else:
+                value = input_tuple[i]
+                i += 1
+            result_dict[key] = value
+    return result_dict
