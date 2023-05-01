@@ -100,7 +100,10 @@ DEP_PIP_PAIRS = [
         },
         "FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
     ),
-    ({"six": {"file": "{0}".format(TEST_WHEEL_URI)}}, TEST_WHEEL_URI),
+    (
+        {"six": {"file": "{0}".format(TEST_WHEEL_URI)}},
+        "./artifacts/six/six-1.11.0-py2.py3-none-any.whl",
+    ),
     (
         {"plette": {"extras": ["validation"], "version": ">=0.1.1"}},
         "plette[validation] (>=0.1.1)",
@@ -293,7 +296,7 @@ def test_convert_from_pip_git_uri_normalize(monkeypatch):
         m.setattr(Requirement, "run_requires", mock_run_requires)
         m.setattr(SetupInfo, "get_info", mock_run_requires)
         dep = "git+git@host:user/repo.git#egg=myname"
-        dep = Requirement.from_line(dep).as_pipfile()
+        dep = Requirement.from_line(dep, parse_setup_info=False).as_pipfile()
         assert dep == {"myname": {"git": "git@host:user/repo.git"}}
 
 

@@ -225,6 +225,8 @@ class Line(ReqLibBaseModel):
         as_list: bool = False,
     ) -> Union[str, List[str]]:
         line = self.line
+        if line == self.path and self.relpath:
+            line = self.relpath
         extras_str = extras_to_string(self.extras)
         with_hashes = False if self.editable or self.is_vcs else with_hashes
         hash_list = ["--hash={0}".format(h) for h in sorted(self.hashes)]
@@ -2728,6 +2730,8 @@ class Requirement(ReqLibBaseModel):
                 for remove_key in ["path", "file", "uri", "name", "setup_info"]:
                     if remove_key in result_keys:
                         base_dict.pop(remove_key)
+        if "path" in base_dict and "file" in base_dict:
+            base_dict.pop("path")  # file takes precedence
         if len(base_dict.keys()) == 1 and "version" in base_dict:
             base_dict = base_dict.get("version")
 
