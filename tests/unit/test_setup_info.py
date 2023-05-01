@@ -172,6 +172,7 @@ def test_extras(pathlib_tmpdir, setup_py_dir, setup_py_name, extras, dependencie
     with requirementslib.fileutils.cd(pathlib_tmpdir.as_posix()):
         r = Requirement.from_pipfile("test-package", pipfile_entry)
         assert r.name == "test-package"
+        r.req.parse_setup_info()
         r.req.setup_info.get_info()
         setup_dict = r.req.setup_info.as_dict()
         assert sorted(list(setup_dict.get("requires").keys())) == dependencies

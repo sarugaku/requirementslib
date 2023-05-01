@@ -151,12 +151,13 @@ def test_format_requirement():
     assert utils.format_requirement(ireq) == "test==1.2"
 
 
-@pytest.mark.skip
 def test_format_requirement_editable(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(SetupInfo, "get_info", mock_run_requires)
         m.setattr(Requirement, "run_requires", mock_run_requires)
-        ireq = Requirement.from_line("-e git+git://fake.org/x/y.git#egg=y").as_ireq()
+        ireq = Requirement.from_line(
+            "-e git+git://fake.org/x/y.git#egg=y", parse_setup_info=False
+        ).as_ireq()
         assert utils.format_requirement(ireq) == "-e git+git://fake.org/x/y.git#egg=y"
 
 

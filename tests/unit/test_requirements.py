@@ -275,13 +275,11 @@ def test_convert_non_installable_dir_fail(pathlib_tmpdir):
     assert pathlib_tmpdir.exists()
 
 
-@pytest.mark.skip
 @pytest.mark.editable
 def test_one_way_editable_extras():
     dep = "-e .[socks]"
-    dep = Requirement.from_line(dep).as_pipfile()
-    k = next(iter(dep.keys()))
-    assert dep[k]["extras"] == ["socks"]
+    with pytest.raises(RequirementError):
+        Requirement.from_line(dep)
 
 
 @pytest.mark.utils
@@ -391,7 +389,8 @@ def test_get_requirements(monkeypatch_if_needed):
 @pytest.mark.requirements
 def test_get_requirements_when_subdirectory_fragment(monkeypatch_if_needed):
     url_with_egg = Requirement.from_line(
-        "https://github.com/matteius/test-project.git#egg=test_project&subdirectory=parent_folder/pep508-package"
+        "https://github.com/matteius/test-project.git#egg=test_project&subdirectory=parent_folder/pep508-package",
+        parse_setup_info=False,
     ).requirement
     assert url_with_egg.url == "https://github.com/matteius/test-project.git"
 
@@ -444,7 +443,7 @@ def test_local_editable_ref(monkeypatch):
 @pytest.mark.needs_internet
 def test_pep_508():
     r = Requirement.from_line(
-        "tablib@ https://codeload.github.com/jazzband/tablib/zip/v0.12.1"
+        "tablib@ https://codeload.github.com/jazzband/tablib/zip/v0.12.1",
     )
     assert r.specifiers == "==0.12.1"
     assert (
