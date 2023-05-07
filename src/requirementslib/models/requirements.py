@@ -393,10 +393,10 @@ class Line(ReqLibBaseModel):
             self.populate_setup_paths()
         return self._pyproject_toml
 
-    @cached_property
+    @property
     def specifier(self) -> Optional[str]:
         options = [self._specifier]
-        for req in (self.ireq, self.requirement):
+        for req in (self._ireq, self._requirement):
             if req is not None and getattr(req, "specifier", None):
                 options.append(req.specifier)
         specifier = next(
@@ -426,9 +426,9 @@ class Line(ReqLibBaseModel):
     def specifiers(self) -> Optional[SpecifierSet]:
         ireq_needs_specifier = False
         req_needs_specifier = False
-        if self.ireq is None or self.ireq.req is None or not self.ireq.req.specifier:
+        if self._ireq is None or self._ireq.req is None or not self._ireq.req.specifier:
             ireq_needs_specifier = True
-        if self.requirement is None or not self.requirement.specifier:
+        if self._requirement is None or not self._requirement.specifier:
             req_needs_specifier = True
         if any([ireq_needs_specifier, req_needs_specifier]):
             # TODO: Should we include versions for VCS dependencies? IS there a reason not
@@ -445,8 +445,8 @@ class Line(ReqLibBaseModel):
                     if not isinstance(specifier, SpecifierSet):
                         specifier = SpecifierSet(specifier)
                     return specifier
-        if self.ireq is not None and self.ireq.req is not None:
-            return self.ireq.req.specifier
+        if self._ireq is not None and self._ireq.req is not None:
+            return self._ireq.req.specifier
         elif self.requirement is not None:
             return self.requirement.specifier
         return None
@@ -1442,7 +1442,7 @@ class FileRequirement(ReqLibBaseModel):
             self.parsed_line is not None and self.parsed_line.requirement is not None
         ):
             self.req = self.parsed_line.requirement
-        if self.parsed_line and self.parsed_line.ireq and not self.parsed_line.ireq.req:
+        if self.parsed_line and self.parsed_line._ireq and not self.parsed_line._ireq.req:
             if self.req is not None and self.parsed_line._ireq is not None:
                 self.parsed_line._ireq.req = self.req
 
