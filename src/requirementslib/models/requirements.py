@@ -580,7 +580,7 @@ class Line(ReqLibBaseModel):
                 self.line, extras = _strip_extras(self.line)
         else:
             self.line, extras = _strip_extras(self.line)
-        extras_set = set()
+        extras_set = set()  # type: Set[str]
         if extras is not None:
             extras_set = set(parse_extras_str(extras))
         if self._name:
