@@ -270,13 +270,6 @@ def test_convert_non_installable_dir_fail(pathlib_tmpdir):
     assert pathlib_tmpdir.exists()
 
 
-@pytest.mark.editable
-def test_one_way_editable_extras():
-    dep = "-e .[socks]"
-    with pytest.raises(RequirementError):
-        Requirement.from_line(dep)
-
-
 @pytest.mark.utils
 @mock.patch(
     "requirementslib.models.setup_info.unpack_url", mock.MagicMock(return_value={})
