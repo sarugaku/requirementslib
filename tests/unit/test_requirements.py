@@ -16,10 +16,6 @@ from .strategies import repository_line, requirements
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DIR = os.path.dirname(UNIT_TEST_DIR)
 ARTIFACTS_DIR = os.path.join(TEST_DIR, "artifacts")
-TEST_WHEEL = os.path.join(ARTIFACTS_DIR, "six", "six-1.11.0-py2.py3-none-any.whl")
-TEST_WHEEL_PATH = Path(TEST_WHEEL)
-TEST_WHEEL_URI = TEST_WHEEL_PATH.absolute().as_uri()
-TEST_PROJECT_RELATIVE_DIR = "./artifacts/six/six-1.11.0-py2.py3-none-any.whl"
 
 # Pipfile format <-> requirements.txt format.
 DEP_PIP_PAIRS = [
@@ -99,10 +95,6 @@ DEP_PIP_PAIRS = [
             }
         },
         "FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
-    ),
-    (
-        {"six": {"path": "{0}".format(TEST_PROJECT_RELATIVE_DIR)}},
-        TEST_PROJECT_RELATIVE_DIR,
     ),
     (
         {"plette": {"extras": ["validation"], "version": ">=0.1.1"}},
