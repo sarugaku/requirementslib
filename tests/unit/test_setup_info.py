@@ -22,7 +22,9 @@ from requirementslib.models.setup_info import ast_parse_setup_py
 def test_local_req(test_artifact):
     r = Requirement.from_line(test_artifact.as_posix())
     assert r.name.replace("_", "-") == "environ-config"
-    setup_dict = r.req.setup_info.as_dict()
+    req = r.req
+    req.parse_setup_info()
+    setup_dict = req.setup_info.as_dict()
     assert sorted(list(setup_dict.get("requires").keys())) == ["attrs"]
 
 
