@@ -85,12 +85,12 @@ from .utils import (
     expand_env_variables,
     extras_to_string,
     format_requirement,
+    get_default_pyproject_backend,
     get_pyproject,
     get_version,
     init_requirement,
     make_install_requirement,
     normalize_name,
-    parse_extras_from_line,
     parse_extras_str,
     specs_to_string,
     split_markers_from_line,
@@ -155,18 +155,13 @@ class Line(ReqLibBaseModel):
         editable: Optional[bool] = False,
     ) -> None:
         super().__init__(line=line, extras=extras)
-        self._name = name
-        self.editable = editable
         if line.startswith("-e "):
             line = line[len("-e ") :]
             self.editable = True
         if extras is not None:
             self.extras = tuple(sorted(set(extras)))
-        if line == ".":
-            line = os.path.relpath(line)
         self.line = line
         self.parse()
-        self.parse_extras()
 
     def __hash__(self):
         # Convert the _requirement attribute to a hashable type if it's a dict
@@ -225,8 +220,6 @@ class Line(ReqLibBaseModel):
         as_list: bool = False,
     ) -> Union[str, List[str]]:
         line = self.line
-        if line == self.path and self.relpath:
-            line = self.relpath
         extras_str = extras_to_string(self.extras)
         with_hashes = False if self.editable or self.is_vcs else with_hashes
         hash_list = ["--hash={0}".format(h) for h in sorted(self.hashes)]
@@ -301,8 +294,6 @@ class Line(ReqLibBaseModel):
         return self.get_line(with_prefix=True, with_hashes=False)
 
     def line_for_ireq(self) -> str:
-        if self.line:
-            return self.line
         line = ""
         if self.is_file or self.is_remote_url and not self.is_vcs:
             scheme = self.preferred_scheme if self.preferred_scheme is not None else "uri"
@@ -393,10 +384,10 @@ class Line(ReqLibBaseModel):
             self.populate_setup_paths()
         return self._pyproject_toml
 
-    @property
+    @cached_property
     def specifier(self) -> Optional[str]:
         options = [self._specifier]
-        for req in (self._ireq, self._requirement):
+        for req in (self.ireq, self.requirement):
             if req is not None and getattr(req, "specifier", None):
                 options.append(req.specifier)
         specifier = next(
@@ -426,9 +417,9 @@ class Line(ReqLibBaseModel):
     def specifiers(self) -> Optional[SpecifierSet]:
         ireq_needs_specifier = False
         req_needs_specifier = False
-        if self._ireq is None or self._ireq.req is None or not self._ireq.req.specifier:
+        if self.ireq is None or self.ireq.req is None or not self.ireq.req.specifier:
             ireq_needs_specifier = True
-        if self._requirement is None or not self._requirement.specifier:
+        if self.requirement is None or not self.requirement.specifier:
             req_needs_specifier = True
         if any([ireq_needs_specifier, req_needs_specifier]):
             # TODO: Should we include versions for VCS dependencies? IS there a reason not
@@ -538,6 +529,12 @@ class Line(ReqLibBaseModel):
             pyproject_results = get_pyproject(self.path)  # type: ignore
             if pyproject_results:
                 pyproject_requires, pyproject_backend = pyproject_results
+            if not pyproject_backend and self.setup_cfg is not None:
+                setup_dict = SetupInfo.get_setup_cfg(self.setup_cfg)
+                pyproject_backend = get_default_pyproject_backend()
+                pyproject_requires = setup_dict.get(
+                    "build_requires", ["setuptools", "wheel"]
+                )  # type: ignore
             if pyproject_requires:
                 self._pyproject_requires = tuple(pyproject_requires)
             if pyproject_backend:
@@ -563,18 +560,26 @@ class Line(ReqLibBaseModel):
         :returns: self
         :rtype: :class:`~Line`
         """
-        extras = parse_extras_from_line(self.line)
-        if extras:
-            self.extras = extras
-            return self
-        if any([self.is_vcs, self.is_url, "@" in self.line]):
+        extras = None
+        line = "{0}".format(self.line)
+        if any([self.is_vcs, self.is_url, "@" in line]):
             try:
                 if self.parsed_url.name:
                     self._name = self.parsed_url.name
+                if (
+                    self.parsed_url.host
+                    and self.parsed_url.path
+                    and self.parsed_url.scheme
+                ):
+                    self.line = self.parsed_url.to_string(
+                        escape_password=False,
+                        direct=False,
+                        strip_ssh=self.parsed_url.is_implicit_ssh,
+                    )
             except ValueError:
-                line, extras = _strip_extras(self.line)
+                self.line, extras = _strip_extras(self.line)
         else:
-            line, extras = _strip_extras(self.line)
+            self.line, extras = _strip_extras(self.line)
         extras_set = set()
         if extras is not None:
             extras_set = set(parse_extras_str(extras))
@@ -789,7 +794,7 @@ class Line(ReqLibBaseModel):
 
     def get_setup_info(self) -> SetupInfo:
         setup_info = self.setup_info
-        if not setup_info:
+        if setup_info is None:
             with global_tempdir_manager():
                 setup_info = SetupInfo.from_ireq(self.ireq, subdir=self.subdirectory)
                 if not setup_info.name:
@@ -896,7 +901,7 @@ class Line(ReqLibBaseModel):
         else:
             ireq = install_req_from_line(line)
         if self.is_named:
-            ireq = install_req_from_line(line)
+            ireq = install_req_from_line(self.line)
         if self.is_file or self.is_remote_url:
             ireq.link = Link(expand_env_variables(self.link.url))
         if self.extras and not ireq.extras:
@@ -904,7 +909,7 @@ class Line(ReqLibBaseModel):
         if self.parsed_marker is not None and not ireq.markers:
             ireq.markers = self.parsed_marker
         if not ireq.req and self._requirement is not None:
-            ireq.req = copy.deepcopy(self._requirement)
+            ireq.req = self._requirement
         return ireq
 
     def parse_ireq(self):
@@ -936,24 +941,19 @@ class Line(ReqLibBaseModel):
         return None
 
     def _parse_name_from_line(self) -> Optional[str]:
-        name = None
-        line = self.line
-        if line.startswith("-e "):
-            line = line[3:].strip()
-            self.editable = True
-        line, extras = _strip_extras(line)
-        if line.startswith("."):
-            line = os.path.abspath(line)
-        try:
-            self._requirement = init_requirement(line)
-        except Exception:
+        if not self.is_named:
             pass
-        else:
-            name = self._requirement.name
-            if not self._specifier and self._requirement and self._requirement.specifier:
-                self._specifier = specs_to_string(self._requirement.specifier)
-            if self._requirement.extras and not self.extras:
-                self.extras = self._requirement.extras
+        try:
+            self._requirement = init_requirement(self.line)
+        except Exception:
+            raise RequirementError(
+                "Failed parsing requirement from {0!r}".format(self.line)
+            )
+        name = self._requirement.name
+        if not self._specifier and self._requirement and self._requirement.specifier:
+            self._specifier = specs_to_string(self._requirement.specifier)
+        if self._requirement.extras and not self.extras:
+            self.extras = self._requirement.extras
         if not name:
             name = self.line
             specifier_match = next(
@@ -1219,7 +1219,6 @@ class Line(ReqLibBaseModel):
         requirement.
         """
         line = self.line
-        line, extras = _strip_extras(line)
         direct_url_match = DIRECT_URL_RE.match(line)
         if direct_url_match:
             match_dict = direct_url_match.groupdict()
@@ -1266,6 +1265,7 @@ class Line(ReqLibBaseModel):
         self.line, self.markers = split_markers_from_line(self.parse_hashes().line)
         if self.markers:
             self.markers = self.markers.replace('"', "'")
+        self.parse_extras()
         if self.line.startswith("git+file:/") and not self.line.startswith(
             "git+file:///"
         ):
@@ -1287,7 +1287,7 @@ class NamedRequirement(ReqLibBaseModel):
     name: str
     version: Optional[str]
     req: PackagingRequirement
-    extras: Tuple[str, ...] = Field(default_factory=list)
+    extras: Optional[Tuple[str, ...]] = Field(default_factory=list)
     editable: bool = False
     parsed_line: Optional[Line] = None
 
@@ -1301,8 +1301,7 @@ class NamedRequirement(ReqLibBaseModel):
     def __init__(self, **data):
         super().__init__(**data)
 
-        if not self.parsed_line:
-            self.parsed_line = Line(line=self.line_part)
+        self.parsed_line = Line(line=self.line_part)
 
         # Set default values using the methods
         if not self.req:
@@ -1431,18 +1430,17 @@ class FileRequirement(ReqLibBaseModel):
             self.uri_scheme = "path"
         # self.parse_setup_info()
         if self.parsed_line is None:
-            self.parsed_line = Line(line=self.line_part, name=self.name)
-        if self.setup_info and self.parsed_line and not self.parsed_line.setup_info:
-            self.parsed_line.setup_info = self.setup_info
-        if self.parsed_line and self.parsed_line.setup_info:
-            self.setup_info = self.parsed_line.setup_info
-            if not self.name and self.parsed_line.setup_info.name:
-                self.name = self.parsed_line.setup_info.name
+            self.parsed_line = Line(line=self.line_part)
+        if self.name is None and self.parsed_line:
+            if self.parsed_line.setup_info:
+                self.setup_info = self.parsed_line.setup_info
+                if self.parsed_line.setup_info.name:
+                    self.name = self.parsed_line.setup_info.name
         if self.req is None and (
             self.parsed_line is not None and self.parsed_line.requirement is not None
         ):
             self.req = self.parsed_line.requirement
-        if self.parsed_line and self.parsed_line._ireq and not self.parsed_line._ireq.req:
+        if self.parsed_line and self.parsed_line.ireq and not self.parsed_line.ireq.req:
             if self.req is not None and self.parsed_line._ireq is not None:
                 self.parsed_line._ireq.req = self.req
 
@@ -1593,7 +1591,7 @@ class FileRequirement(ReqLibBaseModel):
                     )
             else:
                 if self.link and not self.link.is_wheel:
-                    self.setup_info = Line(self.line_part, name=self.name).setup_info
+                    self.setup_info = Line(self.line_part).setup_info
                     with global_tempdir_manager():
                         self.setup_info.get_info()
         return self.setup_info
@@ -1780,9 +1778,7 @@ class FileRequirement(ReqLibBaseModel):
                 line = "{0}&subdirectory={1}".format(line, pipfile["subdirectory"])
         if editable:
             line = "-e {0}".format(line)
-        arg_dict["parsed_line"] = Line(
-            line=line, editable=editable, extras=extras, name=name
-        )
+        arg_dict["parsed_line"] = Line(line=line, extras=extras)
         arg_dict["setup_info"] = arg_dict["parsed_line"].setup_info
         return cls(**arg_dict)  # type: ignore
 
@@ -2180,7 +2176,7 @@ class VCSRequirement(FileRequirement):
     def from_line(
         cls, line, editable=None, extras=None, parsed_line=None
     ) -> Union["FileRequirement", "VCSRequirement"]:
-        parsed_line = Line(line=line, editable=editable, extras=extras)
+        parsed_line = Line(line=line)
         return vcs_req_from_parsed_line(parsed_line)
 
     @property
@@ -2284,7 +2280,7 @@ class Requirement(ReqLibBaseModel):
     editable: Optional[bool] = Field(None, eq=True, order=True)
     hashes: Set[str] = set()
     extras: Tuple[str, ...] = Field(tuple(), eq=True, order=True)
-    line_instance_ref: Optional[Line] = Field(None, eq=False, order=False)
+    _line_instance: Optional[Line] = None
     # ireq: Optional[InstallRequirement] = Field(None, eq=False, order=False)
     # _ireq: Optional[Any] = Field(None, eq=False, order=False)
 
@@ -2379,50 +2375,52 @@ class Requirement(ReqLibBaseModel):
                 self.req.setup_info.name = name
 
     def get_line_instance(self) -> Line:
-        if self.line_instance_ref:
-            return self.line_instance_ref
-        line_parts = []
-        local_editable = False
-        if self.req:
-            if self.req.line_part.startswith("-e "):
-                local_editable = True
-                line_parts.extend(self.req.line_part.split(" ", 1))
-            else:
-                line_parts.append(self.req.line_part)
-        if self.extras and isinstance(self.req, NamedRequirement):
-            line_parts.append(self.extras_as_pip)
-        if not self.is_vcs and not self.vcs and self.extras_as_pip:
+        if self._line_instance is None:
+            line_parts = []
+            local_editable = False
+            if self.req:
+                if self.req.line_part.startswith("-e "):
+                    local_editable = True
+                    line_parts.extend(self.req.line_part.split(" ", 1))
+                else:
+                    line_parts.append(self.req.line_part)
+
+            version, fetched = self.get_version_from_setup_info()
+            if version is not None and not (self.is_file_or_url or self.is_vcs):
+                line_parts.append(f"=={version}")
             if (
                 self.is_file_or_url
                 and not local_editable
                 and not self.req.get_uri().startswith("file://")
                 # fix for file uri with egg names and extras
+                and not len(self.req.line_part.split("#")) > 1
             ):
                 line_parts.append(f"#egg={self.name}{self.extras_as_pip}")
-        if not (self.is_file_or_url or self.is_vcs) and self.specifiers:
-            line_parts.append(self.specifiers)
-        if self.markers and not self.is_file_or_url:
-            line_parts.append(" ; {0}".format(self.markers.replace('"', "'")))
-        if self.hashes_as_pip and not (self.editable or self.vcs or self.is_vcs):
-            line_parts.append(self.hashes_as_pip)
-        if self.editable:
-            if line_parts[0] == "-e":
-                self.editable = True
-                line = "".join(line_parts[1:])
+            elif not any(part for part in line_parts if self.extras_as_pip in part):
+                line_parts.append(self.extras_as_pip)
+            if self.specifiers and not (self.is_file_or_url or self.is_vcs):
+                line_parts.append(self.specifiers)
+            if self.markers and not self.is_file_or_url:
+                line_parts.append(" ; {0}".format(self.markers.replace('"', "'")))
+
+            if self.hashes_as_pip and not (self.editable or self.vcs or self.is_vcs):
+                line_parts.append(self.hashes_as_pip)
+
+            if self.editable:
+                if line_parts[0] == "-e":
+                    line = "".join(line_parts[1:])
+                else:
+                    line = "".join(line_parts)
+                if self.markers:
+                    line = '"{0}"'.format(line)
+                line = "-e {0}".format(line)
             else:
                 line = "".join(line_parts)
-            if self.markers:
-                line = '"{0}"'.format(line)
-            line = "-e {0}".format(line)
-        else:
-            line = "".join(line_parts)
-        self.line_instance_ref = Line(line=line)
-        return self.line_instance_ref
+            self._line_instance = Line(line=line)
+        return self._line_instance
 
     @property
-    def line_instance(self) -> Optional[Line]:
-        if self.line_instance_ref:
-            return self.line_instance_ref
+    def line_instance(self):
         return self.get_line_instance()
 
     @cached_property
@@ -2441,12 +2439,18 @@ class Requirement(ReqLibBaseModel):
             return "=={0}".format(self.req.setup_info.version)
         # TODO This creates circular call chain that eventuallys gets cached by cached_property
         elif self.is_file_or_url or self.is_vcs:
-            try:
-                setupinfo_dict = self.run_requires()
-            except Exception:
-                setupinfo_dict = None
-            if setupinfo_dict is not None:
-                return "=={0}".format(setupinfo_dict.get("version"))
+            version, fetched = self.get_version_from_setup_info()
+            if version is not None:
+                return "=={0}".format(version)
+            elif not fetched:
+                try:
+                    setupinfo_dict = self.run_requires()
+                except Exception:
+                    setupinfo_dict = None
+                if setupinfo_dict is not None:
+                    return "=={0}".format(setupinfo_dict.get("version"))
+        elif self.req and hasattr(self.req, "setup_info") and self.req.setup_info.version:
+            return "=={0}".format(self.req.setup_info.version)
 
     @cached_property
     def is_vcs(self) -> bool:
@@ -2493,9 +2497,7 @@ class Requirement(ReqLibBaseModel):
             r = file_req_from_parsed_line(parsed_line)
         elif parsed_line.is_vcs:
             r = vcs_req_from_parsed_line(parsed_line)
-        elif (line.startswith("-e") or line.startswith(".")) and not is_installable_file(
-            line
-        ):
+        elif line == "." and not is_installable_file(line):
             raise RequirementError(
                 "Error parsing requirement %s -- are you sure it is installable?" % line
             )
@@ -2514,7 +2516,6 @@ class Requirement(ReqLibBaseModel):
             "req": r,
             "markers": parsed_line.markers,
             "editable": parsed_line.editable,
-            "line_instance": parsed_line,
         }
         if parsed_line.extras:
             extras = tuple(sorted(dedup([extra.lower() for extra in parsed_line.extras])))
@@ -2646,7 +2647,6 @@ class Requirement(ReqLibBaseModel):
     def get_requirement(self) -> PackagingRequirement:
         req_line = self.req.req.line
         if req_line.startswith("-e "):
-            self.editable = True
             _, req_line = req_line.split(" ", 1)
         req = init_requirement(self.name)
         req.line = req_line
@@ -2670,6 +2670,7 @@ class Requirement(ReqLibBaseModel):
         )
 
     def as_pipfile(self) -> Dict[str, Any]:
+
         good_keys = (
             "hashes",
             "extras",
@@ -2705,12 +2706,14 @@ class Requirement(ReqLibBaseModel):
             if k not in ["req", "link", "_setup_info"]
         }
         base_dict.update(req_dict)
-        req = dict_from_subreq.get("req")
-        if req and req.url:
-            base_dict["file"] = dict_from_subreq["req"].url
-        conflicting_keys = ("file", "path", "uri")
-        if "file" in base_dict and any(k in base_dict for k in conflicting_keys[1:]):
-            conflicts = [k for k in (conflicting_keys[1:],) if k in base_dict]
+        file_conflicting_keys = ("path", "uri", "name")
+        if "file" in base_dict and any(k in base_dict for k in file_conflicting_keys):
+            conflicts = [k for k in file_conflicting_keys if k in base_dict]
+            for k in conflicts:
+                base_dict.pop(k)
+        vcs_conflicting_keys = ("path", "uri", "name")
+        if any(k in base_dict for k in VCS_LIST):
+            conflicts = [k for k in vcs_conflicting_keys if k in base_dict]
             for k in conflicts:
                 base_dict.pop(k)
         if "hashes" in base_dict:
@@ -2724,14 +2727,8 @@ class Requirement(ReqLibBaseModel):
             base_dict["hashes"] = sorted(hashes)
         if "extras" in base_dict:
             base_dict["extras"] = list(base_dict["extras"])
-        result_keys = list(base_dict.keys())
-        for vcs_key in VCS_LIST:
-            if vcs_key in result_keys:
-                for remove_key in ["path", "file", "uri", "name", "setup_info"]:
-                    if remove_key in result_keys:
-                        base_dict.pop(remove_key)
-        if "path" in base_dict and "file" in base_dict:
-            base_dict.pop("path")  # file takes precedence
+        if "setup_info" in base_dict:
+            del base_dict["setup_info"]
         if len(base_dict.keys()) == 1 and "version" in base_dict:
             base_dict = base_dict.get("version")
 
@@ -2769,12 +2766,20 @@ class Requirement(ReqLibBaseModel):
     def ireq(self) -> InstallRequirement:
         return self.as_ireq()
 
+    def get_version_from_setup_info(self) -> Tuple[Optional[str], bool]:
+        if self.req and isinstance(self.req, FileRequirement):
+            self.req.parse_setup_info()
+        if self.req and hasattr(self.req, "setup_info") and self.req.setup_info:
+            return self.req.setup_info.version, True
+        elif self._line_instance and self._line_instance.setup_info:
+            return self._line_instance.setup_info.version, True
+
+        return None, False
+
     def run_requires(
         self, sources: Optional[List[str]] = None, finder: Optional[PackageFinder] = None
     ) -> Dict[str, Any]:
-        if self.req and self.req.setup_info:
-            info_dict = self.req.setup_info.as_dict()
-        elif self.line_instance and self.line_instance.setup_info:
+        if self.line_instance and self._line_instance.setup_info:
             info_dict = self.line_instance.setup_info.as_dict()
         else:
             if not finder:

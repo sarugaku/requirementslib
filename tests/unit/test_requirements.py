@@ -19,7 +19,7 @@ ARTIFACTS_DIR = os.path.join(TEST_DIR, "artifacts")
 TEST_WHEEL = os.path.join(ARTIFACTS_DIR, "six", "six-1.11.0-py2.py3-none-any.whl")
 TEST_WHEEL_PATH = Path(TEST_WHEEL)
 TEST_WHEEL_URI = TEST_WHEEL_PATH.absolute().as_uri()
-TEST_PROJECT_RELATIVE_DIR = "tests/artifacts/six/six-1.11.0-py2.py3-none-any.whl"
+TEST_PROJECT_RELATIVE_DIR = "./artifacts/six/six-1.11.0-py2.py3-none-any.whl"
 
 # Pipfile format <-> requirements.txt format.
 DEP_PIP_PAIRS = [
@@ -101,8 +101,8 @@ DEP_PIP_PAIRS = [
         "FooProject[stuff]==1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
     ),
     (
-        {"six": {"file": "{0}".format(TEST_WHEEL_URI)}},
-        "./artifacts/six/six-1.11.0-py2.py3-none-any.whl",
+        {"six": {"path": "{0}".format(TEST_PROJECT_RELATIVE_DIR)}},
+        TEST_PROJECT_RELATIVE_DIR,
     ),
     (
         {"plette": {"extras": ["validation"], "version": ">=0.1.1"}},
@@ -302,20 +302,16 @@ def test_convert_from_pip_git_uri_normalize(monkeypatch):
 
 @pytest.mark.utils
 @pytest.mark.requirements
-@mock.patch(
-    "requirementslib.models.setup_info.unpack_url", mock.MagicMock(return_value={})
-)
 def test_get_requirements(monkeypatch_if_needed):
     # Test eggs in URLs
-    # m.setattr(SetupInfo, "get_info", mock_run_requires)
-    # url_with_egg = Requirement.from_line(
-    #     "https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip#egg=django-user-clipboard"
-    # ).requirement
-    # assert (
-    #     url_with_egg.url
-    #     == "https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip"
-    # )
-    # assert url_with_egg.name == "django-user-clipboard"
+    url_with_egg = Requirement.from_line(
+        "https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip#egg=django-user-clipboard"
+    ).requirement
+    assert (
+        url_with_egg.url
+        == "https://github.com/IndustriaTech/django-user-clipboard/archive/0.6.1.zip"
+    )
+    assert url_with_egg.name == "django-user-clipboard"
     # Test URLs without eggs pointing at installable zipfiles
     url = Requirement.from_line(
         "https://github.com/jazzband/tablib/archive/v0.12.1.zip"
@@ -357,35 +353,37 @@ def test_get_requirements(monkeypatch_if_needed):
     assert list(extras_markers.extras) == ["security"]
     assert extras_markers.name == "requests"
     assert str(extras_markers.marker) == 'os_name == "posix"'
-    # Test VCS uris get generated correctly, retain git+git@ if supplied that way, and are named according to egg fragment
-    git_reformat = Requirement.from_line(
-        "-e git+git@github.com:pypa/pipenv.git#egg=pipenv"
-    ).requirement
-    assert git_reformat.url == "git+ssh://git@github.com/pypa/pipenv.git"
-    assert git_reformat.name == "pipenv"
-    assert git_reformat.editable
-    # Previously VCS uris were being treated as local files, so make sure these are not handled that way
-    assert not git_reformat.local_file
-    # Test regression where VCS uris were being handled as paths rather than VCS entries
-    assert git_reformat.vcs == "git"
-    assert git_reformat.link.url == "git+ssh://git@github.com/pypa/pipenv.git#egg=pipenv"
+    # Test VCS uris get generated correctly,
+    # they retain git+git@ if supplied that way, and are named according to egg fragment
+    with mock.patch(
+        "requirementslib.models.setup_info.unpack_url", mock.MagicMock(return_value={})
+    ):
+        git_reformat = Requirement.from_line(
+            "-e git+git@github.com:pypa/pipenv.git#egg=pipenv"
+        ).requirement
+        assert git_reformat.url == "git+ssh://git@github.com/pypa/pipenv.git"
+        assert git_reformat.name == "pipenv"
+        assert git_reformat.editable
+        # Previously VCS uris were being treated as local files, so make sure these are not handled that way
+        assert not git_reformat.local_file
+        # Test regression where VCS uris were being handled as paths rather than VCS entries
+        assert git_reformat.vcs == "git"
+        assert (
+            git_reformat.link.url == "git+ssh://git@github.com/pypa/pipenv.git#egg=pipenv"
+        )
+
     # Test VCS requirements being added with extras for constraint_line
     git_extras = Requirement.from_line(
-        "-e git+https://github.com/requests/requests.git@master#egg=requests[security]"
+        "-e git+https://github.com/requests/requests.git@main#egg=requests[security]"
     )
     assert (
         git_extras.as_line()
-        == "-e git+https://github.com/requests/requests.git@master#egg=requests[security]"
+        == "-e git+https://github.com/requests/requests.git@main#egg=requests[security]"
     )
     assert (
         git_extras.constraint_line
-        == "-e git+https://github.com/requests/requests.git@master#egg=requests[security]"
+        == "-e git+https://github.com/requests/requests.git@main#egg=requests[security]"
     )
-    # these will fail due to not being real paths
-    # local_wheel = Requirement.from_pipfile('six', {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'})
-    # assert local_wheel.as_line() == 'file:///home/hawk/git/wheels/six/six-1.11.0-py2.py3-none-any.whl'
-    # local_wheel_from_line = Requirement.from_line('../wheels/six/six-1.11.0-py2.py3-none-any.whl')
-    # assert local_wheel_from_line.as_pipfile() == {'six': {'path': '../wheels/six/six-1.11.0-py2.py3-none-any.whl'}}
 
 
 @pytest.mark.utils

@@ -41,7 +41,7 @@ from pip._vendor.platformdirs import user_cache_dir
 from pip._vendor.pyparsing.core import cached_property
 from pydantic import Field
 
-from ..fileutils import cd, create_tracked_tempdir, temp_path
+from ..fileutils import cd, create_tracked_tempdir, temp_path, url_to_path
 from ..utils import get_pip_command
 from .common import ReqLibBaseModel
 from .old_pip_utils import _copy_source_tree
@@ -54,7 +54,6 @@ from .utils import (
     init_requirement,
     split_vcs_method_from_uri,
     strip_extras_markers_from_requirement,
-    tuple_to_dict,
 )
 
 CACHE_DIR = os.environ.get("PIPENV_CACHE_DIR", user_cache_dir("pipenv"))
@@ -1305,10 +1304,8 @@ class SetupInfo(ReqLibBaseModel):
     @property
     def version(self) -> Optional[str]:
         if not self._version:
-            self.get_info()
-            if self.metadata:
-                metadata_dict = tuple_to_dict(self.metadata)
-                self._version = metadata_dict.get("version")
+            info = self.as_dict()
+            self._version = info.get("version", None)
         return self._version
 
     @property
@@ -1332,8 +1329,8 @@ class SetupInfo(ReqLibBaseModel):
 
     def update_from_dict(self, metadata: Dict[str, Any]) -> None:
         name = metadata.get("name", self.name)
-        if name and isinstance(name, str):
-            self.name = name
+        if isinstance(name, str):
+            self.name = self.name if self.name else name
         version = metadata.get("version", None)
         if version:
             try:
@@ -1575,6 +1572,9 @@ build-backend = "{1}"
         name = metadata.get("name")
         if name:
             self.name = name
+        version = metadata.get("version")
+        if version:
+            self._version = version
         extras_require = metadata.get("extras", ())
         extras_tuples = []
         for section in set(extras_require):
@@ -1651,7 +1651,7 @@ build-backend = "{1}"
     def as_dict(self) -> Dict[str, Any]:
         prop_dict = {
             "name": self.name,
-            "version": self.version if self.version else None,
+            "version": self.version if self._version else None,
             "base_dir": self.base_dir,
             "ireq": self.ireq,
             "build_backend": self.build_backend,
@@ -1718,8 +1718,7 @@ build-backend = "{1}"
             build_location_func = getattr(ireq, "ensure_build_location", None)
         if not ireq.source_dir:
             if subdir:
-                normalized_subdir = os.path.normpath(subdir)
-                directory = os.path.join(kwargs["build_dir"], normalized_subdir)
+                directory = f"{kwargs['build_dir']}/{subdir}"
             else:
                 directory = kwargs["build_dir"]
             build_kwargs = {

@@ -45,6 +45,8 @@ def test_local_req(test_artifact):
 def test_remote_req(url_line, name, requires):
     r = Requirement.from_line(url_line)
     assert r.name == name
+    req = r.req
+    req.parse_setup_info()
     setup_dict = r.req.setup_info.as_dict()
     assert sorted(list(setup_dict.get("requires").keys())) == sorted(requires)
 
@@ -62,9 +64,11 @@ def test_remote_req(url_line, name, requires):
 def test_remote_source_in_subdirectory(url_line, name):
     r = Requirement.from_line(url_line)
     assert r.name == name
+    req = r.req
+    req.parse_setup_info()
     setup_dict = r.req.setup_info.as_dict()
     print(setup_dict)
-    assert setup_dict.get("name") == "pep508_package"
+    assert setup_dict.get("name") == "pep508-package"
     assert setup_dict.get("version") == "1.0.0"
     assert sorted(list(setup_dict.get("requires").keys())) == sorted(
         ["sibling-package", "six"]
@@ -102,6 +106,8 @@ def test_no_duplicate_egg_info(artifact_dir):
 
     assert not find_metadata(base_dir)
     assert not find_metadata(os.path.join(base_dir, "src", "reqlib-metadata"))
+    req = r.req
+    req.parse_setup_info()
     assert r.req.setup_info and os.path.isdir(r.req.setup_info.egg_base)
     setup_info = r.req.setup_info
     setup_info.get_info()
@@ -143,6 +149,7 @@ setup(
             "extras": ["socks"],
         }
         r = Requirement.from_pipfile("e1839a8", pipfile_entry)
+        r.req.parse_setup_info()
         r.run_requires()
         setup_dict = r.req.setup_info.as_dict()
         assert sorted(list(setup_dict.get("requires").keys())) == ["raven"]

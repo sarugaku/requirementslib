@@ -15,6 +15,10 @@ def mock_run_requires(cls):
     return {}
 
 
+def mock_get_version_from_setup_info(cls):
+    return None, False
+
+
 def test_filter_none():
     assert utils.filter_none("abc", "") is False
     assert utils.filter_none("abc", None) is False
@@ -155,6 +159,9 @@ def test_format_requirement_editable(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(SetupInfo, "get_info", mock_run_requires)
         m.setattr(Requirement, "run_requires", mock_run_requires)
+        m.setattr(
+            Requirement, "get_version_from_setup_info", mock_get_version_from_setup_info
+        )
         ireq = Requirement.from_line(
             "-e git+git://fake.org/x/y.git#egg=y", parse_setup_info=False
         ).as_ireq()
