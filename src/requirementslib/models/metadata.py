@@ -371,7 +371,6 @@ class Digest(BaseModel):
         return value
 
 
-# XXX: This is necessary because attrs converters can only be functions, not classmethods
 def create_digest_collection(digest_dict) -> List["Digest"]:
     return Digest.collection_from_dict(digest_dict)
 

@@ -91,7 +91,8 @@ if os.name == "nt":
         return buffer.value
 
 
-def normalize_path(path):
+def normalize_path(path: str) -> str:
+    """Return a case-normalized absolute variable-expanded path."""
     return os.path.expandvars(
         os.path.expanduser(os.path.normcase(os.path.normpath(os.path.abspath(str(path)))))
     )
