@@ -7,21 +7,7 @@ import zipfile
 from collections import defaultdict
 from datetime import datetime
 from functools import reduce
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple, Union
 
 import pip._vendor.requests as requests
 from pip._vendor.distlib import wheel
@@ -376,7 +362,6 @@ def create_digest_collection(digest_dict) -> List["Digest"]:
 
 
 def instance_check_converter(expected_type=None, converter=None):
-    # type: (Optional[Type], Optional[Callable]) -> Callable
     def _converter(val):
         if expected_type is not None and isinstance(val, expected_type):
             return val
