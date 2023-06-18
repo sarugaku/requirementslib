@@ -1,3 +1,9 @@
+Requirementslib 3.0.0 (2023-06-18)
+==================================
+
+ * Drop attrs lib and replace with pydantic.
+ * Remove unused modules.
+
 Requirementslib 2.3.0 (2023-04-28)
 ==================================
 
